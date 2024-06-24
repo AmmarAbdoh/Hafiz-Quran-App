@@ -1,0 +1,26 @@
+.custom-test {
+  padding: 20px;
+}
+
+.verse-container {
+  margin-bottom: 10px;
+}
+
+.verse-text {
+  font-size: 2rem;
+}
+
+.verse-number {
+  display: inline-block;
+  width: 2.5rem;
+  height: 2rem;
+  border-radius: 50%;
+  background-color: white;
+  color: black;
+  border-style: solid;
+  font-size: 1rem;
+  font-weight: bold;
+  text-align: center;
+  margin-left: 1rem;
+  margin-right: 1rem;
+}

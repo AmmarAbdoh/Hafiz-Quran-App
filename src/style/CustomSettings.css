@@ -1,0 +1,29 @@
+.form-check {
+  border-style: solid;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-radius: 5%;
+}
+.form-check-input {
+  transform: scale(1.5);
+  margin-left: 1rem !important;
+}
+
+.checkbox-col {
+  cursor: pointer;
+}
+
+.form-check-label {
+  cursor: pointer;
+  user-select: none;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+.nav-tabs .nav-link {
+  color: black !important;
+}
+
+.nav-tabs .nav-link.active {
+  color: black !important;
+  font-weight: bold;
+}

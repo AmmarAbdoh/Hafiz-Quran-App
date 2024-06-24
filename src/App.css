@@ -1,0 +1,44 @@
+@font-face {
+  font-family: "ReemKufi";
+  src: url("./assets/fonts/ReemKufi-VariableFont_wght.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.background-image-class {
+  background-image: url("../public/images/main-background.jpg");
+}
+
+.background-blank {
+  background-color: #e8e0d5;
+}
+
+body {
+  font-family: ReemKufi;
+  background-size: cover; /* Ensures the image covers the entire background */
+  background-position: center; /* Centers the image */
+  background-repeat: no-repeat; /* Prevents the image from repeating */
+  background-attachment: fixed; /* Keeps the background image fixed during scroll */
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.mybtn {
+  color: black;
+  background-color: whitesmoke;
+  font-size: 1.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: 2px solid black;
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+}
+.mybtn:hover {
+  transform: scale(1.1);
+}
