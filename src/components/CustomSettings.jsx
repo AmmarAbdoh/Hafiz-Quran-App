@@ -1,14 +1,22 @@
-import React, { useState } from "react";
-import { Container, Row, Col, Nav } from "react-bootstrap";
+import React, { useState, useContext, useEffect } from "react";
+import { Container, Nav } from "react-bootstrap";
 import SurahSelection from "./SurahSelection";
 import JuzSelection from "./JuzSelection";
+import { MyContext } from "../useContext";
+import QuranVerse from "../components/QuranVerse";
 
 const CustomSettings = () => {
+  const { quranSelection, setQuranSelection } = useContext(MyContext); // Assuming you only need to read quranSelection
   const [activeTab, setActiveTab] = useState("surah");
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
   };
+
+  // Conditionally render the entire container based on quranSelection length
+  if (quranSelection.length > 0) {
+    return <QuranVerse quranSelection={quranSelection} />;
+  }
 
   return (
     <Container className="tabs">
@@ -25,6 +33,7 @@ const CustomSettings = () => {
         </Nav.Item>
       </Nav>
 
+      {/* Render tab content based on activeTab */}
       {activeTab === "surah" && <SurahSelection />}
       {activeTab === "juz" && <JuzSelection />}
     </Container>

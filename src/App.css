@@ -39,6 +39,14 @@ body {
   border: 2px solid black;
   transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
 }
-.mybtn:hover {
+
+.mybtn:disabled {
+  background-color: lightgray;
+  color: gray;
+  border-color: gray;
+  cursor: not-allowed;
+}
+
+.mybtn:not(:disabled):hover {
   transform: scale(1.1);
 }

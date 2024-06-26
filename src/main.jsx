@@ -4,8 +4,10 @@ import App from "./App.jsx";
 import "./index.css";
 import "./style/CustomSettings.css";
 import "./style/QuranStyle.css";
+import { MyProvider } from "./useContext.jsx";
+
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
+  <MyProvider>
     <App />
-  </React.StrictMode>
+  </MyProvider>
 );

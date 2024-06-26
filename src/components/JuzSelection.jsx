@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { Container, Row, Col, Button } from "react-bootstrap";
+import React, { useState, useContext } from "react";
+import { Container, Row, Col } from "react-bootstrap";
+import { MyContext } from "../useContext";
 
 const juzNames = [
   "البسملة",
@@ -35,7 +36,10 @@ const juzNames = [
 ];
 
 const JuzSelection = () => {
-  const [checkedState, setCheckedState] = useState(new Array(30).fill(false));
+  const { quranSelection, setQuranSelection } = useContext(MyContext);
+
+  const [checkedState, setCheckedState] = useState(new Array(31).fill(false));
+  checkedState[30] = false;
 
   const handleCheckboxChange = (index) => {
     const updatedCheckedState = checkedState.map((item, idx) =>
@@ -51,11 +55,23 @@ const JuzSelection = () => {
   };
 
   const toggleSelectAll = () => {
-    const allSelected = checkedState.every((state) => state);
-    setCheckedState(new Array(30).fill(!allSelected));
+    const allSelected = checkedState.slice(0, 30).every((state) => state);
+    const newState = checkedState.map((state, index) => {
+      if (index < 30) {
+        return !allSelected;
+      }
+      return state;
+    });
+    console.log(newState[31]);
+    setCheckedState(newState);
+  };
+
+  const handleConfirmSelection = () => {
+    setQuranSelection(checkedState); // Send the selected surahs to context
   };
 
   const allSelected = checkedState.every((state) => state);
+  const isAnyCheckboxChecked = checkedState.some((checked) => checked);
 
   return (
     <Container>
@@ -90,6 +106,13 @@ const JuzSelection = () => {
           ))}
         </Row>
       </form>
+      <button
+        className="mt-3 mybtn"
+        onClick={handleConfirmSelection}
+        disabled={!isAnyCheckboxChecked}
+      >
+        تأكيد الاختيار
+      </button>
     </Container>
   );
 };

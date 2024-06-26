@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { Container, Row, Col, Button } from "react-bootstrap";
+import React, { useState, useContext } from "react";
+import { Container, Row, Col } from "react-bootstrap";
+import { MyContext } from "../useContext";
 
 const surahNames = [
   "الفاتحة",
@@ -119,7 +120,10 @@ const surahNames = [
 ];
 
 const SurahSelection = () => {
-  const [checkedState, setCheckedState] = useState(new Array(114).fill(false));
+  const { quranSelection, setQuranSelection } = useContext(MyContext);
+
+  const [checkedState, setCheckedState] = useState(new Array(115).fill(false));
+  checkedState[114] = true;
 
   const handleCheckboxChange = (index) => {
     const updatedCheckedState = checkedState.map((item, idx) =>
@@ -135,12 +139,25 @@ const SurahSelection = () => {
   };
 
   const toggleSelectAll = () => {
-    const allSelected = checkedState.every((state) => state);
-    setCheckedState(new Array(114).fill(!allSelected));
+    const allSelected = checkedState.slice(0, 114).every((state) => state);
+    const newState = checkedState.map((state, index) => {
+      if (index < 114) {
+        return !allSelected;
+      }
+      return state;
+    });
+
+    setCheckedState(newState);
+  };
+
+  const handleConfirmSelection = () => {
+    setQuranSelection(checkedState); // Send the selected surahs to context
   };
 
   const allSelected = checkedState.every((state) => state);
-
+  const isAnyCheckboxChecked = checkedState
+    .slice(0, 114)
+    .some((checked) => checked);
   return (
     <Container>
       <h2 className="mb-5">اختيار السور</h2>
@@ -174,6 +191,13 @@ const SurahSelection = () => {
           ))}
         </Row>
       </form>
+      <button
+        className="mt-3 mybtn"
+        onClick={handleConfirmSelection}
+        disabled={!isAnyCheckboxChecked}
+      >
+        تأكيد الاختيار
+      </button>
     </Container>
   );
 };
