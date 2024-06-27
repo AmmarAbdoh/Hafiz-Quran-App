@@ -62,7 +62,6 @@ const JuzSelection = () => {
       }
       return state;
     });
-    console.log(newState[31]);
     setCheckedState(newState);
   };
 
@@ -70,7 +69,7 @@ const JuzSelection = () => {
     setQuranSelection(checkedState); // Send the selected surahs to context
   };
 
-  const allSelected = checkedState.every((state) => state);
+  const allSelected = checkedState.slice(0, 30).every((state) => state);
   const isAnyCheckboxChecked = checkedState.some((checked) => checked);
 
   return (

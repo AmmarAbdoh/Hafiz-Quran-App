@@ -3,19 +3,26 @@ import { Container, Nav } from "react-bootstrap";
 import SurahSelection from "./SurahSelection";
 import JuzSelection from "./JuzSelection";
 import { MyContext } from "../useContext";
+import { useLocation } from "react-router-dom";
 import QuranVerse from "../components/QuranVerse";
+import Question from "../MainComponents/Question";
 
 const CustomSettings = () => {
-  const { quranSelection, setQuranSelection } = useContext(MyContext); // Assuming you only need to read quranSelection
+  const { quranSelection, setQuranSelection } = useContext(MyContext);
   const [activeTab, setActiveTab] = useState("surah");
+  const location = useLocation();
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
   };
 
-  // Conditionally render the entire container based on quranSelection length
+  useEffect(() => {
+    console.log("location changed", location);
+    setQuranSelection([]);
+  }, [location, setQuranSelection]);
+
   if (quranSelection.length > 0) {
-    return <QuranVerse quranSelection={quranSelection} />;
+    return <Question quranSelection={quranSelection} />;
   }
 
   return (
@@ -33,7 +40,6 @@ const CustomSettings = () => {
         </Nav.Item>
       </Nav>
 
-      {/* Render tab content based on activeTab */}
       {activeTab === "surah" && <SurahSelection />}
       {activeTab === "juz" && <JuzSelection />}
     </Container>
