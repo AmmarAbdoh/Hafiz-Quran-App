@@ -1,0 +1,86 @@
+[
+    {
+        "id": 1,
+        "verse_number": 1,
+        "verse_key": "1:1",
+        "hizb_number": 1,
+        "rub_el_hizb_number": 1,
+        "ruku_number": 1,
+        "manzil_number": 1,
+        "sajdah_number": null,
+        "page_number": 1,
+        "juz_number": 1
+    },
+    {
+        "id": 2,
+        "verse_number": 2,
+        "verse_key": "1:2",
+        "hizb_number": 1,
+        "rub_el_hizb_number": 1,
+        "ruku_number": 1,
+        "manzil_number": 1,
+        "sajdah_number": null,
+        "page_number": 1,
+        "juz_number": 1
+    },
+    {
+        "id": 3,
+        "verse_number": 3,
+        "verse_key": "1:3",
+        "hizb_number": 1,
+        "rub_el_hizb_number": 1,
+        "ruku_number": 1,
+        "manzil_number": 1,
+        "sajdah_number": null,
+        "page_number": 1,
+        "juz_number": 1
+    },
+    {
+        "id": 4,
+        "verse_number": 4,
+        "verse_key": "1:4",
+        "hizb_number": 1,
+        "rub_el_hizb_number": 1,
+        "ruku_number": 1,
+        "manzil_number": 1,
+        "sajdah_number": null,
+        "page_number": 1,
+        "juz_number": 1
+    },
+    {
+        "id": 5,
+        "verse_number": 5,
+        "verse_key": "1:5",
+        "hizb_number": 1,
+        "rub_el_hizb_number": 1,
+        "ruku_number": 1,
+        "manzil_number": 1,
+        "sajdah_number": null,
+        "page_number": 1,
+        "juz_number": 1
+    },
+    {
+        "id": 6,
+        "verse_number": 6,
+        "verse_key": "1:6",
+        "hizb_number": 1,
+        "rub_el_hizb_number": 1,
+        "ruku_number": 1,
+        "manzil_number": 1,
+        "sajdah_number": null,
+        "page_number": 1,
+        "juz_number": 1
+    },
+    {
+        "id": 7,
+        "verse_number": 7,
+        "verse_key": "1:7",
+        "hizb_number": 1,
+        "rub_el_hizb_number": 1,
+        "ruku_number": 1,
+        "manzil_number": 1,
+        "sajdah_number": null,
+        "page_number": 1,
+        "juz_number": 1
+    }
+]

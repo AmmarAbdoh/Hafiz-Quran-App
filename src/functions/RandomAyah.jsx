@@ -38,7 +38,6 @@ export const fetchRandomAyah = async (quranSelection, setRandomVerse) => {
     const randomVerse = QuranData.verses[randomVerseIndex];
 
     // Update state with the random vers
-    console.log(QuranData);
     setRandomVerse(randomVerse);
   } catch (error) {
     console.error("Error fetching or parsing Quran data:", error);

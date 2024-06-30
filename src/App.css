@@ -50,3 +50,17 @@ body {
 .mybtn:not(:disabled):hover {
   transform: scale(1.1);
 }
+
+.correct-answer {
+  color: green !important; /* Change text color to green for correct answers */
+  font-weight: bold; /* Make text bold for correct answers */
+}
+
+.wrong-answer {
+  color: red !important; /* Change text color to red for wrong answers */
+  text-decoration: line-through; /* Add strike-through for wrong answers */
+}
+
+.feedback {
+  margin-top: 10px; /* Add space between verses and feedback */
+}
