@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Container } from "react-bootstrap";
 import { fetchPrevAndNextVerse } from "../functions/PrevAndNextVerse";
+import { MyContext } from "../useContext";
 import SearchForVerse from "./SearchForVerse";
 
-const FillTheBlank = ({ verse }) => {
+const FillTheBlank = ({ verse, onNextQuestion }) => {
   const [prevAndNextVerse, setPrevAndNextVerse] = useState([null, null]);
   const [loading, setLoading] = useState(true);
   const [hiddenVerseIndex, setHiddenVerseIndex] = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
   const [answer, setAnswer] = useState(null);
   const [coveredVerse, setCoveredVerse] = useState(null); // State to track covered verse
+  const { SimpleVersesMap } = useContext(MyContext);
 
   useEffect(() => {
     const getPrevAndNextVerse = async () => {
@@ -51,8 +53,11 @@ const FillTheBlank = ({ verse }) => {
 
   // Function to handle selection from SearchForVerse component
   const handleSelection = (selectedVerse) => {
-    console.log(selectedVerse.verse_key, coveredVerse?.verse_key);
-    if (coveredVerse && selectedVerse.verse_key === coveredVerse.verse_key) {
+    if (
+      coveredVerse &&
+      SimpleVersesMap[selectedVerse.verse_key].text_imlaei ===
+        SimpleVersesMap[coveredVerse.verse_key].text_imlaei
+    ) {
       setIsCorrect(true); // Set correct if answers match
     } else {
       setIsCorrect(false); // Set incorrect if answers do not match
@@ -65,6 +70,20 @@ const FillTheBlank = ({ verse }) => {
       handleSelection(answer);
     }
   }, [answer, coveredVerse]);
+
+  // Reset state variables when verse changes
+  useEffect(() => {
+    const resetState = () => {
+      setPrevAndNextVerse([null, null]);
+      setLoading(true);
+      setHiddenVerseIndex(null);
+      setIsCorrect(null);
+      setAnswer(null);
+      setCoveredVerse(null);
+    };
+
+    resetState();
+  }, [verse]);
 
   if (loading) {
     return (
@@ -79,6 +98,18 @@ const FillTheBlank = ({ verse }) => {
   const verseKey = verse.verse_key;
   const verseAyahNumber = verseKey.split(":")[1];
 
+  const getHiddenText = (verseKey) => {
+    const verse = SimpleVersesMap[verseKey];
+    if (!verse) return "";
+
+    return "_".repeat(verse.text_imlaei.length);
+  };
+
+  const getTextStyle = () => {
+    if (isCorrect === null) return {};
+    return { color: isCorrect ? "green" : "red" };
+  };
+
   return (
     <Container dir="rtl">
       {hiddenVerseIndex !== 0 && prevVerse && (
@@ -91,7 +122,11 @@ const FillTheBlank = ({ verse }) => {
       )}
       {hiddenVerseIndex === 0 && prevVerse && (
         <span>
-          <span className="verse-text">_________</span>
+          <span className="verse-text" style={getTextStyle()}>
+            {isCorrect === null
+              ? getHiddenText(prevVerse.verse_key)
+              : prevVerse.text_uthmani}
+          </span>
           <span className="verse-number">
             {prevVerse.verse_key.split(":")[1]}
           </span>
@@ -105,7 +140,9 @@ const FillTheBlank = ({ verse }) => {
       )}
       {hiddenVerseIndex === 1 && (
         <span>
-          <span className="verse-text">_________</span>
+          <span className="verse-text" style={getTextStyle()}>
+            {isCorrect === null ? getHiddenText(verseKey) : verseText}
+          </span>
           <span className="verse-number">{verseAyahNumber}</span>
         </span>
       )}
@@ -119,22 +156,29 @@ const FillTheBlank = ({ verse }) => {
       )}
       {hiddenVerseIndex === 2 && nextVerse && (
         <span>
-          <span className="verse-text">_________</span>
+          <span className="verse-text" style={getTextStyle()}>
+            {isCorrect === null
+              ? getHiddenText(nextVerse.verse_key)
+              : nextVerse.text_uthmani}
+          </span>
           <span className="verse-number">
             {nextVerse.verse_key.split(":")[1]}
           </span>
         </span>
       )}
 
-      <SearchForVerse setAnswer={setAnswer} />
+      {isCorrect == null && <SearchForVerse setAnswer={setAnswer} />}
 
       {isCorrect !== null && (
-        <div className="feedback mt-3">
+        <div className="feedback mt-5">
           {isCorrect ? (
-            <h4 className="correct-text">صحيح! بارك الله فيك!</h4>
+            <h3 style={{ color: "green" }}>صحيح! بارك الله فيك!</h3>
           ) : (
-            <h4 className="wrong-text ">خطأ! حاول مرة أخرى.</h4>
+            <h3 style={{ color: "red" }}>اجابة خاطئة.</h3>
           )}
+          <button className="mybtn mt-3" onClick={onNextQuestion}>
+            السؤال التالي
+          </button>
         </div>
       )}
     </Container>

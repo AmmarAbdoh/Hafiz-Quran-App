@@ -4,8 +4,13 @@ import { fetchRandomAyah } from "../functions/RandomAyah"; // Adjust the import 
 
 const Question = ({ quranSelection }) => {
   const [randomVerse, setRandomVerse] = useState(null);
-  useEffect(() => {
+
+  const fetchNewRandomVerse = () => {
     fetchRandomAyah(quranSelection, setRandomVerse);
+  };
+
+  useEffect(() => {
+    fetchNewRandomVerse();
   }, [quranSelection]);
 
   if (!randomVerse) {
@@ -16,6 +21,9 @@ const Question = ({ quranSelection }) => {
     );
   }
 
-  return <FillTheBlank verse={randomVerse}></FillTheBlank>;
+  return (
+    <FillTheBlank verse={randomVerse} onNextQuestion={fetchNewRandomVerse} />
+  );
 };
+
 export default Question;
