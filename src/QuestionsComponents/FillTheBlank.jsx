@@ -3,6 +3,8 @@ import { Container } from "react-bootstrap";
 import { fetchPrevAndNextVerse } from "../functions/PrevAndNextVerse";
 import { MyContext } from "../useContext";
 import SearchForVerse from "./SearchForVerse";
+import GetVerseInfo from "../functions/GetVerseInfo"; // Adjust the import path as necessary
+import VerseInfo from "../components/VerseInfo";
 
 const FillTheBlank = ({ verse, onNextQuestion }) => {
   const [prevAndNextVerse, setPrevAndNextVerse] = useState([null, null]);
@@ -110,6 +112,9 @@ const FillTheBlank = ({ verse, onNextQuestion }) => {
     return { color: isCorrect ? "green" : "red" };
   };
 
+  // Retrieve verse info
+  const verseInfo = GetVerseInfo({ verse: coveredVerse });
+
   return (
     <Container dir="rtl">
       {hiddenVerseIndex !== 0 && prevVerse && (
@@ -176,6 +181,9 @@ const FillTheBlank = ({ verse, onNextQuestion }) => {
           ) : (
             <h3 style={{ color: "red" }}>اجابة خاطئة.</h3>
           )}
+
+          <VerseInfo verse={coveredVerse} />
+
           <button className="mybtn mt-3" onClick={onNextQuestion}>
             السؤال التالي
           </button>

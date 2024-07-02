@@ -64,3 +64,27 @@ body {
 .feedback {
   margin-top: 10px; /* Add space between verses and feedback */
 }
+.verse-info {
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+.verse-info h4 {
+  margin-bottom: 10px;
+}
+
+.verse-info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.verse-info-table td {
+  padding: 8px;
+  border: 1px solid #ddd;
+}
+
+.verse-info-table td strong {
+  font-weight: bold;
+}
