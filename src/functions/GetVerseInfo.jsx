@@ -119,40 +119,43 @@ const surahNames = [
 ];
 
 const GetVerseInfo = ({ verse }) => {
-  // Function to find verse information by ID
-  const findVerseById = (id) => {
-    return QuranInfo.find((v) => v.id === id);
+  // Function to find verse information by verse_key
+  const findVerseByKey = (key) => {
+    return QuranInfo.find((v) => v.verse_key === key);
   };
 
-  // Retrieve verse information based on verse.id
-  const verseInfo = findVerseById(verse.id);
+  // Retrieve verse information based on verse.verse_key
+  const verseInfo = findVerseByKey(verse.verse_key);
 
-  const verseSurahNumber = verseInfo.verse_key.split(":")[0];
+  if (!verseInfo) {
+    return [];
+  }
+
+  const verseSurahNumber = parseInt(verse.verse_key.split(":")[0], 10);
+
   // Return the verse information in an array
-  return verseInfo
-    ? [
-        {
-          key: "اسم السورة",
-          value: surahNames[verseSurahNumber - 1],
-        },
-        {
-          key: "رقم الاية",
-          value: verseInfo.verse_number,
-        },
-        {
-          key: "رقم الجزء",
-          value: verseInfo.juz_number,
-        },
-        {
-          key: "رقم الحزب",
-          value: verseInfo.hizb_number,
-        },
-        {
-          key: "الصفحة",
-          value: verseInfo.page_number,
-        },
-      ]
-    : [];
+  return [
+    {
+      key: "اسم السورة",
+      value: surahNames[verseSurahNumber - 1],
+    },
+    {
+      key: "رقم الاية",
+      value: verseInfo.verse_number,
+    },
+    {
+      key: "رقم الجزء",
+      value: verseInfo.juz_number,
+    },
+    {
+      key: "رقم الحزب",
+      value: verseInfo.hizb_number,
+    },
+    {
+      key: "الصفحة",
+      value: verseInfo.page_number,
+    },
+  ];
 };
 
 export default GetVerseInfo;
