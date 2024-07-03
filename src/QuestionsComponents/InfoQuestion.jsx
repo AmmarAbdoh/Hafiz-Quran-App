@@ -4,7 +4,7 @@ import GetVerseInfo from "../functions/GetVerseInfo";
 import SearchForInfo from "./SearchForInfo"; // Adjust the import path as necessary
 import VerseInfo from "../components/VerseInfo";
 
-const InfoQuestion = ({ verse, onNextQuestion }) => {
+const InfoQuestion = ({ verse, onNextQuestion, selectedOption }) => {
   const [question, setQuestion] = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
 
@@ -73,8 +73,7 @@ const InfoQuestion = ({ verse, onNextQuestion }) => {
       },
     ];
 
-    const randomQuestion =
-      questions[Math.floor(Math.random() * questions.length)];
+    const randomQuestion = questions[selectedOption - 1];
     setQuestion(randomQuestion);
   }, [verse]);
 
