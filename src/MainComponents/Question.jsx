@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import FillTheBlank from "../QuestionsComponents/FillTheBlank";
 import InfoQuestion from "../QuestionsComponents/InfoQuestion";
 import { fetchRandomAyah } from "../functions/RandomAyah";
@@ -25,6 +26,8 @@ const Question = ({ quranSelection }) => {
   const [showAllOptions, setShowAllOptions] = useState(false); // State to manage whether to show all options
   const [selectedOptions, setSelectedOptions] = useState([]); // State to manage selected checkboxes
   const [randomSelectedOption, setRandomSelectedOption] = useState(null); // State to store random selected option
+  const [isAnyCheckboxSelected, setIsAnyCheckboxSelected] = useState(false); // State to track if any checkbox is selected
+  const navigate = useNavigate(); // Use the useNavigate hook
 
   const fetchNewRandomVerse = () => {
     fetchRandomAyah(quranSelection, setRandomVerse);
@@ -57,10 +60,22 @@ const Question = ({ quranSelection }) => {
     );
   };
 
+  useEffect(() => {
+    setIsAnyCheckboxSelected(selectedOptions.length > 0);
+  }, [selectedOptions]);
+
   const handleShowAllOptions = () => {
     console.log("Selected options:", selectedOptions);
     selectRandomOption();
     setShowAllOptions(true);
+  };
+
+  const handleBack = () => {
+    setShowAllOptions(false);
+  };
+
+  const handleCustomTest = () => {
+    navigate("/custom-test");
   };
 
   if (!randomVerse || !questionType) {
@@ -145,7 +160,14 @@ const Question = ({ quranSelection }) => {
             </label>
           </div>
 
-          <button className="mybtn mt-5" onClick={handleShowAllOptions}>
+          <button className="mybtn mt-5 me-5" onClick={handleCustomTest}>
+            عودة
+          </button>
+          <button
+            className="mybtn mt-5"
+            onClick={handleShowAllOptions}
+            disabled={!isAnyCheckboxSelected} // Disable the button if no checkbox is selected
+          >
             بدأ الاختبار
           </button>
         </div>
@@ -167,6 +189,9 @@ const Question = ({ quranSelection }) => {
               selectedOption={randomSelectedOption} // Pass the selected option as a prop
             />
           )}
+          <button className="mybtn mt-3 mb-3" onClick={handleBack}>
+            عودة
+          </button>
         </>
       )}
     </div>

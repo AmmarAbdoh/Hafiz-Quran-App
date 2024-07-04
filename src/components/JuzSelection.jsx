@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { Container, Row, Col } from "react-bootstrap";
+import { Container, Row, Col, Form } from "react-bootstrap";
 import { MyContext } from "../useContext";
 
 const juzNames = [
@@ -39,6 +39,7 @@ const JuzSelection = () => {
   const { quranSelection, setQuranSelection } = useContext(MyContext);
 
   const [checkedState, setCheckedState] = useState(new Array(31).fill(false));
+  const [searchQuery, setSearchQuery] = useState("");
   checkedState[30] = false;
 
   const handleCheckboxChange = (index) => {
@@ -74,6 +75,10 @@ const JuzSelection = () => {
   const allSelected = checkedState.slice(0, 30).every((state) => state);
   const isAnyCheckboxChecked = checkedState.some((checked) => checked);
 
+  const filteredJuzNames = juzNames
+    .map((name, index) => ({ name, index }))
+    .filter(({ name }) => name.includes(searchQuery));
+
   return (
     <Container>
       <h2 className="mb-5">اختيار الاجزاء</h2>
@@ -82,7 +87,14 @@ const JuzSelection = () => {
       </button>
       <form dir="rtl">
         <Row>
-          {juzNames.map((name, index) => (
+          <Form.Control
+            type="text"
+            placeholder="ابحث عن جزء..."
+            className="mb-3"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {filteredJuzNames.map(({ name, index }) => (
             <Col
               xs={12}
               md={6}

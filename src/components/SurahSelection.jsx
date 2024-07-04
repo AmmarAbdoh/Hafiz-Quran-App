@@ -160,9 +160,9 @@ const SurahSelection = () => {
     .slice(0, 114)
     .some((checked) => checked);
 
-  const filteredSurahNames = surahNames.filter((name) =>
-    name.includes(searchQuery)
-  );
+  const filteredSurahNames = surahNames
+    .map((name, index) => ({ name, index }))
+    .filter(({ name }) => name.includes(searchQuery));
 
   return (
     <Container>
@@ -179,7 +179,7 @@ const SurahSelection = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          {filteredSurahNames.map((name, index) => (
+          {filteredSurahNames.map(({ name, index }) => (
             <Col
               xs={12}
               md={6}
