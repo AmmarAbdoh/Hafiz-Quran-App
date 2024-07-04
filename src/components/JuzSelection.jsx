@@ -66,6 +66,8 @@ const JuzSelection = () => {
   };
 
   const handleConfirmSelection = () => {
+    console.log(checkedState.filter((value) => value === true).length);
+    console.log(checkedState.length);
     setQuranSelection(checkedState); // Send the selected surahs to context
   };
 

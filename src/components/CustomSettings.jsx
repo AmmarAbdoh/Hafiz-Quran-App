@@ -26,22 +26,24 @@ const CustomSettings = () => {
   }
 
   return (
-    <Container className="tabs">
-      <Nav variant="tabs" defaultActiveKey="surah" className="form-check">
-        <Nav.Item>
-          <Nav.Link eventKey="surah" onClick={() => handleTabChange("surah")}>
-            اختيار السور
-          </Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link eventKey="juz" onClick={() => handleTabChange("juz")}>
-            اختيار الاجزاء
-          </Nav.Link>
-        </Nav.Item>
-      </Nav>
+    <Container className="custom-container">
+      <Container className="custom-settings">
+        <Nav variant="tabs" defaultActiveKey="surah" className="form-check">
+          <Nav.Item>
+            <Nav.Link eventKey="surah" onClick={() => handleTabChange("surah")}>
+              اختيار السور
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="juz" onClick={() => handleTabChange("juz")}>
+              اختيار الاجزاء
+            </Nav.Link>
+          </Nav.Item>
+        </Nav>
 
-      {activeTab === "surah" && <SurahSelection />}
-      {activeTab === "juz" && <JuzSelection />}
+        {activeTab === "surah" && <SurahSelection />}
+        {activeTab === "juz" && <JuzSelection />}
+      </Container>
     </Container>
   );
 };

@@ -24,7 +24,7 @@ body {
 }
 
 #root {
-  max-width: 1280px;
+  min-width: 100%;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
@@ -87,4 +87,11 @@ body {
 
 .verse-info-table td strong {
   font-weight: bold;
+}
+
+.custom-settings {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  place-content: normal !important;
 }

@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { Container, Row, Col } from "react-bootstrap";
+import { Container, Row, Col, Form } from "react-bootstrap";
 import { MyContext } from "../useContext";
 
 const surahNames = [
@@ -120,9 +120,10 @@ const surahNames = [
 ];
 
 const SurahSelection = () => {
-  const { quranSelection, setQuranSelection } = useContext(MyContext);
-
+  const { setQuranSelection } = useContext(MyContext);
   const [checkedState, setCheckedState] = useState(new Array(115).fill(false));
+  const [searchQuery, setSearchQuery] = useState("");
+
   checkedState[114] = true;
 
   const handleCheckboxChange = (index) => {
@@ -158,6 +159,11 @@ const SurahSelection = () => {
   const isAnyCheckboxChecked = checkedState
     .slice(0, 114)
     .some((checked) => checked);
+
+  const filteredSurahNames = surahNames.filter((name) =>
+    name.includes(searchQuery)
+  );
+
   return (
     <Container>
       <h2 className="mb-5">اختيار السور</h2>
@@ -166,11 +172,18 @@ const SurahSelection = () => {
       </button>
       <form dir="rtl">
         <Row>
-          {surahNames.map((name, index) => (
+          <Form.Control
+            type="text"
+            placeholder="ابحث عن سورة..."
+            className="mb-3"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {filteredSurahNames.map((name, index) => (
             <Col
-              xs={3}
-              md={2}
-              lg={1}
+              xs={12}
+              md={6}
+              lg={4}
               key={index}
               className="mb-3 checkbox-col"
               onClick={(e) => handleColClick(e, index)}

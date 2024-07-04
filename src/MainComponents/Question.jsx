@@ -4,6 +4,22 @@ import InfoQuestion from "../QuestionsComponents/InfoQuestion";
 import { fetchRandomAyah } from "../functions/RandomAyah";
 
 const Question = ({ quranSelection }) => {
+  var surahNameDisabled = false;
+  var juzNameDisabled = false;
+  if (
+    quranSelection.length === 115 &&
+    quranSelection.filter((value) => value === true).length === 2
+  ) {
+    surahNameDisabled = true;
+  }
+
+  if (
+    quranSelection.length === 31 &&
+    quranSelection.filter((value) => value === true).length === 1
+  ) {
+    juzNameDisabled = true;
+  }
+
   const [randomVerse, setRandomVerse] = useState(null);
   const [questionType, setQuestionType] = useState(null);
   const [showAllOptions, setShowAllOptions] = useState(false); // State to manage whether to show all options
@@ -60,7 +76,7 @@ const Question = ({ quranSelection }) => {
       {!showAllOptions && (
         <div className="question-selector">
           <h3 className="mb-5">الرجاء اختيار نوع الاسئلة</h3>
-          <div className="checkbox-container ">
+          <div className="checkbox-container">
             <label>
               <input
                 type="checkbox"
@@ -77,6 +93,7 @@ const Question = ({ quranSelection }) => {
                 type="checkbox"
                 value="1"
                 onChange={handleCheckboxChange}
+                disabled={surahNameDisabled}
               />
               اسم السورة
               <span className="checkmark"></span>
@@ -99,6 +116,7 @@ const Question = ({ quranSelection }) => {
                 type="checkbox"
                 value="3"
                 onChange={handleCheckboxChange}
+                disabled={juzNameDisabled}
               />
               رقم الجزء
               <span className="checkmark"></span>

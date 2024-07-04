@@ -1,5 +1,3 @@
-/* CSS for checkboxes */
-
 .question-selector {
   border-style: solid;
   border-radius: 25%;
@@ -63,4 +61,15 @@
   border: solid white;
   border-width: 0 3px 3px 0;
   transform: rotate(45deg);
+}
+
+/* New styles for disabled checkboxes */
+.checkbox-container label input:disabled ~ .checkmark {
+  background-color: darkgray;
+  border: 1px solid #ddd;
+  cursor: not-allowed;
+}
+
+.checkbox-container label input:disabled ~ .checkmark:after {
+  border-color: #ddd;
 }
