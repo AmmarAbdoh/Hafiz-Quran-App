@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect } from "react";
 
 import versesData from "../src/Quran/quran_verses_imlaei_cleaned.json"; // Import your JSON file
 import UthmaniVersesData from "../src/Quran/Quran_Uthmani.json";
-
+import QuranHafs from "../src/Quran/hafsData_v2-0.json";
 export const MyContext = createContext();
 
 export const MyProvider = ({ children }) => {
@@ -127,7 +127,8 @@ export const MyProvider = ({ children }) => {
   const [UthmaniVersesMap, setUthmaniVersesMap] = useState({});
   const [SimpleVersesMap, setSimpleVersesMap] = useState({});
   const [answer, setAnswer] = useState("");
-
+  const [uthmaniQuran, setUthmaniQuran] = useState({});
+  const [quranHafs, setQuranHafs] = useState({});
   useEffect(() => {
     // Preprocess the data once
     const uniqueVerses = Array.from(
@@ -137,7 +138,8 @@ export const MyProvider = ({ children }) => {
     );
 
     setVerses(uniqueVerses);
-
+    setUthmaniQuran(UthmaniVersesData);
+    setQuranHafs(QuranHafs);
     // Create a map for Uthmani verses
     const uthmaniMap = {};
     UthmaniVersesData.verses.forEach((verse) => {
@@ -164,6 +166,8 @@ export const MyProvider = ({ children }) => {
         answer,
         setAnswer,
         surahNames,
+        uthmaniQuran,
+        quranHafs,
       }}
     >
       {children}

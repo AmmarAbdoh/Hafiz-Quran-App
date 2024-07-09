@@ -5,6 +5,13 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "QuranHafs";
+  src: url("./assets/fonts/uthmanic_hafs_v20.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 .background-image-class {
   background-image: url("../public/images/main-background.jpg");
 }
@@ -24,7 +31,6 @@ body {
 }
 
 #root {
-  min-width: 100%;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;

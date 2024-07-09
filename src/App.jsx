@@ -12,6 +12,8 @@ import { Container, Row, Col } from "react-bootstrap";
 
 // Import your components
 import CustomTest from "./MainComponents/CustomTest";
+import Quran from "./MainComponents/Quran";
+
 document.body.classList.add("background-image-class");
 const Home = () => {
   const navigate = useNavigate();
@@ -20,11 +22,8 @@ const Home = () => {
       <h1 className="text-center mb-4">حافظ القرآن</h1>
       <Row>
         <Col xs={12} md={6} className="mb-3">
-          <button
-            onClick={() => navigate("/random-questions")}
-            className="mybtn w-100"
-          >
-            اسئلة متفرقة
+          <button onClick={() => navigate("/quran")} className="mybtn w-100">
+            القران الكريم
           </button>
         </Col>
         <Col xs={12} md={6} className="mb-3">
@@ -61,7 +60,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/custom-test" element={<CustomTest />} />
+        <Route path="/quran" element={<Quran />} />
       </Routes>
     </Router>
   );

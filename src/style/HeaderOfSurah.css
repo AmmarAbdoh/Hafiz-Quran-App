@@ -1,0 +1,28 @@
+.header-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  height: 8rem;
+  width: 100%;
+  background-image: url("images/surah_header.jpg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.surah-name {
+  position: absolute;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: black;
+  padding: 0 20px;
+  border-radius: 5px;
+  text-align: center;
+  background-color: rgba(
+    255,
+    255,
+    255,
+    0
+  ); /* Optional for better text visibility */
+}
