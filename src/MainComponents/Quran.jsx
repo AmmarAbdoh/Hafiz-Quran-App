@@ -3,129 +3,15 @@ import { MyContext } from "../useContext";
 import QuranPage from "../components/QuranPage";
 import RemoveBackground from "../functions/RemoveBackground";
 import "../style/QuranComponent.css";
-const surahNames = [
-  "الفاتحة",
-  "البقرة",
-  "آل عمران",
-  "النساء",
-  "المائدة",
-  "الأنعام",
-  "الأعراف",
-  "الأنفال",
-  "التوبة",
-  "يونس",
-  "هود",
-  "يوسف",
-  "الرعد",
-  "إبراهيم",
-  "الحجر",
-  "النحل",
-  "الإسراء",
-  "الكهف",
-  "مريم",
-  "طه",
-  "الأنبياء",
-  "الحج",
-  "المؤمنون",
-  "النور",
-  "الفرقان",
-  "الشعراء",
-  "النمل",
-  "القصص",
-  "العنكبوت",
-  "الروم",
-  "لقمان",
-  "السجدة",
-  "الأحزاب",
-  "سبأ",
-  "فاطر",
-  "يس",
-  "الصافات",
-  "ص",
-  "الزمر",
-  "غافر",
-  "فصلت",
-  "الشورى",
-  "الزخرف",
-  "الدخان",
-  "الجاثية",
-  "الأحقاف",
-  "محمد",
-  "الفتح",
-  "الحجرات",
-  "ق",
-  "الذاريات",
-  "الطور",
-  "النجم",
-  "القمر",
-  "الرحمن",
-  "الواقعة",
-  "الحديد",
-  "المجادلة",
-  "الحشر",
-  "الممتحنة",
-  "الصف",
-  "الجمعة",
-  "المنافقون",
-  "التغابن",
-  "الطلاق",
-  "التحريم",
-  "الملك",
-  "القلم",
-  "الحاقة",
-  "المعارج",
-  "نوح",
-  "الجن",
-  "المزمل",
-  "المدثر",
-  "القيامة",
-  "الإنسان",
-  "المرسلات",
-  "النبأ",
-  "النازعات",
-  "عبس",
-  "التكوير",
-  "الإنفطار",
-  "المطففين",
-  "الإنشقاق",
-  "البروج",
-  "الطارق",
-  "الأعلى",
-  "الغاشية",
-  "الفجر",
-  "البلد",
-  "الشمس",
-  "الليل",
-  "الضحى",
-  "الشرح",
-  "التين",
-  "العلق",
-  "القدر",
-  "البينة",
-  "الزلزلة",
-  "العاديات",
-  "القارعة",
-  "التكاثر",
-  "العصر",
-  "الهمزة",
-  "الفيل",
-  "قريش",
-  "الماعون",
-  "الكوثر",
-  "الكافرون",
-  "النصر",
-  "المسد",
-  "الإخلاص",
-  "الفلق",
-  "الناس",
-];
+import GetVerseInfo from "../functions/GetVerseInfo";
 
 const Quran = () => {
   RemoveBackground();
-  const { quranHafs } = useContext(MyContext);
-  const [currentPage, setCurrentPage] = useState(1); // State to track current page
-  const [currentSurah, setCurrentSurah] = useState(null); // State to track current surah
-  const [searchTerm, setSearchTerm] = useState(""); // State for search term
+  const { surahNames, quranHafs } = useContext(MyContext);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [currentSurah, setCurrentSurah] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [verseInfo, setVerseInfo] = useState([]); // State for verse info
 
   // Get the total number of pages dynamically
   const totalPages = quranHafs.reduce(
@@ -176,11 +62,20 @@ const Quran = () => {
     surah.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Find the first verse on the current page
+  const firstVerseOnPage = quranHafs.find((verse) => verse.page === currentPage);
+
+  useEffect(() => {
+    if (firstVerseOnPage) {
+      const verseID = firstVerseOnPage.id;
+      const info = GetVerseInfo({ verseID, surahNames });
+      setVerseInfo(info);
+    }
+  }, [firstVerseOnPage]);
+
   return (
     <div className="quran-container" dir="rtl">
       {/* Search box */}
-
-      {/* Left side for Surah selection */}
       <div className="surah-navigator">
         <input
           type="text"
@@ -199,9 +94,8 @@ const Quran = () => {
             return (
               <div
                 key={index}
-                className={`surah-list-item ${
-                  surahIndex === currentSurah ? "active" : ""
-                }`}
+                className={`surah-list-item ${surahIndex === currentSurah ? "active" : ""
+                  }`}
                 onClick={() => handleSurahChange(surahIndex)}
               >
                 <div className="surah-list-item-text">
@@ -226,8 +120,11 @@ const Quran = () => {
           <QuranPage page={currentPage} />
         </div>
         <div className="pagination">
-          <button onClick={goToPreviousPage} className="pagination-button">
-            &lt; Prev
+          <button
+            onClick={goToPreviousPage}
+            className="pagination-button mybtn"
+          >
+            &lt;
           </button>
           <input
             type="text"
@@ -236,11 +133,22 @@ const Quran = () => {
             className="pagination-input"
           />
           <span className="pagination-total-pages"> / {totalPages}</span>
-          <button onClick={goToNextPage} className="pagination-button">
-            Next &gt;
+          <button onClick={goToNextPage} className="pagination-button mybtn">
+            &gt;
           </button>
         </div>
+
       </div>
+      {firstVerseOnPage && (
+        <div className="first-verse-info w-100">
+          {verseInfo.slice(2, 4).map((info, index) => (
+            <h5 key={index}>
+              <strong>{info.key}:</strong> {info.value}
+            </h5>
+          ))}
+        </div>
+      )}
+
     </div>
   );
 };

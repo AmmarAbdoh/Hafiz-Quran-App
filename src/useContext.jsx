@@ -9,25 +9,25 @@ export const MyProvider = ({ children }) => {
   const surahNames = [
     "الفاتحة",
     "البقرة",
-    "آل عمران",
+    "ال عمران",
     "النساء",
     "المائدة",
-    "الأنعام",
-    "الأعراف",
-    "الأنفال",
+    "الانعام",
+    "الاعراف",
+    "الانفال",
     "التوبة",
     "يونس",
     "هود",
     "يوسف",
     "الرعد",
-    "إبراهيم",
+    "ابراهيم",
     "الحجر",
     "النحل",
-    "الإسراء",
+    "الاسراء",
     "الكهف",
     "مريم",
     "طه",
-    "الأنبياء",
+    "الانبياء",
     "الحج",
     "المؤمنون",
     "النور",
@@ -39,7 +39,7 @@ export const MyProvider = ({ children }) => {
     "الروم",
     "لقمان",
     "السجدة",
-    "الأحزاب",
+    "الاحزاب",
     "سبأ",
     "فاطر",
     "يس",
@@ -118,7 +118,7 @@ export const MyProvider = ({ children }) => {
     "الكافرون",
     "النصر",
     "المسد",
-    "الإخلاص",
+    "الاخلاص",
     "الفلق",
     "الناس",
   ];
@@ -129,31 +129,44 @@ export const MyProvider = ({ children }) => {
   const [answer, setAnswer] = useState("");
   const [uthmaniQuran, setUthmaniQuran] = useState({});
   const [quranHafs, setQuranHafs] = useState({});
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    // Preprocess the data once
-    const uniqueVerses = Array.from(
-      new Set(versesData.verses.map((verse) => verse.text_imlaei))
-    ).map((uniqueText) =>
-      versesData.verses.find((verse) => verse.text_imlaei === uniqueText)
-    );
+    const loadData = async () => {
+      // Preprocess the data once
+      const uniqueVerses = Array.from(
+        new Set(versesData.verses.map((verse) => verse.text_imlaei))
+      ).map((uniqueText) =>
+        versesData.verses.find((verse) => verse.text_imlaei === uniqueText)
+      );
 
-    setVerses(uniqueVerses);
-    setUthmaniQuran(UthmaniVersesData);
-    setQuranHafs(QuranHafs);
-    // Create a map for Uthmani verses
-    const uthmaniMap = {};
-    UthmaniVersesData.verses.forEach((verse) => {
-      uthmaniMap[verse.verse_key] = verse;
-    });
-    setUthmaniVersesMap(uthmaniMap);
+      setVerses(uniqueVerses);
+      setUthmaniQuran(UthmaniVersesData);
+      setQuranHafs(QuranHafs);
 
-    // Create a map for Simple verses
-    const simpleMap = {};
-    versesData.verses.forEach((verse) => {
-      simpleMap[verse.verse_key] = verse;
-    });
-    setSimpleVersesMap(simpleMap);
+      // Create a map for Uthmani verses
+      const uthmaniMap = {};
+      UthmaniVersesData.verses.forEach((verse) => {
+        uthmaniMap[verse.verse_key] = verse;
+      });
+      setUthmaniVersesMap(uthmaniMap);
+
+      // Create a map for Simple verses
+      const simpleMap = {};
+      versesData.verses.forEach((verse) => {
+        simpleMap[verse.verse_key] = verse;
+      });
+      setSimpleVersesMap(simpleMap);
+
+      setLoading(false);
+    };
+
+    loadData();
   }, []);
+
+  if (loading) {
+    return <h1>الرجاء الانتظار...</h1>;
+  }
 
   return (
     <MyContext.Provider

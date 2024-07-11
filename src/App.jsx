@@ -61,6 +61,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/quran" element={<Quran />} />
+        <Route path="/custom-test" element={<CustomTest />} />
       </Routes>
     </Router>
   );

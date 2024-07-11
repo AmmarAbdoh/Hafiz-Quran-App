@@ -7,83 +7,100 @@
   border-style: solid;
   border-color: black;
   width: 50rem;
-  max-height: 60rem;
-  min-height: 60rem;
+  max-height: 53rem;
+  min-height: 53rem;
   font-family: QuranHafs;
 }
 
 .quran-verse {
-  font-size: 2rem;
+  font-size: 1.8rem;
   line-height: 4rem;
 }
 
 .surah-navigator {
-  width: 25rem;
-  height: 60rem;
+  height: 53rem;
+  width: 100%;
+  padding: 1rem;
+  overflow-y: auto;
   background-color: #f8f9fa;
-  border-right: 1px solid #ccc;
-  overflow-y: auto; /* Enable vertical scrolling */
-}
-
-.surah-list {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-}
-
-.surah-list-item {
-  margin-bottom: 5px;
-  padding: 10px;
-  font-size: 1.1em;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.surah-list-item:hover {
-  background-color: #e9ecef;
-}
-
-.surah-list-item.active {
-  background-color: #63605d;
-  color: #fff;
-}
-
-.surah-list-item.active:hover {
-  background-color: #353330;
-}
-
-.surah-list-item-text {
-  margin: 0;
-}
-
-.surah-list-item-text-arabic {
-  float: right;
-
-  direction: rtl;
-}
-
-.surah-list-item-text-en {
-  font-weight: bold;
-}
-
-.surah-list-item-count {
-  font-size: 0.9em;
-  color: #6c757d;
-}
-
-.surah-list-item.active .surah-list-item-count {
-  color: #fff;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
 .surah-search-box {
   width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  font-size: 1.1em;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
-.surah-search-box:focus {
-  outline: none;
+.surah-list {
+  list-style: none;
+  padding: 0;
+}
+
+.surah-list-item {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.surah-list-item-text {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.surah-list-item-text-en,
+.surah-list-item-text-arabic {
+  font-size: 16px;
+}
+
+.surah-list-item-count {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #777;
+}
+
+.pagination {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-button {
+  font-size: 1rem;
+  background-color: whitesmoke;
+  color: black;
+  border: solid black;
+  padding: 10px 20px;
+  margin: 0 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.pagination-button:hover {
+  background-color: rgb(212, 212, 212);
+}
+
+.pagination-input {
+  width: 50px;
+  text-align: center;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin: 0 10px;
+}
+
+.pagination-total-pages {
+  margin-left: 10px;
+  font-size: 16px;
 }
