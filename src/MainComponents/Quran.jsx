@@ -59,12 +59,10 @@ const Quran = () => {
     setCurrentSurah(null); // Reset currentSurah when searching
   };
 
-  // Filter surahNames based on search term
   const filteredSurahs = surahNames.filter((surah) =>
     surah.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Find the first verse on the current page
   const firstVerseOnPage = quranHafs.find((verse) => verse.page === currentPage);
 
   useEffect(() => {

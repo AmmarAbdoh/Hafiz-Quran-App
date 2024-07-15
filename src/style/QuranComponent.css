@@ -13,8 +13,15 @@
 }
 
 .quran-verse {
+  margin-left: 10px;
   font-size: 1.8rem;
   line-height: 4rem;
+}
+
+.quran-verse:hover {
+  background-color: rgb(253, 253, 172);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .surah-navigator {
@@ -177,5 +184,15 @@
     align-items: center;
     width: 5rem;
     height: 2rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .page-info {
+    font-size: 1.05rem;
+    margin-bottom: 2rem;
+  }
+  .surah-navigator {
+    width: 200%;
   }
 }
