@@ -36,6 +36,12 @@ body {
   text-align: center;
 }
 
+@media (max-width: 768px) {
+  #root {
+    padding: 0rem;
+  }
+}
+
 .mybtn {
   color: black;
   background-color: whitesmoke;

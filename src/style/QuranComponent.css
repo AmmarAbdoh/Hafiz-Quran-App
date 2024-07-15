@@ -104,3 +104,78 @@
   margin-left: 10px;
   font-size: 16px;
 }
+
+.surah-btn {
+  background-color: gray;
+  border-radius: 20px;
+  margin-bottom: 0.2rem;
+}
+
+@media (max-width: 768px) {
+  .quran-container {
+    width: 100vw !important;
+    flex-direction: column-reverse !important;
+  }
+
+  .quran-page {
+    width: auto !important;
+    max-height: 45rem;
+    min-height: 45rem;
+  }
+
+  .quran-verse {
+    font-size: 1.5rem;
+    line-height: 4rem;
+  }
+
+  .page-info {
+    display: inline;
+    margin-left: 2rem;
+  }
+
+  .pagination {
+    font-size: 1rem;
+  }
+  .pagination-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 5rem;
+    height: 2rem;
+  }
+}
+
+@media (max-width: 425px) {
+  .quran-container {
+    width: 100vw !important;
+    flex-direction: column-reverse !important;
+  }
+
+  .quran-page {
+    width: auto !important;
+    height: max-content;
+    max-height: max-content;
+  }
+
+  .quran-verse {
+    font-size: 1.25rem;
+    line-height: 3rem;
+  }
+
+  .page-info {
+    font-size: 0.88rem;
+    display: inline;
+    margin-left: 2rem;
+  }
+
+  .pagination {
+    font-size: 1rem;
+  }
+  .pagination-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 5rem;
+    height: 2rem;
+  }
+}

@@ -9,7 +9,7 @@ const QuranPage = ({ page }) => {
   const versesForPage = quranHafs.filter((verse) => verse.page === page);
 
   return (
-    <div className="quran-page">
+    <div>
       {versesForPage.map((verse, index) => (
         <span key={verse.id}>
           {verse.aya_no === 1 && (

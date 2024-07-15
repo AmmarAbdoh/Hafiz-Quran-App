@@ -5,7 +5,7 @@
   position: relative;
   height: 8rem;
   width: 100%;
-  background-image: url("images/surah_header.jpg");
+  background-image: url("/public/images/sura_border_sym4.svg");
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
@@ -25,4 +25,13 @@
     255,
     0
   ); /* Optional for better text visibility */
+}
+
+@media (max-width: 768px) {
+  .header-container {
+    height: 4rem;
+  }
+  .surah-name {
+    font-size: 1.5rem;
+  }
 }

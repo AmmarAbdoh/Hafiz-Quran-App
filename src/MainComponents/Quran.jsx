@@ -12,6 +12,7 @@ const Quran = () => {
   const [currentSurah, setCurrentSurah] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [verseInfo, setVerseInfo] = useState([]); // State for verse info
+  const [showSurahSelection, setShowSurahSelection] = useState(false); // State to manage visibility
 
   // Get the total number of pages dynamically
   const totalPages = quranHafs.reduce(
@@ -48,6 +49,7 @@ const Quran = () => {
     if (firstVerse) {
       setCurrentSurah(surahIndex);
       setCurrentPage(firstVerse.page);
+      setShowSurahSelection(false); // Hide Surah selection after choosing a Surah
     }
   };
 
@@ -58,7 +60,7 @@ const Quran = () => {
   };
 
   // Filter surahNames based on search term
-  const filteredSurahs = surahNames.filter((surah, index) =>
+  const filteredSurahs = surahNames.filter((surah) =>
     surah.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -75,8 +77,7 @@ const Quran = () => {
 
   return (
     <div className="quran-container" dir="rtl">
-      {/* Search box */}
-      <div className="surah-navigator">
+      <div className={`surah-navigator ${showSurahSelection ? 'd-block' : 'd-none d-lg-block'}`}>
         <input
           type="text"
           value={searchTerm}
@@ -94,8 +95,7 @@ const Quran = () => {
             return (
               <div
                 key={index}
-                className={`surah-list-item ${surahIndex === currentSurah ? "active" : ""
-                  }`}
+                className={`surah-list-item ${surahIndex === currentSurah ? "active" : ""}`}
                 onClick={() => handleSurahChange(surahIndex)}
               >
                 <div className="surah-list-item-text">
@@ -105,8 +105,7 @@ const Quran = () => {
                   </span>
                 </div>
                 <div className="surah-list-item-count">
-                  {`${ayatCount} `}
-                  :عدد الايات &nbsp;
+                  {`${ayatCount} `}:عدد الايات &nbsp;
                 </div>
               </div>
             );
@@ -114,41 +113,52 @@ const Quran = () => {
         </div>
       </div>
 
-      {/* Right side for displaying Quran page */}
-      <div className="quran-page-container">
-        <div className="quran-page">
-          <QuranPage page={currentPage} />
-        </div>
-        <div className="pagination">
-          <button
-            onClick={goToPreviousPage}
-            className="pagination-button mybtn"
-          >
-            &lt;
-          </button>
-          <input
-            type="text"
-            value={currentPage}
-            onChange={handleInputChange}
-            className="pagination-input"
-          />
-          <span className="pagination-total-pages"> / {totalPages}</span>
-          <button onClick={goToNextPage} className="pagination-button mybtn">
-            &gt;
-          </button>
-        </div>
-
-      </div>
-      {firstVerseOnPage && (
-        <div className="first-verse-info w-100">
-          {verseInfo.slice(2, 4).map((info, index) => (
-            <h5 key={index}>
-              <strong>{info.key}:</strong> {info.value}
-            </h5>
-          ))}
-        </div>
+      {!showSurahSelection && (
+        <>
+          <div className="quran-page-container">
+            <div className="quran-page">
+              <QuranPage page={currentPage} />
+            </div>
+            <div className="pagination">
+              <button onClick={goToPreviousPage} className="pagination-button mybtn">
+                السابق
+              </button>
+              <input
+                type="text"
+                value={currentPage}
+                onChange={handleInputChange}
+                className="pagination-input"
+              />
+              <span className="pagination-total-pages"> / {totalPages}</span>
+              <button onClick={goToNextPage} className="pagination-button mybtn">
+                التالي
+              </button>
+            </div>
+          </div>
+          {firstVerseOnPage && (
+            <div className="first-verse-info w-100 ">
+              {verseInfo.slice(0, 1).map((info, index) => (
+                <h5 className="page-info" key={index}>
+                  <strong>{info.key}:</strong> {info.value}
+                </h5>
+              ))}
+              {verseInfo.slice(2, 4).map((info, index) => (
+                <h5 className="page-info" key={index}>
+                  <strong>{info.key}:</strong> {info.value}
+                </h5>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
+      <button
+        className="d-lg-none surah-btn"
+        onClick={() => setShowSurahSelection(true)}
+        style={{ display: showSurahSelection ? 'none' : 'block' }}
+      >
+        اختيار السور
+      </button>
     </div>
   );
 };
