@@ -24,6 +24,7 @@
 }
 
 .verse-popup-button {
+  position: relative;
   background: none;
   border: none;
   cursor: pointer;
@@ -31,6 +32,28 @@
   align-items: center;
   color: #fff; /* Adjusted icon color */
   font-size: 1.2em; /* Adjusted icon size */
+}
+
+.verse-popup-button::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: black;
+  color: white;
+  padding: 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.verse-popup-button:hover::after {
+  opacity: 1;
+  visibility: visible;
 }
 
 .verse-popup-button:hover {

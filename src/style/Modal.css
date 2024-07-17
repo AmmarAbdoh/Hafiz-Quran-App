@@ -1,0 +1,34 @@
+.modal-dialog {
+  max-width: 80% !important; /* Set the width to 80% of the viewport width */
+  max-height: 80% !important;
+  scroll-behavior: auto;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.custom-modal .modal-content {
+  font-size: 1.5rem; /* Adjust as needed for text size */
+}
+
+.tafseer-text {
+  font-size: 2rem; /* Adjust as needed for text size */
+  line-height: 1.6;
+}
+
+.quran-verse-modal {
+  font-family: QuranHafs;
+  margin-left: 10px;
+  font-size: 1.8rem;
+  line-height: 4rem;
+}
+
+.form-control {
+  text-align: center;
+  width: 100%; /* Make the dropdown fill the entire width of its container */
+}
