@@ -67,3 +67,11 @@
     67
   ); /* Background color for the active verse */
 }
+
+.quran-verse.active-verse:hover {
+  background-color: rgb(
+    250,
+    250,
+    67
+  ); /* Background color for the active verse */
+}

@@ -4,7 +4,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "../style/Modal.css";
 
 const TafseerModal = ({ show, onHide, verse }) => {
-    const [selectedTafseer, setSelectedTafseer] = useState("");
+    const [selectedTafseer, setSelectedTafseer] = useState("1"); // Default to التفسير الميسر
     const [tafseerText, setTafseerText] = useState("");
     const tafseers = {
         1: "التفسير الميسر",
@@ -38,6 +38,14 @@ const TafseerModal = ({ show, onHide, verse }) => {
         }
     }, [selectedTafseer]);
 
+    useEffect(() => {
+        if (show) {
+            const surah = verse.sura_no;
+            const ayah = verse.aya_no;
+            fetchTafseer("1", surah, ayah); // Fetch the default Tafseer on modal show
+        }
+    }, [show, verse]);
+
     return (
         <Modal show={show} onHide={onHide} centered dialogClassName="custom-modal" dir="rtl">
             <Modal.Header closeButton></Modal.Header>
@@ -51,9 +59,6 @@ const TafseerModal = ({ show, onHide, verse }) => {
                         onChange={(e) => setSelectedTafseer(e.target.value)}
                         className="w-100"
                     >
-                        <option value="" disabled>
-                            اختار
-                        </option>
                         {Object.entries(tafseers).map(([id, name]) => (
                             <option key={id} value={id}>
                                 {name}
