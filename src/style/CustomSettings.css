@@ -1,9 +1,16 @@
 .form-check {
-  border-style: solid;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  border-radius: 5%;
+  border: 1px solid #ccc;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  transition: background-color 0.3s, border-color 0.3s;
 }
+
+.form-check:hover {
+  background-color: #e9e9e9;
+  border-color: #bbb;
+}
+
 .form-check-input {
   transform: scale(1.5);
   margin-left: 1rem !important;
@@ -18,12 +25,20 @@
   user-select: none;
   font-weight: bold;
   font-size: 1.2rem;
+  color: #333;
 }
+
 .nav-tabs .nav-link {
-  color: black !important;
+  color: #555 !important;
+  transition: color 0.3s;
+}
+
+.nav-tabs .nav-link:hover {
+  color: #2196f3 !important;
 }
 
 .nav-tabs .nav-link.active {
-  color: black !important;
+  color: #2196f3 !important;
   font-weight: bold;
+  border-bottom: 2px solid #2196f3;
 }

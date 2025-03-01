@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Container } from "react-bootstrap";
+import PropTypes from "prop-types";
 import GetVerseInfo from "../functions/GetVerseInfo";
-import SearchForInfo from "./SearchForInfo"; // Adjust the import path as necessary
+import SearchForInfo from "./SearchForInfo";
 import VerseInfo from "../components/VerseInfo";
+import { MyContext } from "../useContext";
 
 const InfoQuestion = ({ verse, onNextQuestion, selectedOption }) => {
   const [question, setQuestion] = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
+  const { surahNames } = useContext(MyContext);
+  const verseID = verse.id;
 
   useEffect(() => {
-    const verseInfo = GetVerseInfo({ verse });
+    const verseInfo = GetVerseInfo({ verseID, surahNames });
+    console.log("🚀 ~ useEffect ~ verseInfo:", verseInfo);
 
     const questions = [
       {
@@ -120,6 +125,12 @@ const InfoQuestion = ({ verse, onNextQuestion, selectedOption }) => {
       )}
     </Container>
   );
+};
+
+InfoQuestion.propTypes = {
+  verse: PropTypes.object.isRequired,
+  onNextQuestion: PropTypes.func.isRequired,
+  selectedOption: PropTypes.number.isRequired,
 };
 
 export default InfoQuestion;

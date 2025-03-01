@@ -5,15 +5,27 @@
   align-items: center;
   width: 100%;
   margin: 0 auto;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .input-field {
   width: 100%;
   padding: 10px;
+  background-color: white;
+  color: black;
   font-size: 16px;
   border: 1px solid #ccc;
   border-radius: 4px;
   box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.input-field:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 5px rgba(33, 150, 243, 0.5);
 }
 
 .dropdown {
@@ -34,11 +46,12 @@
 .dropdown-item {
   padding: 10px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .dropdown-item:hover {
-  background-color: #f9f9f9;
+  background-color: #2196f3;
+  color: white;
 }
 
 .selected-verse {
@@ -47,6 +60,12 @@
   border: 1px solid #ccc;
   border-radius: 4px;
   background-color: #f0f0f0;
-  width: 100%; /* Ensure it takes full width */
-  box-sizing: border-box; /* Ensure padding doesn't affect width */
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.selected-verse:hover {
+  border-color: #2196f3;
+  box-shadow: 0 0 5px rgba(33, 150, 243, 0.5);
 }

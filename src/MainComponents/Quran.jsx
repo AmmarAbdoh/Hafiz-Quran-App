@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect } from "react";
 import { MyContext } from "../useContext";
 import QuranPage from "../components/QuranPage";
 import RemoveBackground from "../functions/RemoveBackground";
@@ -11,8 +11,8 @@ const Quran = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [currentSurah, setCurrentSurah] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [verseInfo, setVerseInfo] = useState([]); // State for verse info
-  const [showSurahSelection, setShowSurahSelection] = useState(false); // State to manage visibility
+  const [verseInfo, setVerseInfo] = useState([]);
+  const [showSurahSelection, setShowSurahSelection] = useState(false);
 
   // Get the total number of pages dynamically
   const totalPages = quranHafs.reduce(
@@ -63,7 +63,9 @@ const Quran = () => {
     surah.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const firstVerseOnPage = quranHafs.find((verse) => verse.page === currentPage);
+  const firstVerseOnPage = quranHafs.find(
+    (verse) => verse.page === currentPage
+  );
 
   useEffect(() => {
     if (firstVerseOnPage) {
@@ -75,7 +77,11 @@ const Quran = () => {
 
   return (
     <div className="quran-container" dir="rtl">
-      <div className={`surah-navigator ${showSurahSelection ? 'd-block' : 'd-none d-lg-block'}`}>
+      <div
+        className={`surah-navigator ${
+          showSurahSelection ? "d-block" : "d-none d-lg-block"
+        }`}
+      >
         <input
           type="text"
           value={searchTerm}
@@ -93,7 +99,9 @@ const Quran = () => {
             return (
               <div
                 key={index}
-                className={`surah-list-item ${surahIndex === currentSurah ? "active" : ""}`}
+                className={`surah-list-item ${
+                  surahIndex === currentSurah ? "active" : ""
+                }`}
                 onClick={() => handleSurahChange(surahIndex)}
               >
                 <div className="surah-list-item-text">
@@ -118,7 +126,10 @@ const Quran = () => {
               <QuranPage page={currentPage} />
             </div>
             <div className="pagination">
-              <button onClick={goToPreviousPage} className="pagination-button mybtn">
+              <button
+                onClick={goToPreviousPage}
+                className="pagination-button mybtn"
+              >
                 السابق
               </button>
               <input
@@ -128,7 +139,10 @@ const Quran = () => {
                 className="pagination-input"
               />
               <span className="pagination-total-pages"> / {totalPages}</span>
-              <button onClick={goToNextPage} className="pagination-button mybtn">
+              <button
+                onClick={goToNextPage}
+                className="pagination-button mybtn"
+              >
                 التالي
               </button>
             </div>
@@ -153,7 +167,7 @@ const Quran = () => {
       <button
         className="d-lg-none surah-btn"
         onClick={() => setShowSurahSelection(true)}
-        style={{ display: showSurahSelection ? 'none' : 'block' }}
+        style={{ display: showSurahSelection ? "none" : "block" }}
       >
         اختيار السور
       </button>

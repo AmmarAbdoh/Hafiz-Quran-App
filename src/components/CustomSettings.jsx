@@ -1,5 +1,5 @@
-import React, { useState, useContext, useEffect } from "react";
-import { Container, Nav, Button } from "react-bootstrap";
+import { useState, useContext, useEffect } from "react";
+import { Container, Nav } from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
 import SurahSelection from "./SurahSelection";
 import JuzSelection from "./JuzSelection";

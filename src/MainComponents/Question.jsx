@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import PropTypes from "prop-types";
 import FillTheBlank from "../QuestionsComponents/FillTheBlank";
 import InfoQuestion from "../QuestionsComponents/InfoQuestion";
 import { fetchRandomAyah } from "../functions/RandomAyah";
@@ -196,6 +197,10 @@ const Question = ({ quranSelection }) => {
       )}
     </div>
   );
+};
+
+Question.propTypes = {
+  quranSelection: PropTypes.arrayOf(PropTypes.bool).isRequired, // Add prop validation
 };
 
 export default Question;

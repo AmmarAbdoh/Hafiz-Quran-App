@@ -2,6 +2,8 @@
   border-style: solid;
   border-radius: 25%;
   padding: 5rem;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .checkbox-container {
@@ -16,6 +18,7 @@
   cursor: pointer;
   font-size: 18px;
   user-select: none;
+  color: #333;
 }
 
 .checkbox-container label input {
@@ -33,6 +36,7 @@
   background-color: #eee;
   border: 1px solid #ccc;
   border-radius: 4px;
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
 .checkbox-container label:hover input ~ .checkmark {
@@ -41,6 +45,7 @@
 
 .checkbox-container label input:checked ~ .checkmark {
   background-color: #2196f3;
+  border-color: #2196f3;
 }
 
 .checkmark:after {
@@ -63,7 +68,6 @@
   transform: rotate(45deg);
 }
 
-/* New styles for disabled checkboxes */
 .checkbox-container label input:disabled ~ .checkmark {
   background-color: darkgray;
   border: 1px solid #ddd;

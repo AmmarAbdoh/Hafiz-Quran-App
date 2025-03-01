@@ -19,12 +19,7 @@
   padding: 0 20px;
   border-radius: 5px;
   text-align: center;
-  background-color: rgba(
-    255,
-    255,
-    255,
-    0
-  ); /* Optional for better text visibility */
+  background-color: rgba(255, 255, 255, 0);
 }
 
 @media (max-width: 768px) {

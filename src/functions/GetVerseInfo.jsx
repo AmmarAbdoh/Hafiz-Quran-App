@@ -1,13 +1,14 @@
-import React from "react";
-import QuranInfo from "../Quran/Chapters_Info/Quran_info.json"; // Adjust the import path as necessary
+import QuranInfo from "../Quran/Chapters_Info/Quran_info.json";
+
 const GetVerseInfo = ({ verseID, surahNames }) => {
-  // Function to find verse information by verseID
-  console.log("Verse ID:", verseID);
   const findVerseByKey = (key) => {
-    return QuranInfo.find((v) => v.id === key);
+    const verse = QuranInfo.find((v) => v.id === key);
+    console.log("🚀 ~ GetVerseInfo ~ verseID:", verseID);
+    console.log("🚀 ~ findVerseByKey ~ QuranInfo:", QuranInfo);
+    console.log("🚀 ~ findVerseByKey ~ verse:", verse);
+    return verse;
   };
 
-  // Retrieve verse information based on verseID
   const verseInfo = findVerseByKey(verseID);
 
   if (!verseInfo) {
