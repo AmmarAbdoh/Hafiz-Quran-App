@@ -1,37 +1,64 @@
-# Hafiz Quran - Your Ultimate Quran Memorization Companion
+# حافظ القرآن — Hafiz Quran
 
-App Description:
+A modern Quran memorization companion built with React, TypeScript, and Tailwind CSS.
 
-Hafiz Quran is a comprehensive quiz app designed to facilitate and enhance your journey in memorizing the Quran. Whether you are a beginner or an advanced learner, our app provides an interactive and engaging way to master the holy text. With various question types and difficulty levels, Hafiz Quran caters to all ages and proficiency levels, making Quran memorization fun and effective.
+## Features
 
-Features:
+- **Quran Reader** — Browse the Mushaf page by page (604 pages), search surahs, and view tafseer for any ayah
+- **Custom Quiz** — Test your memorization with customizable quizzes:
+  - Select specific surahs or juz (parts)
+  - Multiple question types: fill in the blank, surah name, ayah number, juz number, hizb number, page number
+  - Instant feedback with verse metadata after each answer
 
-Diverse Question Types:
+## Tech Stack
 
-Multiple Choice Questions: Test your knowledge with multiple-choice questions based on specific surahs and ayahs.
-Fill in the Blanks: Strengthen your recall by completing missing words or phrases from selected verses.
-Verse Matching: Match the beginning of a verse with its continuation to improve your memorization flow.
-Audio Questions: Listen to recitations, identify the corresponding text, or complete the verse.
-Translation Questions: Enhance your understanding by matching Arabic verses with their translations.
-Personalized Learning Paths:
+- React 18 + TypeScript
+- Vite 6
+- Tailwind CSS v4 + shadcn/ui components
+- React Router 6
+- Vitest + Testing Library
 
-Customizable Quizzes: Create custom quizzes focusing on specific surahs, ayahs, or themes.
-Progress Tracking: Monitor your progress with detailed statistics and performance analysis.
-Adaptive Difficulty: The app adjusts the difficulty of questions based on your performance to ensure optimal learning.
-Interactive Learning Experience:
+## Getting Started
 
-Daily Challenges: Stay motivated with daily challenges and rewards.
-Leaderboards: Compete with friends and other users worldwide to see who ranks highest in Quran memorization.
-Achievements and Badges: Earn badges and achievements as you progress, keeping you motivated and engaged.
-Supportive Tools:
+```bash
+npm install
+npm run dev
+```
 
-Bookmarks: Save and revisit challenging verses.
-Notes: Add personal notes to any verse for additional context or reminders.
-Recitation Practice: Access high-quality audio recitations to practice and perfect your pronunciation.
-User-Friendly Interface:
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-Intuitive Design: Enjoy a clean, easy-to-navigate interface designed for users of all ages.
-Offline Access: Download quizzes and content for offline use, ensuring you can study anytime, anywhere.
-Why Hafiz Quran?
+## Scripts
 
-Hafiz Quran stands out by providing a structured, interactive, and personalized approach to Quran memorization. Our app not only helps you retain the verses but also deepens your understanding and connection to the Quran. Join thousands of users on their journey to becoming a Hafiz with Hafiz Quran.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Type-check and build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
+| `npm run test` | Run tests |
+| `npm run typecheck` | TypeScript type checking |
+
+## Project Structure
+
+```
+src/
+├── app/              # Router, layout, providers
+├── features/
+│   ├── home/         # Home page
+│   ├── quran-reader/ # Mushaf reader
+│   └── quiz/         # Custom quiz
+├── shared/
+│   ├── components/   # Reusable UI + shadcn components
+│   ├── services/     # Quran data access layer
+│   ├── types/        # TypeScript types
+│   └── constants/    # Surah names, juz names, etc.
+└── styles/           # Global CSS + design tokens
+```
+
+## Data
+
+Quran JSON data lives in `public/data/quran/` and is loaded lazily via fetch (not bundled into JS). This includes mushaf pages, chapter/juz verses, tafseer, and verse metadata.
+
+## Deployment
+
+The app is a static SPA. Use `npm run build` and deploy the `dist/` folder. Client-side routing is configured via `vercel.json` and `public/_redirects`.

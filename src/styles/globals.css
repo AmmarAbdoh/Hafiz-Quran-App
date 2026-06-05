@@ -1,0 +1,405 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-mushaf-page: var(--mushaf-page);
+  --color-mushaf-header: var(--mushaf-header);
+  --color-mushaf-header-panel: var(--mushaf-header-panel);
+  --color-mushaf-footer: var(--mushaf-footer);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: "Noto Kufi Arabic", system-ui, sans-serif;
+  --font-mushaf: "UthmanicHafs", "KFGQPC Uthmanic Script HAFS", serif;
+}
+
+@font-face {
+  font-family: "UthmanicHafs";
+  src: url("https://verses.quran.foundation/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2")
+    format("woff2");
+  font-display: swap;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #faf8f5;
+  --foreground: #1a1a2e;
+  --card: #ffffff;
+  --card-foreground: #1a1a2e;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a2e;
+  --primary: #0d6e6e;
+  --primary-foreground: #faf8f5;
+  --secondary: #e8f4f4;
+  --secondary-foreground: #0d6e6e;
+  --muted: #f0ebe3;
+  --muted-foreground: #5c5c6e;
+  --accent: #c9a84c;
+  --accent-foreground: #1a1a2e;
+  --destructive: #dc2626;
+  --border: #e0d8cc;
+  --input: #e0d8cc;
+  --ring: #0d6e6e;
+  /* Aliased to app tokens — keeps reader chrome consistent site-wide */
+  --mushaf-header: var(--background);
+  --mushaf-header-panel: var(--muted);
+  --mushaf-page: var(--background);
+  --mushaf-footer: var(--background);
+}
+
+.dark {
+  --background: #12121a;
+  --foreground: #f0ebe3;
+  --card: #1a1a2e;
+  --card-foreground: #f0ebe3;
+  --popover: #1a1a2e;
+  --popover-foreground: #f0ebe3;
+  --primary: #1a9e9e;
+  --primary-foreground: #12121a;
+  --secondary: #1e2e2e;
+  --secondary-foreground: #e8f4f4;
+  --muted: #252535;
+  --muted-foreground: #a0a0b0;
+  --accent: #c9a84c;
+  --accent-foreground: #12121a;
+  --destructive: #ef4444;
+  --border: #2e2e40;
+  --input: #2e2e40;
+  --ring: #1a9e9e;
+  --mushaf-header: var(--background);
+  --mushaf-header-panel: var(--muted);
+  --mushaf-page: var(--background);
+  --mushaf-footer: var(--background);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    direction: rtl;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(
+        circle at 20% 20%,
+        color-mix(in srgb, var(--primary) 8%, transparent) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 80%,
+        color-mix(in srgb, var(--accent) 6%, transparent) 0%,
+        transparent 50%
+      );
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .font-mushaf {
+    font-family: var(--font-mushaf);
+    font-feature-settings: "liga" 1;
+  }
+
+  .mushaf-reader-layout {
+    display: grid;
+    min-height: 0;
+    flex: 1;
+    grid-template-rows: 1fr auto;
+    overflow: hidden;
+  }
+
+  .mushaf-bottom-chrome {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  /*
+   * LTR on the scroll container pins the scrollbar to the physical right edge
+   * on Windows/macOS; mushaf content stays RTL in .mushaf-stage-inner.
+   */
+  .mushaf-stage {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    direction: ltr;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .mushaf-stage:hover,
+  .mushaf-stage:focus-within {
+    scrollbar-color: color-mix(in srgb, var(--foreground) 22%, transparent)
+      transparent;
+  }
+
+  .mushaf-stage::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .mushaf-stage::-webkit-scrollbar-track {
+    margin-block: 0.25rem;
+    background: transparent;
+  }
+
+  .mushaf-stage::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  .mushaf-stage:hover::-webkit-scrollbar-thumb,
+  .mushaf-stage:focus-within::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--foreground) 22%, transparent);
+  }
+
+  .mushaf-stage::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--foreground) 38%, transparent);
+  }
+
+  .mushaf-stage::-webkit-scrollbar-thumb:active {
+    background: color-mix(in srgb, var(--primary) 55%, transparent);
+  }
+
+  /* Subtle edge scrollbar for settings / about and other main pages */
+  .app-main-scroll {
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .app-main-scroll:hover,
+  .app-main-scroll:focus-within {
+    scrollbar-color: color-mix(in srgb, var(--foreground) 22%, transparent)
+      transparent;
+  }
+
+  .app-main-scroll::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .app-main-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .app-main-scroll::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  .app-main-scroll:hover::-webkit-scrollbar-thumb,
+  .app-main-scroll:focus-within::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--foreground) 22%, transparent);
+  }
+
+  .mushaf-stage-inner {
+    display: flex;
+    min-height: 100%;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 0.5rem;
+    direction: rtl;
+  }
+
+  .mushaf-page {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .mushaf-page--full {
+    --mushaf-page-fit: 1;
+    --mushaf-font-size: clamp(1rem, 10vw, 1.55rem);
+    --mushaf-line-height: clamp(1.85rem, 6.1vh, 2.75rem);
+    --mushaf-line-width: min(98vw, 64.5vh);
+    inline-size: var(--mushaf-line-width);
+    margin-inline: auto;
+  }
+
+  .mushaf-line {
+    --mushaf-fs: clamp(1.15rem, 2.2vw + 0.65rem, 2.1rem);
+    --mushaf-lh: clamp(2rem, 4vw + 1.25rem, 3.5rem);
+    display: flex;
+    min-height: var(--mushaf-lh);
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    direction: rtl;
+    font-size: var(--mushaf-fs);
+    line-height: var(--mushaf-lh);
+    padding: 0;
+  }
+
+  .mushaf-page--full .mushaf-line.mushaf-line--spread {
+    position: relative;
+    display: block;
+    text-align: center;
+    inline-size: var(--mushaf-line-width);
+    margin-inline: auto;
+    min-height: var(--mushaf-line-height);
+    padding: 0;
+    direction: rtl;
+    font-size: unset;
+    line-height: unset;
+    align-items: unset;
+    justify-content: unset;
+  }
+
+  .mushaf-page--full .mushaf-line__verse {
+    display: flex;
+    inline-size: var(--mushaf-line-width);
+    max-inline-size: var(--mushaf-line-width);
+    margin-inline: auto;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    direction: rtl;
+    overflow-x: clip;
+    font-size: calc(var(--mushaf-font-size) * var(--mushaf-page-fit, 1));
+    line-height: var(--mushaf-line-height);
+  }
+
+  .mushaf-page--full .mushaf-line__verse .mushaf-word-group {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    direction: rtl;
+    border-radius: 0.2rem;
+    pointer-events: none;
+  }
+
+  .mushaf-page--full .mushaf-line__verse .mushaf-word-group--reciting {
+    background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+
+  .mushaf-page--full .mushaf-line__verse .mushaf-word-group--selected {
+    background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+
+  .mushaf-page--full .mushaf-line__verse .mushaf-word-group--reciting .mushaf-word:not(.mushaf-word--reciting),
+  .mushaf-page--full .mushaf-line__verse .mushaf-word-group--selected .mushaf-word:not(.mushaf-word--word-selected):not(.mushaf-word--reciting) {
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  .mushaf-page--full .mushaf-line__verse .mushaf-word-group--reciting .mushaf-word.mushaf-word--reciting {
+    border-radius: 0.15rem;
+    background-color: color-mix(in srgb, var(--primary) 38%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 50%, transparent);
+  }
+
+  .mushaf-page--full .mushaf-line__verse .mushaf-word {
+    flex: 0 0 auto;
+    font-size: inherit;
+    line-height: inherit;
+    pointer-events: auto;
+  }
+
+  .mushaf-word {
+    position: relative;
+    display: inline-block;
+    flex: 0 0 auto;
+    padding: 0;
+    white-space: nowrap;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .mushaf-word-end {
+    padding: 0;
+  }
+
+  .mushaf-word--ayah-selected {
+    border-radius: 0.25rem;
+    background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+
+  .mushaf-word--word-selected {
+    border-radius: 0.25rem;
+    background-color: color-mix(in srgb, var(--primary) 28%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent);
+  }
+
+  .mushaf-word--reciting {
+    border-radius: 0.15rem;
+    background-color: color-mix(in srgb, var(--primary) 38%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 50%, transparent);
+    transition: background-color 80ms ease, box-shadow 80ms ease;
+  }
+
+  .mushaf-word-end.mushaf-word--ayah-selected {
+    background-color: color-mix(in srgb, var(--primary) 22%, transparent);
+  }
+
+  .mushaf-word-plain {
+    color: var(--foreground);
+  }
+
+  .mushaf-word-highlight {
+    animation: mushaf-verse-pulse 3.5s ease-out forwards;
+  }
+
+  @keyframes mushaf-verse-pulse {
+    0%,
+    20% {
+      background-color: color-mix(in srgb, var(--primary) 35%, transparent);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  @media (min-width: 640px) {
+    .mushaf-line {
+      --mushaf-fs: clamp(1.35rem, 2.5vw + 0.5rem, 2.15rem);
+    }
+
+    .mushaf-page--full {
+      --mushaf-font-size: 3.7vh;
+      --mushaf-line-height: 6.1vh;
+      --mushaf-line-width: 64.5vh;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .mushaf-line {
+      --mushaf-fs: clamp(1.55rem, 1.2vw + 0.85rem, 2.25rem);
+    }
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}

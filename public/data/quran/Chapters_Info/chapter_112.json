@@ -1,0 +1,50 @@
+[
+    {
+        "id": 6222,
+        "verse_number": 1,
+        "verse_key": "112:1",
+        "hizb_number": 60,
+        "rub_el_hizb_number": 240,
+        "ruku_number": 556,
+        "manzil_number": 7,
+        "sajdah_number": null,
+        "page_number": 604,
+        "juz_number": 30
+    },
+    {
+        "id": 6223,
+        "verse_number": 2,
+        "verse_key": "112:2",
+        "hizb_number": 60,
+        "rub_el_hizb_number": 240,
+        "ruku_number": 556,
+        "manzil_number": 7,
+        "sajdah_number": null,
+        "page_number": 604,
+        "juz_number": 30
+    },
+    {
+        "id": 6224,
+        "verse_number": 3,
+        "verse_key": "112:3",
+        "hizb_number": 60,
+        "rub_el_hizb_number": 240,
+        "ruku_number": 556,
+        "manzil_number": 7,
+        "sajdah_number": null,
+        "page_number": 604,
+        "juz_number": 30
+    },
+    {
+        "id": 6225,
+        "verse_number": 4,
+        "verse_key": "112:4",
+        "hizb_number": 60,
+        "rub_el_hizb_number": 240,
+        "ruku_number": 556,
+        "manzil_number": 7,
+        "sajdah_number": null,
+        "page_number": 604,
+        "juz_number": 30
+    }
+]

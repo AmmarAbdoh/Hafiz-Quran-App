@@ -1,0 +1,62 @@
+[
+    {
+        "id": 6217,
+        "verse_number": 1,
+        "verse_key": "111:1",
+        "hizb_number": 60,
+        "rub_el_hizb_number": 240,
+        "ruku_number": 555,
+        "manzil_number": 7,
+        "sajdah_number": null,
+        "page_number": 603,
+        "juz_number": 30
+    },
+    {
+        "id": 6218,
+        "verse_number": 2,
+        "verse_key": "111:2",
+        "hizb_number": 60,
+        "rub_el_hizb_number": 240,
+        "ruku_number": 555,
+        "manzil_number": 7,
+        "sajdah_number": null,
+        "page_number": 603,
+        "juz_number": 30
+    },
+    {
+        "id": 6219,
+        "verse_number": 3,
+        "verse_key": "111:3",
+        "hizb_number": 60,
+        "rub_el_hizb_number": 240,
+        "ruku_number": 555,
+        "manzil_number": 7,
+        "sajdah_number": null,
+        "page_number": 603,
+        "juz_number": 30
+    },
+    {
+        "id": 6220,
+        "verse_number": 4,
+        "verse_key": "111:4",
+        "hizb_number": 60,
+        "rub_el_hizb_number": 240,
+        "ruku_number": 555,
+        "manzil_number": 7,
+        "sajdah_number": null,
+        "page_number": 603,
+        "juz_number": 30
+    },
+    {
+        "id": 6221,
+        "verse_number": 5,
+        "verse_key": "111:5",
+        "hizb_number": 60,
+        "rub_el_hizb_number": 240,
+        "ruku_number": 555,
+        "manzil_number": 7,
+        "sajdah_number": null,
+        "page_number": 603,
+        "juz_number": 30
+    }
+]

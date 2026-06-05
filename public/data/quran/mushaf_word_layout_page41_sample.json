@@ -1,0 +1,1465 @@
+{
+  "meta": {
+    "mushaf": 19,
+    "source": "https://api.quran.com/api/v4",
+    "page_count": 1
+  },
+  "pages": [
+    {
+      "page": 41,
+      "lines": [
+        {
+          "line": 1,
+          "words": [
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 1,
+              "location": "2:249:1",
+              "line": 1,
+              "page": 41,
+              "code_v2": "ﱁ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_001.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 2,
+              "location": "2:249:2",
+              "line": 1,
+              "page": 41,
+              "code_v2": "ﱂ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_002.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 3,
+              "location": "2:249:3",
+              "line": 1,
+              "page": 41,
+              "code_v2": "ﱃ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_003.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 4,
+              "location": "2:249:4",
+              "line": 1,
+              "page": 41,
+              "code_v2": "ﱄ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_004.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 5,
+              "location": "2:249:5",
+              "line": 1,
+              "page": 41,
+              "code_v2": "ﱅ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_005.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 6,
+              "location": "2:249:6",
+              "line": 1,
+              "page": 41,
+              "code_v2": "ﱆ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_006.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 7,
+              "location": "2:249:7",
+              "line": 1,
+              "page": 41,
+              "code_v2": "ﱇ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_007.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 8,
+              "location": "2:249:8",
+              "line": 1,
+              "page": 41,
+              "code_v2": "ﱈ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_008.mp3"
+            }
+          ]
+        },
+        {
+          "line": 2,
+          "words": [
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 9,
+              "location": "2:249:9",
+              "line": 2,
+              "page": 41,
+              "code_v2": "ﱉ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_009.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 10,
+              "location": "2:249:10",
+              "line": 2,
+              "page": 41,
+              "code_v2": "ﱊ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_010.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 11,
+              "location": "2:249:11",
+              "line": 2,
+              "page": 41,
+              "code_v2": "ﱋ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_011.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 12,
+              "location": "2:249:12",
+              "line": 2,
+              "page": 41,
+              "code_v2": "ﱌ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_012.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 13,
+              "location": "2:249:13",
+              "line": 2,
+              "page": 41,
+              "code_v2": "ﱍ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_013.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 14,
+              "location": "2:249:14",
+              "line": 2,
+              "page": 41,
+              "code_v2": "ﱎ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_014.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 15,
+              "location": "2:249:15",
+              "line": 2,
+              "page": 41,
+              "code_v2": "ﱏ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_015.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 16,
+              "location": "2:249:16",
+              "line": 2,
+              "page": 41,
+              "code_v2": "ﱐ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_016.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 17,
+              "location": "2:249:17",
+              "line": 2,
+              "page": 41,
+              "code_v2": "ﱑ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_017.mp3"
+            }
+          ]
+        },
+        {
+          "line": 3,
+          "words": [
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 18,
+              "location": "2:249:18",
+              "line": 3,
+              "page": 41,
+              "code_v2": "ﱒ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_018.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 19,
+              "location": "2:249:19",
+              "line": 3,
+              "page": 41,
+              "code_v2": "ﱓ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_019.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 20,
+              "location": "2:249:20",
+              "line": 3,
+              "page": 41,
+              "code_v2": "ﱔ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_020.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 21,
+              "location": "2:249:21",
+              "line": 3,
+              "page": 41,
+              "code_v2": "ﱕ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_021.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 22,
+              "location": "2:249:22",
+              "line": 3,
+              "page": 41,
+              "code_v2": "ﱖ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_022.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 23,
+              "location": "2:249:23",
+              "line": 3,
+              "page": 41,
+              "code_v2": "ﱗ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_023.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 24,
+              "location": "2:249:24",
+              "line": 3,
+              "page": 41,
+              "code_v2": "ﱘﱙ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_024.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 25,
+              "location": "2:249:25",
+              "line": 3,
+              "page": 41,
+              "code_v2": "ﱚ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_026.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 26,
+              "location": "2:249:26",
+              "line": 3,
+              "page": 41,
+              "code_v2": "ﱛ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_027.mp3"
+            }
+          ]
+        },
+        {
+          "line": 4,
+          "words": [
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 27,
+              "location": "2:249:27",
+              "line": 4,
+              "page": 41,
+              "code_v2": "ﱜ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_028.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 28,
+              "location": "2:249:28",
+              "line": 4,
+              "page": 41,
+              "code_v2": "ﱝ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_029.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 29,
+              "location": "2:249:29",
+              "line": 4,
+              "page": 41,
+              "code_v2": "ﱞﱟ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_030.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 30,
+              "location": "2:249:30",
+              "line": 4,
+              "page": 41,
+              "code_v2": "ﱠ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_032.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 31,
+              "location": "2:249:31",
+              "line": 4,
+              "page": 41,
+              "code_v2": "ﱡ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_033.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 32,
+              "location": "2:249:32",
+              "line": 4,
+              "page": 41,
+              "code_v2": "ﱢ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_034.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 33,
+              "location": "2:249:33",
+              "line": 4,
+              "page": 41,
+              "code_v2": "ﱣ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_035.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 34,
+              "location": "2:249:34",
+              "line": 4,
+              "page": 41,
+              "code_v2": "ﱤ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_036.mp3"
+            }
+          ]
+        },
+        {
+          "line": 5,
+          "words": [
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 35,
+              "location": "2:249:35",
+              "line": 5,
+              "page": 41,
+              "code_v2": "ﱥ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_037.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 36,
+              "location": "2:249:36",
+              "line": 5,
+              "page": 41,
+              "code_v2": "ﱦ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_038.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 37,
+              "location": "2:249:37",
+              "line": 5,
+              "page": 41,
+              "code_v2": "ﱧ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_039.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 38,
+              "location": "2:249:38",
+              "line": 5,
+              "page": 41,
+              "code_v2": "ﱨ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_040.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 39,
+              "location": "2:249:39",
+              "line": 5,
+              "page": 41,
+              "code_v2": "ﱩ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_041.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 40,
+              "location": "2:249:40",
+              "line": 5,
+              "page": 41,
+              "code_v2": "ﱪ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_042.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 41,
+              "location": "2:249:41",
+              "line": 5,
+              "page": 41,
+              "code_v2": "ﱫ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_043.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 42,
+              "location": "2:249:42",
+              "line": 5,
+              "page": 41,
+              "code_v2": "ﱬﱭ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_044.mp3"
+            }
+          ]
+        },
+        {
+          "line": 6,
+          "words": [
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 43,
+              "location": "2:249:43",
+              "line": 6,
+              "page": 41,
+              "code_v2": "ﱮ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_046.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 44,
+              "location": "2:249:44",
+              "line": 6,
+              "page": 41,
+              "code_v2": "ﱯ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_047.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 45,
+              "location": "2:249:45",
+              "line": 6,
+              "page": 41,
+              "code_v2": "ﱰ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_048.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 46,
+              "location": "2:249:46",
+              "line": 6,
+              "page": 41,
+              "code_v2": "ﱱ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_049.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 47,
+              "location": "2:249:47",
+              "line": 6,
+              "page": 41,
+              "code_v2": "ﱲ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_050.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 48,
+              "location": "2:249:48",
+              "line": 6,
+              "page": 41,
+              "code_v2": "ﱳ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_051.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 49,
+              "location": "2:249:49",
+              "line": 6,
+              "page": 41,
+              "code_v2": "ﱴ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_052.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 50,
+              "location": "2:249:50",
+              "line": 6,
+              "page": 41,
+              "code_v2": "ﱵ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_053.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 51,
+              "location": "2:249:51",
+              "line": 6,
+              "page": 41,
+              "code_v2": "ﱶ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_054.mp3"
+            }
+          ]
+        },
+        {
+          "line": 7,
+          "words": [
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 52,
+              "location": "2:249:52",
+              "line": 7,
+              "page": 41,
+              "code_v2": "ﱷ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_055.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 53,
+              "location": "2:249:53",
+              "line": 7,
+              "page": 41,
+              "code_v2": "ﱸ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_056.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 54,
+              "location": "2:249:54",
+              "line": 7,
+              "page": 41,
+              "code_v2": "ﱹ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_057.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 55,
+              "location": "2:249:55",
+              "line": 7,
+              "page": 41,
+              "code_v2": "ﱺ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_058.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 56,
+              "location": "2:249:56",
+              "line": 7,
+              "page": 41,
+              "code_v2": "ﱻ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_059.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 57,
+              "location": "2:249:57",
+              "line": 7,
+              "page": 41,
+              "code_v2": "ﱼﱽ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_060.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 58,
+              "location": "2:249:58",
+              "line": 7,
+              "page": 41,
+              "code_v2": "ﱾ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_062.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 59,
+              "location": "2:249:59",
+              "line": 7,
+              "page": 41,
+              "code_v2": "ﱿ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_063.mp3"
+            }
+          ]
+        },
+        {
+          "line": 8,
+          "words": [
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 60,
+              "location": "2:249:60",
+              "line": 8,
+              "page": 41,
+              "code_v2": "ﲀ",
+              "char_type": "word",
+              "audio_url": "wbw/002_249_064.mp3"
+            },
+            {
+              "verse_key": "2:249",
+              "sura": 2,
+              "aya": 249,
+              "word": 61,
+              "location": "2:249:61",
+              "line": 8,
+              "page": 41,
+              "code_v2": "ﲁ",
+              "char_type": "end"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 1,
+              "location": "2:250:1",
+              "line": 8,
+              "page": 41,
+              "code_v2": "ﲂ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_001.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 2,
+              "location": "2:250:2",
+              "line": 8,
+              "page": 41,
+              "code_v2": "ﲃ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_002.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 3,
+              "location": "2:250:3",
+              "line": 8,
+              "page": 41,
+              "code_v2": "ﲄ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_003.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 4,
+              "location": "2:250:4",
+              "line": 8,
+              "page": 41,
+              "code_v2": "ﲅ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_004.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 5,
+              "location": "2:250:5",
+              "line": 8,
+              "page": 41,
+              "code_v2": "ﲆ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_005.mp3"
+            }
+          ]
+        },
+        {
+          "line": 9,
+          "words": [
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 6,
+              "location": "2:250:6",
+              "line": 9,
+              "page": 41,
+              "code_v2": "ﲇ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_006.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 7,
+              "location": "2:250:7",
+              "line": 9,
+              "page": 41,
+              "code_v2": "ﲈ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_007.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 8,
+              "location": "2:250:8",
+              "line": 9,
+              "page": 41,
+              "code_v2": "ﲉ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_008.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 9,
+              "location": "2:250:9",
+              "line": 9,
+              "page": 41,
+              "code_v2": "ﲊ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_009.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 10,
+              "location": "2:250:10",
+              "line": 9,
+              "page": 41,
+              "code_v2": "ﲋ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_010.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 11,
+              "location": "2:250:11",
+              "line": 9,
+              "page": 41,
+              "code_v2": "ﲌ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_011.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 12,
+              "location": "2:250:12",
+              "line": 9,
+              "page": 41,
+              "code_v2": "ﲍ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_012.mp3"
+            }
+          ]
+        },
+        {
+          "line": 10,
+          "words": [
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 13,
+              "location": "2:250:13",
+              "line": 10,
+              "page": 41,
+              "code_v2": "ﲎ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_013.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 14,
+              "location": "2:250:14",
+              "line": 10,
+              "page": 41,
+              "code_v2": "ﲏ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_014.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 15,
+              "location": "2:250:15",
+              "line": 10,
+              "page": 41,
+              "code_v2": "ﲐ",
+              "char_type": "word",
+              "audio_url": "wbw/002_250_015.mp3"
+            },
+            {
+              "verse_key": "2:250",
+              "sura": 2,
+              "aya": 250,
+              "word": 16,
+              "location": "2:250:16",
+              "line": 10,
+              "page": 41,
+              "code_v2": "ﲑ",
+              "char_type": "end"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 1,
+              "location": "2:251:1",
+              "line": 10,
+              "page": 41,
+              "code_v2": "ﲒ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_001.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 2,
+              "location": "2:251:2",
+              "line": 10,
+              "page": 41,
+              "code_v2": "ﲓ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_002.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 3,
+              "location": "2:251:3",
+              "line": 10,
+              "page": 41,
+              "code_v2": "ﲔ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_003.mp3"
+            }
+          ]
+        },
+        {
+          "line": 11,
+          "words": [
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 4,
+              "location": "2:251:4",
+              "line": 11,
+              "page": 41,
+              "code_v2": "ﲕ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_004.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 5,
+              "location": "2:251:5",
+              "line": 11,
+              "page": 41,
+              "code_v2": "ﲖ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_005.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 6,
+              "location": "2:251:6",
+              "line": 11,
+              "page": 41,
+              "code_v2": "ﲗ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_006.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 7,
+              "location": "2:251:7",
+              "line": 11,
+              "page": 41,
+              "code_v2": "ﲘ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_007.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 8,
+              "location": "2:251:8",
+              "line": 11,
+              "page": 41,
+              "code_v2": "ﲙ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_008.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 9,
+              "location": "2:251:9",
+              "line": 11,
+              "page": 41,
+              "code_v2": "ﲚ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_009.mp3"
+            }
+          ]
+        },
+        {
+          "line": 12,
+          "words": [
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 10,
+              "location": "2:251:10",
+              "line": 12,
+              "page": 41,
+              "code_v2": "ﲛ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_010.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 11,
+              "location": "2:251:11",
+              "line": 12,
+              "page": 41,
+              "code_v2": "ﲜ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_011.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 12,
+              "location": "2:251:12",
+              "line": 12,
+              "page": 41,
+              "code_v2": "ﲝ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_012.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 13,
+              "location": "2:251:13",
+              "line": 12,
+              "page": 41,
+              "code_v2": "ﲞﲟ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_013.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 14,
+              "location": "2:251:14",
+              "line": 12,
+              "page": 41,
+              "code_v2": "ﲠ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_015.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 15,
+              "location": "2:251:15",
+              "line": 12,
+              "page": 41,
+              "code_v2": "ﲡ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_016.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 16,
+              "location": "2:251:16",
+              "line": 12,
+              "page": 41,
+              "code_v2": "ﲢ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_017.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 17,
+              "location": "2:251:17",
+              "line": 12,
+              "page": 41,
+              "code_v2": "ﲣ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_018.mp3"
+            }
+          ]
+        },
+        {
+          "line": 13,
+          "words": [
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 18,
+              "location": "2:251:18",
+              "line": 13,
+              "page": 41,
+              "code_v2": "ﲤ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_019.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 19,
+              "location": "2:251:19",
+              "line": 13,
+              "page": 41,
+              "code_v2": "ﲥ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_020.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 20,
+              "location": "2:251:20",
+              "line": 13,
+              "page": 41,
+              "code_v2": "ﲦ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_021.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 21,
+              "location": "2:251:21",
+              "line": 13,
+              "page": 41,
+              "code_v2": "ﲧ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_022.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 22,
+              "location": "2:251:22",
+              "line": 13,
+              "page": 41,
+              "code_v2": "ﲨ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_023.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 23,
+              "location": "2:251:23",
+              "line": 13,
+              "page": 41,
+              "code_v2": "ﲩ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_024.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 24,
+              "location": "2:251:24",
+              "line": 13,
+              "page": 41,
+              "code_v2": "ﲪ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_025.mp3"
+            }
+          ]
+        },
+        {
+          "line": 14,
+          "words": [
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 25,
+              "location": "2:251:25",
+              "line": 14,
+              "page": 41,
+              "code_v2": "ﲫ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_026.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 26,
+              "location": "2:251:26",
+              "line": 14,
+              "page": 41,
+              "code_v2": "ﲬ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_027.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 27,
+              "location": "2:251:27",
+              "line": 14,
+              "page": 41,
+              "code_v2": "ﲭ",
+              "char_type": "word",
+              "audio_url": "wbw/002_251_028.mp3"
+            },
+            {
+              "verse_key": "2:251",
+              "sura": 2,
+              "aya": 251,
+              "word": 28,
+              "location": "2:251:28",
+              "line": 14,
+              "page": 41,
+              "code_v2": "ﲮ",
+              "char_type": "end"
+            },
+            {
+              "verse_key": "2:252",
+              "sura": 2,
+              "aya": 252,
+              "word": 1,
+              "location": "2:252:1",
+              "line": 14,
+              "page": 41,
+              "code_v2": "ﲯ",
+              "char_type": "word",
+              "audio_url": "wbw/002_252_001.mp3"
+            },
+            {
+              "verse_key": "2:252",
+              "sura": 2,
+              "aya": 252,
+              "word": 2,
+              "location": "2:252:2",
+              "line": 14,
+              "page": 41,
+              "code_v2": "ﲰ",
+              "char_type": "word",
+              "audio_url": "wbw/002_252_002.mp3"
+            },
+            {
+              "verse_key": "2:252",
+              "sura": 2,
+              "aya": 252,
+              "word": 3,
+              "location": "2:252:3",
+              "line": 14,
+              "page": 41,
+              "code_v2": "ﲱ",
+              "char_type": "word",
+              "audio_url": "wbw/002_252_003.mp3"
+            },
+            {
+              "verse_key": "2:252",
+              "sura": 2,
+              "aya": 252,
+              "word": 4,
+              "location": "2:252:4",
+              "line": 14,
+              "page": 41,
+              "code_v2": "ﲲ",
+              "char_type": "word",
+              "audio_url": "wbw/002_252_004.mp3"
+            }
+          ]
+        },
+        {
+          "line": 15,
+          "words": [
+            {
+              "verse_key": "2:252",
+              "sura": 2,
+              "aya": 252,
+              "word": 5,
+              "location": "2:252:5",
+              "line": 15,
+              "page": 41,
+              "code_v2": "ﲳ",
+              "char_type": "word",
+              "audio_url": "wbw/002_252_005.mp3"
+            },
+            {
+              "verse_key": "2:252",
+              "sura": 2,
+              "aya": 252,
+              "word": 6,
+              "location": "2:252:6",
+              "line": 15,
+              "page": 41,
+              "code_v2": "ﲴﲵ",
+              "char_type": "word",
+              "audio_url": "wbw/002_252_006.mp3"
+            },
+            {
+              "verse_key": "2:252",
+              "sura": 2,
+              "aya": 252,
+              "word": 7,
+              "location": "2:252:7",
+              "line": 15,
+              "page": 41,
+              "code_v2": "ﲶ",
+              "char_type": "word",
+              "audio_url": "wbw/002_252_008.mp3"
+            },
+            {
+              "verse_key": "2:252",
+              "sura": 2,
+              "aya": 252,
+              "word": 8,
+              "location": "2:252:8",
+              "line": 15,
+              "page": 41,
+              "code_v2": "ﲷ",
+              "char_type": "word",
+              "audio_url": "wbw/002_252_009.mp3"
+            },
+            {
+              "verse_key": "2:252",
+              "sura": 2,
+              "aya": 252,
+              "word": 9,
+              "location": "2:252:9",
+              "line": 15,
+              "page": 41,
+              "code_v2": "ﲸ",
+              "char_type": "word",
+              "audio_url": "wbw/002_252_010.mp3"
+            },
+            {
+              "verse_key": "2:252",
+              "sura": 2,
+              "aya": 252,
+              "word": 10,
+              "location": "2:252:10",
+              "line": 15,
+              "page": 41,
+              "code_v2": "ﲹ",
+              "char_type": "end"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
