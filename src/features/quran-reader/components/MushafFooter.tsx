@@ -1,63 +1,77 @@
 import { PageControls } from "@/features/quran-reader/components/PageControls";
+import { MushafFooterPinButton } from "@/features/quran-reader/components/MushafFooterPinButton";
+import { formatAyahCount } from "@/shared/lib/arabic-count";
+import { toArabicNumerals } from "@/shared/lib/arabic-numerals";
 
 interface MushafFooterProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  surahNumber?: number;
+  surahNames?: string[];
   surahAyahCount?: number;
   juzNumber?: number | string;
   hizbNumber?: number | string;
-}
-
-function MetaItem({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="whitespace-nowrap text-[10px] text-muted-foreground sm:text-[11px]">
-      {children}
-    </span>
-  );
+  pinned?: boolean;
+  onPinnedChange?: (pinned: boolean) => void;
 }
 
 export function MushafFooter({
   currentPage,
   totalPages,
   onPageChange,
-  surahNumber,
+  surahNames = [],
   surahAyahCount,
   juzNumber,
   hizbNumber,
+  pinned = false,
+  onPinnedChange,
 }: MushafFooterProps) {
-  const hasStartMeta = surahNumber !== undefined || surahAyahCount !== undefined;
+  const hasStartMeta = surahNames.length > 0 || surahAyahCount !== undefined;
   const hasEndMeta = juzNumber !== undefined || hizbNumber !== undefined;
+  const showSingleSurahAyahCount =
+    surahNames.length === 1 && surahAyahCount !== undefined;
 
   return (
-    <footer className="z-20 shrink-0 border-t border-border bg-background/95 px-2 py-2.5 backdrop-blur-md sm:px-3">
+    <footer className="mushaf-footer-bar mushaf-footer-bar--with-pin">
+      {onPinnedChange && (
+        <MushafFooterPinButton pinned={pinned} onPinnedChange={onPinnedChange} />
+      )}
+
       <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-1">
-        <div className="flex min-w-0 items-center justify-start gap-1.5 overflow-hidden">
+        <div className="flex min-w-0 items-center justify-start overflow-hidden">
           {hasStartMeta && (
-            <>
-              {surahNumber !== undefined && (
-                <MetaItem>سورة {surahNumber}</MetaItem>
+            <div className="min-w-0 text-right leading-snug">
+              {surahNames.length > 0 && (
+                <p className="truncate text-xs font-semibold text-foreground sm:text-sm">
+                  {surahNames.map((name) => `سورة ${name}`).join("، ")}
+                </p>
               )}
-              {surahAyahCount !== undefined && (
-                <MetaItem>{surahAyahCount} آية</MetaItem>
+              {showSingleSurahAyahCount && (
+                <p className="text-[10px] text-muted-foreground sm:text-xs">
+                  {formatAyahCount(surahAyahCount)}
+                </p>
               )}
-            </>
+            </div>
           )}
         </div>
 
         <PageControls
+          compact
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={onPageChange}
         />
 
-        <div className="flex min-w-0 items-center justify-end gap-1.5 overflow-hidden">
+        <div className="flex min-w-0 items-center justify-end overflow-hidden">
           {hasEndMeta && (
-            <>
-              {juzNumber !== undefined && <MetaItem>جزء {juzNumber}</MetaItem>}
-              {hizbNumber !== undefined && <MetaItem>حزب {hizbNumber}</MetaItem>}
-            </>
+            <div className="text-left text-[10px] leading-snug text-muted-foreground sm:text-xs">
+              {juzNumber !== undefined && (
+                <p>الجزء {toArabicNumerals(juzNumber)}</p>
+              )}
+              {hizbNumber !== undefined && (
+                <p>الحزب {toArabicNumerals(hizbNumber)}</p>
+              )}
+            </div>
           )}
         </div>
       </div>

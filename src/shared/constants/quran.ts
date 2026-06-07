@@ -148,6 +148,8 @@ export const JUZ_NAMES = [
   "عمّ",
 ] as const;
 
+export const DEFAULT_TAFSEER_ID = "1";
+
 export const TAFSEER_OPTIONS: Record<string, string> = {
   "1": "التفسير الميسر",
   "2": "تفسير الجلالين",
@@ -172,3 +174,14 @@ export const QUESTION_TYPE_LABELS: Record<
 };
 
 export const TOTAL_MUSHAF_PAGES = 604;
+
+export function getJuzDisplayName(
+  juzNumber: number | string | undefined,
+): string | undefined {
+  if (juzNumber === undefined || juzNumber === "") return undefined;
+  const index = Number(juzNumber) - 1;
+  if (!Number.isFinite(index) || index < 0 || index >= JUZ_NAMES.length) {
+    return undefined;
+  }
+  return JUZ_NAMES[index];
+}

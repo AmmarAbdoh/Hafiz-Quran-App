@@ -3,7 +3,9 @@ import {
   buildFullWordLines,
   clearQuranDataCache,
   getPageLines,
-  getPageSurahHeaderInfo,
+  getPageSurahHeaders,
+  getPageSurahNumbers,
+  getSurahTashkeelName,
   getSurahHeaderLines,
   getVerseInfo,
   getPrevAndNextVerse,
@@ -213,11 +215,137 @@ describe("buildFullWordLines", () => {
       ],
     };
 
-    expect(getPageSurahHeaderInfo(headerPage)).toEqual({
-      show: true,
-      surahNumber: 2,
-      headerLines: 2,
-    });
+    expect(getPageSurahHeaders(headerPage)).toEqual([
+      { surahNumber: 2, beforeLine: 3, headerLines: 2 },
+    ]);
+  });
+
+  it("detects multiple surah headers on one page", () => {
+    const multiSurahPage: MushafPageLayout = {
+      page: 599,
+      lines: [
+        {
+          line: 2,
+          words: [
+            {
+              verse_key: "100:1",
+              sura: 100,
+              aya: 1,
+              word: 1,
+              location: "100:1:1",
+              line: 2,
+              page: 599,
+              code_v2: "ﱁ",
+              char_type: "word",
+            },
+          ],
+        },
+        {
+          line: 8,
+          words: [
+            {
+              verse_key: "101:1",
+              sura: 101,
+              aya: 1,
+              word: 1,
+              location: "101:1:1",
+              line: 8,
+              page: 599,
+              code_v2: "ﱂ",
+              char_type: "word",
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(getPageSurahHeaders(multiSurahPage)).toEqual([
+      { surahNumber: 100, beforeLine: 2, headerLines: 1 },
+      { surahNumber: 101, beforeLine: 8, headerLines: 5 },
+    ]);
+  });
+
+  it("ignores duplicate ayah-1 markers for the same surah", () => {
+    const duplicateBismillahPage: MushafPageLayout = {
+      page: 77,
+      lines: [
+        {
+          line: 2,
+          words: [
+            {
+              verse_key: "4:1",
+              sura: 4,
+              aya: 1,
+              word: 1,
+              location: "4:1:1",
+              line: 2,
+              page: 77,
+              code_v2: "ﱁ",
+              char_type: "word",
+            },
+          ],
+        },
+        {
+          line: 3,
+          words: [
+            {
+              verse_key: "4:1",
+              sura: 4,
+              aya: 1,
+              word: 2,
+              location: "4:1:2",
+              line: 3,
+              page: 77,
+              code_v2: "ﱂ",
+              char_type: "word",
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(getPageSurahHeaders(duplicateBismillahPage)).toEqual([
+      { surahNumber: 4, beforeLine: 2, headerLines: 1 },
+    ]);
+  });
+});
+
+describe("page surah metadata", () => {
+  const mushafVerses: MushafVerse[] = [
+    {
+      id: 1,
+      jozz: 1,
+      page: 599,
+      sura_no: 99,
+      sura_name_en: "Az-Zalzalah",
+      sura_name_ar: "الزَّلزَلة",
+      line_start: 1,
+      line_end: 2,
+      aya_no: 1,
+      aya_text: "test",
+      aya_text_emlaey: "test",
+    },
+    {
+      id: 2,
+      jozz: 30,
+      page: 599,
+      sura_no: 100,
+      sura_name_en: "Al-Adiyat",
+      sura_name_ar: "العَادِيات",
+      line_start: 8,
+      line_end: 8,
+      aya_no: 1,
+      aya_text: "test",
+      aya_text_emlaey: "test",
+    },
+  ];
+
+  it("lists every surah on a page", () => {
+    expect(getPageSurahNumbers(mushafVerses, 599)).toEqual([99, 100]);
+  });
+
+  it("returns tashkeel surah names from mushaf metadata", () => {
+    expect(getSurahTashkeelName(mushafVerses, 100)).toBe("العَادِيات");
   });
 });
 

@@ -108,7 +108,7 @@ export function VerseActionsPopover({
                 playingTarget === "ayah" && "animate-pulse",
               )}
             />
-            الآية
+            استماع
           </Button>
 
           <Button

@@ -2,8 +2,41 @@ import { useEffect, useState } from "react";
 import type { Theme } from "@/shared/hooks/use-theme";
 
 const CDN_BASE = "https://verses.quran.foundation";
+const TAJWEED_STORAGE_KEY = "mushaf-tajweed-colored";
+/** CPAL light palette: indices 1, 2, 15 are sakin / silent-letter grey (#a5a5a5). */
+const TAJWEED_SAKIN_LIGHT_GREY = "#4a4a4a";
 const loadedFonts = new Map<string, Promise<boolean>>();
 const injectedPalettes = new Set<string>();
+
+function readStoredTheme(): Theme {
+  const stored = localStorage.getItem("theme");
+  if (stored === "dark" || stored === "light") return stored;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+function readTajweedColored(): boolean {
+  return localStorage.getItem(TAJWEED_STORAGE_KEY) === "true";
+}
+
+function getFontCacheKey(
+  page: number,
+  theme: Theme,
+  colored: boolean,
+): string {
+  const fontFamily = getQcfFontFamily(page, colored);
+  return `${fontFamily}-${theme}-${colored ? "c" : "p"}`;
+}
+
+function isQcfFontInDocument(page: number, colored: boolean): boolean {
+  const fontFamily = getQcfFontFamily(page, colored);
+  try {
+    return document.fonts.check(`1em "${fontFamily}"`);
+  } catch {
+    return false;
+  }
+}
 
 function isFirefox(): boolean {
   return (
@@ -41,6 +74,10 @@ function ensureTajweedPalettes(fontFamily: string): void {
     @font-palette-values --Mushaf-Tajweed-Light-${fontFamily} {
       font-family: '${fontFamily}';
       base-palette: 0;
+      override-colors:
+        1 ${TAJWEED_SAKIN_LIGHT_GREY},
+        2 ${TAJWEED_SAKIN_LIGHT_GREY},
+        15 ${TAJWEED_SAKIN_LIGHT_GREY};
     }
     @font-palette-values --Mushaf-Tajweed-Dark-${fontFamily} {
       font-family: '${fontFamily}';
@@ -51,15 +88,16 @@ function ensureTajweedPalettes(fontFamily: string): void {
   injectedPalettes.add(fontFamily);
 }
 
-async function loadQcfPageFont(
+export async function preloadQcfPageFont(
   page: number,
   theme: Theme,
   colored: boolean,
 ): Promise<boolean> {
-  const fontFamily = getQcfFontFamily(page, colored);
-  const cacheKey = `${fontFamily}-${theme}-${colored ? "c" : "p"}`;
+  const cacheKey = getFontCacheKey(page, theme, colored);
   const cached = loadedFonts.get(cacheKey);
   if (cached) return cached;
+
+  const fontFamily = getQcfFontFamily(page, colored);
 
   const promise = (async () => {
     try {
@@ -81,13 +119,52 @@ async function loadQcfPageFont(
   return promise;
 }
 
+export function preloadAdjacentQcfPageFonts(
+  centerPage: number,
+  totalPages: number,
+  theme: Theme,
+  colored: boolean,
+): void {
+  for (let offset = -1; offset <= 2; offset++) {
+    const page = centerPage + offset;
+    if (page >= 1 && page <= totalPages && page !== centerPage) {
+      void preloadQcfPageFont(page, theme, colored);
+    }
+  }
+}
+
+export function preloadInitialQcfFonts(): void {
+  const theme = readStoredTheme();
+  const colored = readTajweedColored();
+
+  void preloadQcfPageFont(1, theme, colored);
+  void preloadQcfPageFont(2, theme, colored);
+
+  if (colored) {
+    void preloadQcfPageFont(1, theme, false);
+    void preloadQcfPageFont(2, theme, false);
+  }
+}
+
+export function preloadQcfFontsForReaderPage(
+  page: number,
+  totalPages: number,
+  theme: Theme,
+  colored: boolean,
+): void {
+  void preloadQcfPageFont(page, theme, colored);
+  preloadAdjacentQcfPageFonts(page, totalPages, theme, colored);
+}
+
 export function useQcfPageFont(
   page: number,
-  options: { colored: boolean; theme: Theme },
+  options: { colored: boolean; theme: Theme; enabled?: boolean },
 ) {
-  const { colored, theme } = options;
+  const { colored, theme, enabled = true } = options;
   const fontFamily = getQcfFontFamily(page, colored);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(() =>
+    isQcfFontInDocument(page, colored),
+  );
 
   const fontPalette = colored
     ? getMushafFontPalette(fontFamily, theme)
@@ -95,16 +172,37 @@ export function useQcfPageFont(
 
   useEffect(() => {
     let cancelled = false;
-    setReady(false);
 
-    loadQcfPageFont(page, theme, colored).then((loaded) => {
+    if (!enabled) {
+      setReady(isQcfFontInDocument(page, colored));
+      return;
+    }
+
+    if (isQcfFontInDocument(page, colored)) {
+      setReady(true);
+      return;
+    }
+
+    const cacheKey = getFontCacheKey(page, theme, colored);
+    const cached = loadedFonts.get(cacheKey);
+    if (cached) {
+      cached.then((loaded) => {
+        if (!cancelled) setReady(loaded);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setReady(false);
+    preloadQcfPageFont(page, theme, colored).then((loaded) => {
       if (!cancelled) setReady(loaded);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [page, theme, colored]);
+  }, [page, theme, colored, enabled]);
 
   return { fontFamily, fontPalette, ready, colored };
 }

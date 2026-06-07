@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Volume2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
 import { SURAH_NAMES } from "@/shared/constants/quran";
+import { formatAyahCount } from "@/shared/lib/arabic-count";
 import { getSurahAyahCount } from "@/shared/services/quran-data";
 import { cn } from "@/shared/lib/utils";
 import type { MushafVerse } from "@/shared/types/quran";
@@ -18,6 +19,7 @@ interface SurahDrawerProps {
   mushafData: MushafVerse[];
   currentSurah: number | null;
   onSurahSelect: (surahIndex: number) => void;
+  onListenToSurah?: (surahNumber: number) => void;
 }
 
 export function SurahDrawer({
@@ -26,6 +28,7 @@ export function SurahDrawer({
   mushafData,
   currentSurah,
   onSurahSelect,
+  onListenToSurah,
 }: SurahDrawerProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -56,23 +59,42 @@ export function SurahDrawer({
           {filtered.map(({ name, index }) => {
             const ayahCount = getSurahAyahCount(mushafData, index + 1);
             return (
-              <button
+              <div
                 key={index}
-                type="button"
                 className={cn(
-                  "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-start text-sm transition-colors hover:bg-muted",
-                  currentSurah === index &&
-                    "bg-primary/10 font-medium text-primary",
+                  "flex items-center gap-1 rounded-lg px-1 py-1 transition-colors hover:bg-muted",
+                  currentSurah === index && "bg-primary/10",
                 )}
-                onClick={() => onSurahSelect(index)}
               >
-                <span>
-                  {index + 1}. {name}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {ayahCount} آية
-                </span>
-              </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "min-w-0 flex-1 px-2 py-1.5 text-start text-sm",
+                    currentSurah === index && "font-medium text-primary",
+                  )}
+                  onClick={() => onSurahSelect(index)}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span>
+                      {index + 1}. {name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatAyahCount(ayahCount, { arabicNumerals: false })}
+                    </span>
+                  </span>
+                </button>
+                {onListenToSurah ? (
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-primary"
+                    onClick={() => onListenToSurah(index + 1)}
+                    aria-label={`استماع سورة ${name}`}
+                    title="استماع"
+                  >
+                    <Volume2 className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
             );
           })}
         </div>

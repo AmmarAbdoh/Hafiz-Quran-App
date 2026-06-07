@@ -1,5 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, BookOpen, Moon, Settings, Sun } from "lucide-react";
+import {
+  isQuranReaderPath,
+} from "@/features/quran-reader/lib/quranReaderRoutes";
 import { MushafReaderHeader } from "@/features/quran-reader/components/MushafReaderHeader";
 import { useMushafReader } from "@/features/quran-reader/context/MushafReaderContext";
 import { Button } from "@/shared/components/ui/button";
@@ -12,17 +15,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
   const { header: mushafHeader } = useMushafReader();
   const isHome = location.pathname === "/";
-  const isQuranReader = location.pathname === "/quran";
+  const isQuranReader = isQuranReaderPath(location.pathname);
   const showMushafHeader = isQuranReader && mushafHeader !== null;
-
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
         {showMushafHeader ? (
-          <MushafReaderHeader
-            {...mushafHeader}
-            onBack={() => navigate(-1)}
-          />
+          <MushafReaderHeader {...mushafHeader} />
         ) : (
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
             <div className="flex items-center gap-3">

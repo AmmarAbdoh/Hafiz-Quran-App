@@ -65,6 +65,9 @@
   --mushaf-header-panel: var(--muted);
   --mushaf-page: var(--background);
   --mushaf-footer: var(--background);
+  --mushaf-ayah-highlight: rgb(26 26 46 / 0.07);
+  --mushaf-ayah-highlight-strong: rgb(26 26 46 / 0.12);
+  --mushaf-ayah-highlight-pulse: rgb(26 26 46 / 0.16);
 }
 
 .dark {
@@ -90,6 +93,9 @@
   --mushaf-header-panel: var(--muted);
   --mushaf-page: var(--background);
   --mushaf-footer: var(--background);
+  --mushaf-ayah-highlight: color-mix(in srgb, var(--primary) 16%, transparent);
+  --mushaf-ayah-highlight-strong: color-mix(in srgb, var(--primary) 28%, transparent);
+  --mushaf-ayah-highlight-pulse: color-mix(in srgb, var(--primary) 35%, transparent);
 }
 
 @layer base {
@@ -129,12 +135,77 @@
     font-feature-settings: "liga" 1;
   }
 
+  .quran-text,
+  .mushaf-page,
+  .mushaf-stage {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
   .mushaf-reader-layout {
-    display: grid;
+    --mushaf-dock-offset: 0px;
+    --mushaf-dock-reserve: 64px;
+    --mushaf-audio-offset: 0px;
+    display: flex;
     min-height: 0;
     flex: 1;
-    grid-template-rows: 1fr auto;
+    flex-direction: column;
     overflow: hidden;
+  }
+
+  .mushaf-bottom-dock {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 35;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(0);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  .mushaf-bottom-dock--collapsed {
+    transform: translateY(calc(100% - 10px));
+  }
+
+  .mushaf-bottom-dock--fully-collapsed {
+    transform: translateY(100%);
+  }
+
+  .mushaf-bottom-dock__hover-sentinel {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 36;
+    height: 12px;
+  }
+
+  .mushaf-bottom-dock__peek {
+    position: relative;
+    flex-shrink: 0;
+    height: 10px;
+    cursor: pointer;
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--background) 92%, transparent),
+      transparent
+    );
+  }
+
+  .mushaf-bottom-dock--collapsed .mushaf-bottom-dock__peek::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    width: 36px;
+    height: 3px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--foreground) 22%, transparent);
+    transform: translateX(-50%);
   }
 
   .mushaf-bottom-chrome {
@@ -142,6 +213,244 @@
     min-height: 0;
     flex-direction: column;
     flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    background: color-mix(in srgb, var(--background) 94%, transparent);
+    box-shadow: 0 -8px 28px -12px rgb(0 0 0 / 0.18);
+    backdrop-filter: blur(12px);
+  }
+
+  .dark .mushaf-bottom-chrome {
+    box-shadow: 0 -8px 28px -12px rgb(0 0 0 / 0.45);
+  }
+
+  .mushaf-playback-dock {
+    position: fixed;
+    right: 0;
+    bottom: var(--mushaf-dock-offset);
+    left: 0;
+    z-index: 34;
+  }
+
+  .mushaf-footer-bar {
+    position: relative;
+    z-index: 20;
+    flex-shrink: 0;
+    padding: 0.375rem 0.5rem;
+    background: transparent;
+  }
+
+  .mushaf-footer-bar--with-pin {
+    padding-inline-start: 2rem;
+  }
+
+  @media (min-width: 640px) {
+    .mushaf-footer-bar {
+      padding-inline: 0.75rem;
+    }
+
+    .mushaf-footer-bar--with-pin {
+      padding-inline-start: 2.25rem;
+    }
+  }
+
+  .mushaf-footer-pin {
+    position: absolute;
+    top: 50%;
+    inset-inline-start: 0.375rem;
+    display: inline-flex;
+    height: 1.625rem;
+    width: 1.625rem;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: var(--muted-foreground);
+    transform: translateY(-50%);
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  @media (min-width: 640px) {
+    .mushaf-footer-pin {
+      inset-inline-start: 0.5rem;
+    }
+  }
+
+  .mushaf-footer-pin:hover {
+    background: color-mix(in srgb, var(--muted) 55%, transparent);
+    color: var(--foreground);
+  }
+
+  .mushaf-footer-pin--active {
+    color: var(--primary);
+  }
+
+  .mushaf-footer-pin--active:hover {
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    color: var(--primary);
+  }
+
+  .mushaf-tajweed-dock {
+    position: relative;
+    border-top: 1px solid var(--border);
+    background: color-mix(in srgb, var(--background) 94%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .mushaf-tajweed-dock__chrome {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition:
+      max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.24s ease;
+  }
+
+  .mushaf-tajweed-dock__chrome--visible {
+    max-height: 7rem;
+    opacity: 1;
+  }
+
+  .mushaf-tajweed-dock__legend-wrap {
+    position: relative;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 2.25rem;
+  }
+
+  .mushaf-tajweed-dock__legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem 0.75rem;
+  }
+
+  @media (min-width: 640px) {
+    .mushaf-tajweed-dock__legend {
+      gap: 0.375rem 1rem;
+    }
+  }
+
+  .mushaf-tajweed-dock__legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.625rem;
+    line-height: 1;
+  }
+
+  @media (min-width: 640px) {
+    .mushaf-tajweed-dock__legend-item {
+      font-size: 0.6875rem;
+    }
+  }
+
+  .mushaf-tajweed-dock__swatch {
+    height: 0.75rem;
+    width: 0.75rem;
+    shrink: 0;
+    border-radius: 999px;
+    border: 1px solid rgb(0 0 0 / 0.1);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  }
+
+  @media (min-width: 640px) {
+    .mushaf-tajweed-dock__swatch {
+      height: 0.875rem;
+      width: 0.875rem;
+    }
+  }
+
+  .dark .mushaf-tajweed-dock__swatch {
+    border-color: rgb(255 255 255 / 0.1);
+  }
+
+  .mushaf-tajweed-dock__info {
+    position: absolute;
+    top: 50%;
+    inset-inline-end: 0;
+    display: inline-flex;
+    height: 1.75rem;
+    width: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted-foreground);
+    transform: translateY(-50%);
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .mushaf-tajweed-dock__info:hover {
+    background: color-mix(in srgb, var(--muted) 60%, transparent);
+    color: var(--primary);
+  }
+
+  .mushaf-tajweed-dock__bar {
+    position: relative;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    padding: 0.375rem 2rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  .mushaf-tajweed-dock__bar:hover,
+  .mushaf-tajweed-dock--pinned .mushaf-tajweed-dock__bar {
+    background: color-mix(in srgb, var(--primary) 6%, transparent);
+  }
+
+  .mushaf-tajweed-dock__pin-icon {
+    position: absolute;
+    top: 50%;
+    left: 0.75rem;
+    display: inline-flex;
+    height: 1.75rem;
+    width: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-foreground);
+    opacity: 0;
+    transform: translateY(-50%);
+    transition:
+      opacity 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .group\/dock:hover .mushaf-tajweed-dock__pin-icon,
+  .mushaf-tajweed-dock__pin-icon--visible {
+    opacity: 1;
+  }
+
+  .mushaf-tajweed-dock--pinned .mushaf-tajweed-dock__pin-icon {
+    color: var(--primary);
+  }
+
+  .mushaf-tajweed-dock__bar-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+  }
+
+  .mushaf-tajweed-dock--collapsed .mushaf-tajweed-dock__bar {
+    box-shadow: 0 4px 16px -10px rgb(0 0 0 / 0.2);
+  }
+
+  .dark .mushaf-tajweed-dock--collapsed .mushaf-tajweed-dock__bar {
+    box-shadow: 0 4px 16px -10px rgb(0 0 0 / 0.45);
   }
 
   /*
@@ -150,8 +459,15 @@
    */
   .mushaf-stage {
     min-height: 0;
+    flex: 1;
     overflow-x: hidden;
     overflow-y: auto;
+    padding-bottom: calc(
+      var(--mushaf-dock-reserve) + var(--mushaf-audio-offset)
+    );
+    scroll-padding-bottom: calc(
+      var(--mushaf-dock-reserve) + var(--mushaf-audio-offset)
+    );
     direction: ltr;
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
@@ -232,16 +548,156 @@
     direction: rtl;
   }
 
+  .mushaf-stage-inner--surah {
+    min-height: auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0.5rem 0.5rem 0.5rem;
+  }
+
+  .mushaf-surah-page {
+    width: 100%;
+  }
+
+  .mushaf-surah-page__divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem 0 0.75rem;
+  }
+
+  .mushaf-surah-page__divider::before,
+  .mushaf-surah-page__divider::after {
+    content: "";
+    flex: 1;
+    max-width: 6rem;
+    height: 1px;
+    background: color-mix(in oklab, var(--border) 80%, var(--foreground));
+  }
+
+  .mushaf-surah-page__label {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: color-mix(in oklab, var(--foreground) 50%, transparent);
+  }
+
+  .mushaf-surah-end-nav {
+    display: grid;
+    width: 100%;
+    max-width: 36rem;
+    margin: 2rem auto 0.5rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    padding-inline: 0.5rem;
+  }
+
+  @media (max-width: 639px) {
+    .mushaf-surah-end-nav {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .mushaf-surah-end-nav__link {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.625rem;
+    border: 1px solid color-mix(in oklab, var(--border) 85%, var(--foreground));
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--muted) 35%, transparent);
+    padding: 0.75rem 0.875rem;
+    text-align: inherit;
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
+  }
+
+  .mushaf-surah-end-nav__link:hover {
+    border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
+    background: color-mix(in oklab, var(--primary) 8%, var(--muted));
+  }
+
+  .mushaf-surah-end-nav__link--prev {
+    justify-content: flex-start;
+  }
+
+  .mushaf-surah-end-nav__link--next {
+    justify-content: flex-end;
+  }
+
   .mushaf-page {
     display: flex;
     flex-direction: column;
     gap: 0;
   }
 
+  .mushaf-surah-header-block {
+    --mushaf-header-spacer-lines: 0;
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    margin-bottom: 0.45em;
+  }
+
+  .mushaf-surah-header__spacer {
+    min-height: calc(
+      var(--mushaf-line-height, 2.5rem) * var(--mushaf-header-spacer-lines)
+    );
+  }
+
+  .mushaf-page:not(.mushaf-page--full) .mushaf-surah-header__spacer {
+    min-height: calc(
+      var(--mushaf-lh, 2.5rem) * var(--mushaf-header-spacer-lines)
+    );
+  }
+
+  .mushaf-surah-header {
+    display: flex;
+    width: 100%;
+    min-height: var(--mushaf-line-height, 2.5rem);
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    margin-inline: auto;
+    padding-inline: 0.5rem;
+  }
+
+  .mushaf-page:not(.mushaf-page--full) .mushaf-surah-header {
+    min-height: var(--mushaf-lh, 2.5rem);
+  }
+
+  .mushaf-page--full .mushaf-surah-header-block,
+  .mushaf-page--full .mushaf-surah-header {
+    inline-size: var(--mushaf-line-width);
+    margin-inline: auto;
+  }
+
+  .mushaf-surah-header__bracket {
+    flex-shrink: 0;
+    font-family: var(--font-mushaf, inherit);
+    font-size: clamp(1.35rem, 4vw, 2rem);
+    font-weight: 400;
+    line-height: 1;
+    color: color-mix(in oklab, var(--primary) 72%, var(--foreground));
+    opacity: 0.9;
+  }
+
+  .mushaf-surah-header__name {
+    flex: 0 1 auto;
+    font-size: clamp(1.15rem, 3.6vw, 1.9rem);
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    color: var(--foreground);
+  }
+
   .mushaf-page--full {
     --mushaf-page-fit: 1;
     --mushaf-font-size: clamp(1rem, 10vw, 1.55rem);
-    --mushaf-line-height: clamp(1.85rem, 6.1vh, 2.75rem);
+    --mushaf-line-height: clamp(2.1rem, 6.75vh, 3.1rem);
     --mushaf-line-width: min(98vw, 64.5vh);
     inline-size: var(--mushaf-line-width);
     margin-inline: auto;
@@ -249,7 +705,7 @@
 
   .mushaf-line {
     --mushaf-fs: clamp(1.15rem, 2.2vw + 0.65rem, 2.1rem);
-    --mushaf-lh: clamp(2rem, 4vw + 1.25rem, 3.5rem);
+    --mushaf-lh: clamp(2.25rem, 4vw + 1.6rem, 3.9rem);
     display: flex;
     min-height: var(--mushaf-lh);
     flex-wrap: nowrap;
@@ -276,18 +732,71 @@
     justify-content: unset;
   }
 
+  .mushaf-page--full .mushaf-line__verse,
+  .mushaf-line__content {
+    position: relative;
+  }
+
   .mushaf-page--full .mushaf-line__verse {
     display: flex;
     inline-size: var(--mushaf-line-width);
     max-inline-size: var(--mushaf-line-width);
+    min-height: var(--mushaf-line-height);
     margin-inline: auto;
     flex-wrap: nowrap;
     align-items: center;
     justify-content: space-between;
     direction: rtl;
-    overflow-x: clip;
+    overflow: clip;
     font-size: calc(var(--mushaf-font-size) * var(--mushaf-page-fit, 1));
     line-height: var(--mushaf-line-height);
+  }
+
+  .mushaf-line__content {
+    direction: rtl;
+  }
+
+  .mushaf-line__highlights {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .mushaf-ayah-highlight {
+    position: absolute;
+    border-radius: 0.25rem;
+    background-color: var(--mushaf-ayah-highlight);
+    box-shadow: inset 0 0 0 1px rgb(26 26 46 / 0.06);
+  }
+
+  .dark .mushaf-ayah-highlight {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+
+  .mushaf-ayah-highlight--pulse {
+    animation: mushaf-ayah-highlight-pulse 3.5s ease-out forwards;
+  }
+
+  .mushaf-ayah-highlight--reciting-word {
+    background-color: var(--mushaf-ayah-highlight-strong);
+  }
+
+  @keyframes mushaf-ayah-highlight-pulse {
+    0%,
+    18% {
+      background-color: var(--mushaf-ayah-highlight-pulse);
+      opacity: 1;
+    }
+    100% {
+      background-color: transparent;
+      opacity: 0;
+    }
+  }
+
+  /* Ayah runs use display:contents so word-groups share one line-level space-between */
+  .mushaf-page--full .mushaf-line__verse .mushaf-ayah-run {
+    display: contents;
   }
 
   .mushaf-page--full .mushaf-line__verse .mushaf-word-group {
@@ -299,27 +808,6 @@
     pointer-events: none;
   }
 
-  .mushaf-page--full .mushaf-line__verse .mushaf-word-group--reciting {
-    background-color: color-mix(in srgb, var(--primary) 12%, transparent);
-  }
-
-  .mushaf-page--full .mushaf-line__verse .mushaf-word-group--selected {
-    background-color: color-mix(in srgb, var(--primary) 12%, transparent);
-  }
-
-  .mushaf-page--full .mushaf-line__verse .mushaf-word-group--reciting .mushaf-word:not(.mushaf-word--reciting),
-  .mushaf-page--full .mushaf-line__verse .mushaf-word-group--selected .mushaf-word:not(.mushaf-word--word-selected):not(.mushaf-word--reciting) {
-    border-radius: 0;
-    background-color: transparent;
-    box-shadow: none;
-  }
-
-  .mushaf-page--full .mushaf-line__verse .mushaf-word-group--reciting .mushaf-word.mushaf-word--reciting {
-    border-radius: 0.15rem;
-    background-color: color-mix(in srgb, var(--primary) 38%, transparent);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 50%, transparent);
-  }
-
   .mushaf-page--full .mushaf-line__verse .mushaf-word {
     flex: 0 0 auto;
     font-size: inherit;
@@ -329,6 +817,7 @@
 
   .mushaf-word {
     position: relative;
+    z-index: 1;
     display: inline-block;
     flex: 0 0 auto;
     padding: 0;
@@ -341,44 +830,58 @@
     padding: 0;
   }
 
-  .mushaf-word--ayah-selected {
-    border-radius: 0.25rem;
-    background-color: color-mix(in srgb, var(--primary) 12%, transparent);
-  }
-
   .mushaf-word--word-selected {
-    border-radius: 0.25rem;
+    border-radius: 0.2rem;
     background-color: color-mix(in srgb, var(--primary) 28%, transparent);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent);
   }
 
   .mushaf-word--reciting {
-    border-radius: 0.15rem;
-    background-color: color-mix(in srgb, var(--primary) 38%, transparent);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 50%, transparent);
-    transition: background-color 80ms ease, box-shadow 80ms ease;
+    border-radius: 0.2rem;
+    background-color: color-mix(in srgb, var(--primary) 32%, transparent);
   }
 
-  .mushaf-word-end.mushaf-word--ayah-selected {
-    background-color: color-mix(in srgb, var(--primary) 22%, transparent);
+  .mushaf-word--practice-placeholder {
+    position: relative;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .mushaf-word--practice-placeholder .mushaf-word__glyph {
+    opacity: 0;
+  }
+
+  .mushaf-word--practice-placeholder::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.08em;
+    border-bottom: 1px solid color-mix(in srgb, var(--muted-foreground) 55%, transparent);
+  }
+
+  .mushaf-word--practice-wrong {
+    animation: mushaf-practice-wrong-shake 0.45s ease;
+  }
+
+  .mushaf-word--practice-wrong.mushaf-word-plain {
+    color: var(--destructive);
+  }
+
+  @keyframes mushaf-practice-wrong-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-3px);
+    }
+    75% {
+      transform: translateX(3px);
+    }
   }
 
   .mushaf-word-plain {
     color: var(--foreground);
-  }
-
-  .mushaf-word-highlight {
-    animation: mushaf-verse-pulse 3.5s ease-out forwards;
-  }
-
-  @keyframes mushaf-verse-pulse {
-    0%,
-    20% {
-      background-color: color-mix(in srgb, var(--primary) 35%, transparent);
-    }
-    100% {
-      background-color: transparent;
-    }
   }
 
   @media (min-width: 640px) {
@@ -388,7 +891,7 @@
 
     .mushaf-page--full {
       --mushaf-font-size: 3.7vh;
-      --mushaf-line-height: 6.1vh;
+      --mushaf-line-height: 6.75vh;
       --mushaf-line-width: 64.5vh;
     }
   }

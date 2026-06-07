@@ -45,14 +45,14 @@ function getQuestionContent(
       return (
         <>
           <p className="mb-4 text-muted-foreground">ما هو اسم السورة لهذه الاية:</p>
-          <p className="font-mushaf text-xl">{verse.text_uthmani}</p>
+          <p className="quran-text font-mushaf text-xl">{verse.text_uthmani}</p>
         </>
       );
     case "ayah_number":
       return (
         <>
           <p className="mb-4 text-muted-foreground">ما هو رقم هذه الاية:</p>
-          <p className="font-mushaf text-xl mb-2">{verse.text_uthmani}</p>
+          <p className="quran-text font-mushaf text-xl mb-2">{verse.text_uthmani}</p>
           <p className="text-sm text-muted-foreground">في سورة: {surahName}</p>
         </>
       );
@@ -60,7 +60,7 @@ function getQuestionContent(
       return (
         <>
           <p className="mb-4 text-muted-foreground">ما هو رقم الجزء للآية:</p>
-          <p className="font-mushaf text-xl mb-2">{verse.text_uthmani}</p>
+          <p className="quran-text font-mushaf text-xl mb-2">{verse.text_uthmani}</p>
           <p className="text-sm text-muted-foreground">في سورة: {surahName}</p>
         </>
       );
@@ -68,7 +68,7 @@ function getQuestionContent(
       return (
         <>
           <p className="mb-4 text-muted-foreground">ما هو رقم الحزب للآية:</p>
-          <p className="font-mushaf text-xl mb-2">{verse.text_uthmani}</p>
+          <p className="quran-text font-mushaf text-xl mb-2">{verse.text_uthmani}</p>
           <p className="text-sm text-muted-foreground">في سورة: {surahName}</p>
         </>
       );
@@ -76,7 +76,7 @@ function getQuestionContent(
       return (
         <>
           <p className="mb-4 text-muted-foreground">ما هو رقم الصفحة للآية:</p>
-          <p className="font-mushaf text-xl mb-2">{verse.text_uthmani}</p>
+          <p className="quran-text font-mushaf text-xl mb-2">{verse.text_uthmani}</p>
           <p className="text-sm text-muted-foreground">في سورة: {surahName}</p>
         </>
       );

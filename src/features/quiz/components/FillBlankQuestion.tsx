@@ -95,7 +95,7 @@ export function FillBlankQuestion({ verse, onNext }: FillBlankQuestionProps) {
       <span className="inline">
         <span
           className={cn(
-            "font-mushaf text-xl leading-loose",
+            "quran-text font-mushaf text-xl leading-loose",
             isHidden && isCorrect === true && "text-green-600",
             isHidden && isCorrect === false && "text-red-600 line-through",
           )}

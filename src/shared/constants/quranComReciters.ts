@@ -17,3 +17,7 @@ export const RECITER_QURAN_COM_IDS: Record<string, number> = {
 export function getQuranComRecitationId(reciterId: string): number | null {
   return RECITER_QURAN_COM_IDS[reciterId] ?? null;
 }
+
+export function supportsAyahWordHighlight(reciterId: string): boolean {
+  return reciterId in RECITER_QURAN_COM_IDS;
+}

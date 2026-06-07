@@ -5,6 +5,7 @@ import type {
   ImlaeiVerse,
   MushafPageLayout,
   MushafVerse,
+  MushafWord,
   MushafWordLayoutData,
   MushafWordLine,
   PageLine,
@@ -47,6 +48,20 @@ export async function loadMushafWordLayout(): Promise<MushafWordLayoutData> {
   return fetchJson<MushafWordLayoutData>(
     `${BASE}/mushaf_word_layout_v4.json`,
   );
+}
+
+let quranReaderPreloadPromise: Promise<void> | null = null;
+
+/** Warm the in-memory Quran cache once at app startup. */
+export function preloadQuranReaderData(): Promise<void> {
+  if (!quranReaderPreloadPromise) {
+    quranReaderPreloadPromise = Promise.all([
+      loadMushafData(),
+      loadMushafWordLayout(),
+      loadVerseInfoRecords(),
+    ]).then(() => undefined);
+  }
+  return quranReaderPreloadPromise;
 }
 
 let wordLayoutPageIndex: Map<number, MushafPageLayout> | null = null;
@@ -95,26 +110,135 @@ export function buildFullWordLines(
   return lines;
 }
 
-export function getPageSurahHeaderInfo(pageLayout: MushafPageLayout): {
-  show: boolean;
+export interface MushafSurahHeaderPlacement {
   surahNumber: number;
+  beforeLine: number;
   headerLines: number;
-} {
-  const firstLine = pageLayout.lines[0];
-  const firstWord = firstLine?.words[0];
-  if (!firstWord || firstWord.aya !== 1) {
-    return { show: false, surahNumber: 0, headerLines: 0 };
+}
+
+/** Every surah that begins on this page (ayah 1), in line order. */
+export function getPageSurahHeaders(
+  pageLayout: MushafPageLayout,
+): MushafSurahHeaderPlacement[] {
+  const sortedLines = [...pageLayout.lines].sort((a, b) => a.line - b.line);
+  const contentLineNumbers = sortedLines
+    .filter((line) => line.words.length > 0)
+    .map((line) => line.line);
+
+  const headers: MushafSurahHeaderPlacement[] = [];
+  const seenSurahs = new Set<number>();
+
+  for (const line of sortedLines) {
+    const firstWord = line.words[0];
+    if (!firstWord || firstWord.aya !== 1) continue;
+    if (seenSurahs.has(firstWord.sura)) continue;
+    seenSurahs.add(firstWord.sura);
+
+    const previousContentLines = contentLineNumbers.filter(
+      (lineNumber) => lineNumber < line.line,
+    );
+    const lastContentLine =
+      previousContentLines.length > 0
+        ? Math.max(...previousContentLines)
+        : 0;
+    const gapLines = Math.max(0, line.line - lastContentLine - 1);
+
+    headers.push({
+      surahNumber: firstWord.sura,
+      beforeLine: line.line,
+      headerLines: Math.max(1, gapLines),
+    });
   }
 
-  return {
-    show: true,
-    surahNumber: firstWord.sura,
-    headerLines: Math.max(0, firstLine.line - 1),
-  };
+  return headers;
+}
+
+export type MushafPageItem =
+  | {
+      type: "surah-header";
+      surahNumber: number;
+      headerLines: number;
+      key: string;
+    }
+  | { type: "line"; line: MushafWordLine; key: string };
+
+export function buildMushafPageItems(pageLayout: MushafPageLayout): MushafPageItem[] {
+  const headersByLine = new Map(
+    getPageSurahHeaders(pageLayout).map((header) => [
+      header.beforeLine,
+      header,
+    ]),
+  );
+  const items: MushafPageItem[] = [];
+
+  for (const line of buildFullWordLines(pageLayout)) {
+    const header = headersByLine.get(line.line);
+    if (header) {
+      items.push({
+        type: "surah-header",
+        surahNumber: header.surahNumber,
+        headerLines: header.headerLines,
+        key: `surah-header-${header.surahNumber}-L${line.line}`,
+      });
+    }
+
+    if (line.words.length > 0) {
+      items.push({
+        type: "line",
+        line,
+        key: `line-${line.line}`,
+      });
+    }
+  }
+
+  return items;
+}
+
+export function buildMushafPageItemsForSurah(
+  pageLayout: MushafPageLayout,
+  surahNumber: number,
+): MushafPageItem[] {
+  const filtered: MushafPageItem[] = [];
+
+  for (const item of buildMushafPageItems(pageLayout)) {
+    if (item.type === "surah-header") {
+      if (item.surahNumber !== surahNumber) continue;
+      filtered.push({
+        ...item,
+        headerLines: filtered.length === 0 ? 1 : item.headerLines,
+      });
+      continue;
+    }
+
+    const words = item.line.words.filter((word) => word.sura === surahNumber);
+    if (words.length === 0) continue;
+
+    filtered.push({
+      type: "line",
+      line: { line: item.line.line, words },
+      key: `${item.key}-s${surahNumber}`,
+    });
+  }
+
+  return filtered;
 }
 
 export function getWordLayoutTotalPages(data: MushafWordLayoutData): number {
   return data.meta.page_count;
+}
+
+export function buildWordsByLocation(
+  data: MushafWordLayoutData,
+): Map<string, MushafWord> {
+  const map = new Map<string, MushafWord>();
+  for (const page of data.pages) {
+    for (const line of page.lines) {
+      for (const word of line.words) {
+        map.set(word.location, word);
+      }
+    }
+  }
+  return map;
 }
 
 export function findMushafVerse(
@@ -282,4 +406,45 @@ export function getSurahAyahCount(
   surahNumber: number,
 ): number {
   return mushafData.filter((verse) => verse.sura_no === surahNumber).length;
+}
+
+/** Distinct surahs that appear on this mushaf page, in numeric order. */
+export function getPageSurahNumbers(
+  mushafData: MushafVerse[],
+  page: number,
+): number[] {
+  const surahs = new Set<number>();
+  for (const verse of mushafData) {
+    if (verse.page === page) {
+      surahs.add(verse.sura_no);
+    }
+  }
+  return [...surahs].sort((a, b) => a - b);
+}
+
+/** Mushaf page numbers that contain at least one ayah from this surah. */
+export function getSurahPages(
+  mushafData: MushafVerse[],
+  surahNumber: number,
+): number[] {
+  const pages = new Set<number>();
+  for (const verse of mushafData) {
+    if (verse.sura_no === surahNumber) {
+      pages.add(verse.page);
+    }
+  }
+  return [...pages].sort((a, b) => a - b);
+}
+
+/** Tashkeel surah label from mushaf metadata (e.g. الفَاتِحة). */
+export function getSurahTashkeelName(
+  mushafData: MushafVerse[],
+  surahNumber: number,
+): string {
+  const verse = mushafData.find((item) => item.sura_no === surahNumber);
+  return (
+    verse?.sura_name_ar ??
+    SURAH_NAMES[surahNumber - 1] ??
+    `سورة ${surahNumber}`
+  );
 }

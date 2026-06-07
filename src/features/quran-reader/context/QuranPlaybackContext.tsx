@@ -8,7 +8,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { BuiltListenSession } from "@/features/quran-reader/types/listenPlan";
 import { SURAH_NAMES } from "@/shared/constants/quran";
+import { SURAH_AYAH_COUNTS } from "@/shared/constants/reciters";
 import { getQuranComRecitationId } from "@/shared/constants/quranComReciters";
 import { getAyahAudioUrl } from "@/shared/constants/audio";
 import { useReciter } from "@/shared/hooks/use-reciter";
@@ -20,7 +22,6 @@ import {
   type SurahTimestamp,
   type WordSegment,
 } from "@/shared/services/quran-com-audio";
-import { SURAH_AYAH_COUNTS } from "@/shared/constants/reciters";
 
 export interface QuranPlaybackState {
   active: boolean;
@@ -37,14 +38,26 @@ export interface QuranPlaybackState {
   surahDurationMs: number;
   elapsedMs: number;
   error: string | null;
+  activeVerseInView: boolean;
+  autoFollowPages: boolean;
+  scopeLabel: string;
+  playlistIndex: number;
+  playlistTotal: number;
+  repeatLabel: string | null;
 }
 
 interface QuranPlaybackContextValue extends QuranPlaybackState {
+  startListening: (session: BuiltListenSession) => Promise<void>;
   startAyahPlayback: (surah: number, ayah: number) => Promise<void>;
   pause: () => void;
   resume: () => void;
   stop: () => void;
-  registerPageNavigator: (navigator: (verseKey: string) => void) => void;
+  registerPageNavigator: (
+    navigator: ((verseKey: string) => void) | null,
+  ) => void;
+  goToVerse: (verseKey: string) => void;
+  setActiveVerseInView: (inView: boolean) => void;
+  setAutoFollowPages: (follow: boolean) => void;
 }
 
 const initialState: QuranPlaybackState = {
@@ -62,26 +75,59 @@ const initialState: QuranPlaybackState = {
   surahDurationMs: 0,
   elapsedMs: 0,
   error: null,
+  activeVerseInView: false,
+  autoFollowPages: true,
+  scopeLabel: "",
+  playlistIndex: 0,
+  playlistTotal: 0,
+  repeatLabel: null,
 };
 
 const QuranPlaybackContext = createContext<QuranPlaybackContextValue | null>(
   null,
 );
 
-function getSurahDurationMsFromTimestamps(timestamps: SurahTimestamp[]): number {
-  return (
-    timestamps.at(-1)?.endMs ??
-    timestamps.reduce((sum, entry) => sum + entry.durationMs, 0)
-  );
+interface ListenSessionRef {
+  playlist: Array<{ surah: number; ayah: number }>;
+  index: number;
+  repeatMode: BuiltListenSession["repeatMode"];
+  repeatCount: number;
+  repeatEachAyah: boolean;
+  blockRepeatDone: number;
+  unitRepeatLeft: number;
+  scopeLabel: string;
+  quranComId: number | null;
+  supportsWordHighlight: boolean;
+  completedAyahDurationMs: number;
+  surahTimestampsCache: Map<number, SurahTimestamp[]>;
 }
 
-function sumAyahDurationsBefore(
-  timestamps: SurahTimestamp[],
-  ayah: number,
-): number {
-  return timestamps
-    .filter((entry) => entry.ayah < ayah)
-    .reduce((sum, entry) => sum + entry.durationMs, 0);
+function emptySessionRef(): ListenSessionRef {
+  return {
+    playlist: [],
+    index: 0,
+    repeatMode: "none",
+    repeatCount: 1,
+    repeatEachAyah: false,
+    blockRepeatDone: 0,
+    unitRepeatLeft: 0,
+    scopeLabel: "",
+    quranComId: null,
+    supportsWordHighlight: false,
+    completedAyahDurationMs: 0,
+    surahTimestampsCache: new Map(),
+  };
+}
+
+function formatRepeatLabel(session: ListenSessionRef): string | null {
+  if (session.repeatMode === "infinite") return "تكرار ∞";
+  if (session.repeatMode === "count" && session.repeatCount > 1) {
+    if (session.repeatEachAyah) {
+      return `تكرار ${session.repeatCount}× لكل آية`;
+    }
+    return `تكرار ${session.blockRepeatDone + 1}/${session.repeatCount}`;
+  }
+  return null;
 }
 
 export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
@@ -89,17 +135,10 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const syncFrameRef = useRef<number | null>(null);
   const pageNavigatorRef = useRef<((verseKey: string) => void) | null>(null);
+  const pendingVerseKeyRef = useRef<string | null>(null);
   const segmentsRef = useRef<WordSegment[]>([]);
   const ayahTimestampsRef = useRef<SurahTimestamp[]>([]);
-  const sessionRef = useRef({
-    surah: 0,
-    startAyah: 0,
-    currentAyah: 0,
-    ayahCount: 0,
-    quranComId: null as number | null,
-    supportsWordHighlight: false,
-    completedAyahDurationMs: 0,
-  });
+  const sessionRef = useRef<ListenSessionRef>(emptySessionRef());
 
   const [state, setState] = useState<QuranPlaybackState>(initialState);
 
@@ -125,22 +164,9 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     cleanupAudio();
     segmentsRef.current = [];
     ayahTimestampsRef.current = [];
-    sessionRef.current = {
-      surah: 0,
-      startAyah: 0,
-      currentAyah: 0,
-      ayahCount: 0,
-      quranComId: null,
-      supportsWordHighlight: false,
-      completedAyahDurationMs: 0,
-    };
+    sessionRef.current = emptySessionRef();
     setState(initialState);
   }, [cleanupAudio]);
-
-  const getSurahDurationMs = useCallback(
-    () => getSurahDurationMsFromTimestamps(ayahTimestampsRef.current),
-    [],
-  );
 
   const getElapsedInSurahMs = useCallback(
     (currentAyah: number, currentAyahTimeMs: number) => {
@@ -151,9 +177,7 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
         return entry.startMs + currentAyahTimeMs;
       }
 
-      return (
-        sessionRef.current.completedAyahDurationMs + currentAyahTimeMs
-      );
+      return sessionRef.current.completedAyahDurationMs + currentAyahTimeMs;
     },
     [],
   );
@@ -161,12 +185,13 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   const syncPlaybackState = useCallback(() => {
     if (!audioRef.current) return;
 
+    const session = sessionRef.current;
+    const current = session.playlist[session.index];
+    if (!current) return;
+
     const currentAyahTimeMs = audioRef.current.currentTime * 1000;
-    const elapsedMs = getElapsedInSurahMs(
-      sessionRef.current.currentAyah,
-      currentAyahTimeMs,
-    );
-    const activeWordLocation = sessionRef.current.supportsWordHighlight
+    const elapsedMs = getElapsedInSurahMs(current.ayah, currentAyahTimeMs);
+    const activeWordLocation = session.supportsWordHighlight
       ? findActiveWordLocation(segmentsRef.current, currentAyahTimeMs)
       : null;
 
@@ -195,28 +220,152 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     syncFrameRef.current = requestAnimationFrame(syncPlaybackState);
   }, [stopSyncLoop, syncPlaybackState]);
 
-  const playAyahRef = useRef<(surah: number, ayah: number) => Promise<void>>(
+  const updateUiForCurrentItem = useCallback(
+    (playing: boolean, error: string | null = null) => {
+      const session = sessionRef.current;
+      const current = session.playlist[session.index];
+      if (!current) return;
+
+      setState((prev) => ({
+        ...prev,
+        active: true,
+        playing,
+        surah: current.surah,
+        surahName: SURAH_NAMES[current.surah - 1] ?? "",
+        startAyah: session.playlist[0]?.ayah ?? current.ayah,
+        currentAyah: current.ayah,
+        ayahCount: current.ayah,
+        reciterName: reciter.nameAr,
+        supportsWordHighlight: session.supportsWordHighlight,
+        activeVerseKey: `${current.surah}:${current.ayah}`,
+        activeWordLocation: null,
+        scopeLabel: session.scopeLabel,
+        playlistIndex: session.index + 1,
+        playlistTotal: session.playlist.length,
+        repeatLabel: formatRepeatLabel(session),
+        error,
+      }));
+    },
+    [reciter.nameAr],
+  );
+
+  const playAtIndexRef = useRef<(index: number) => Promise<void>>(
     async () => {},
   );
 
-  playAyahRef.current = async (surah: number, ayah: number) => {
+  const advanceAfterAyah = useRef<() => void>(() => {});
+
+  advanceAfterAyah.current = () => {
     const session = sessionRef.current;
-    const verseKey = `${surah}:${ayah}`;
+    const current = session.playlist[session.index];
+    if (!current) {
+      stop();
+      return;
+    }
+
+    if (session.repeatEachAyah) {
+      if (session.repeatMode === "infinite") {
+        void playAtIndexRef.current(session.index);
+        return;
+      }
+      if (session.repeatMode === "count" && session.unitRepeatLeft > 1) {
+        session.unitRepeatLeft -= 1;
+        void playAtIndexRef.current(session.index);
+        return;
+      }
+    }
+
+    if (session.index < session.playlist.length - 1) {
+      session.index += 1;
+      if (session.repeatEachAyah && session.repeatMode === "count") {
+        session.unitRepeatLeft = session.repeatCount;
+      }
+      void playAtIndexRef.current(session.index);
+      return;
+    }
+
+    if (session.repeatMode === "infinite") {
+      session.index = 0;
+      session.blockRepeatDone = 0;
+      void playAtIndexRef.current(0);
+      return;
+    }
+
+    if (
+      session.repeatMode === "count" &&
+      session.blockRepeatDone + 1 < session.repeatCount
+    ) {
+      session.blockRepeatDone += 1;
+      session.index = 0;
+      if (session.repeatEachAyah) {
+        session.unitRepeatLeft = session.repeatCount;
+      }
+      void playAtIndexRef.current(0);
+      return;
+    }
+
+    stop();
+  };
+
+  const attachAudioHandlers = useCallback(
+    (audio: HTMLAudioElement, item: { surah: number; ayah: number }) => {
+      audio.onpause = () => {
+        stopSyncLoop();
+        syncPlaybackState();
+      };
+
+      audio.onended = () => {
+        const ayahTimestamp = ayahTimestampsRef.current.find(
+          (entry) => entry.ayah === item.ayah,
+        );
+        const playedDurationMs =
+          ayahTimestamp?.durationMs ??
+          Math.round(
+            (Number.isFinite(audio.duration) ? audio.duration : 0) * 1000,
+          );
+        sessionRef.current.completedAyahDurationMs += playedDurationMs;
+
+        advanceAfterAyah.current();
+      };
+
+      audio.onerror = () => {
+        setState((prev) => ({
+          ...prev,
+          playing: false,
+          error: "تعذر تشغيل التلاوة",
+        }));
+      };
+    },
+    [stopSyncLoop, syncPlaybackState],
+  );
+
+  playAtIndexRef.current = async (index: number) => {
+    const session = sessionRef.current;
+    const item = session.playlist[index];
+    if (!item) {
+      stop();
+      return;
+    }
+
+    session.index = index;
+    const verseKey = `${item.surah}:${item.ayah}`;
     const quranComId = session.quranComId;
 
     cleanupAudio();
     segmentsRef.current = [];
 
-    let audioUrl: string | null = null;
-
     if (quranComId) {
+      let timestamps = session.surahTimestampsCache.get(item.surah);
+      if (!timestamps) {
+        const meta = await fetchSurahAudioMeta(item.surah, quranComId);
+        timestamps = meta?.ayahTimestamps ?? [];
+        session.surahTimestampsCache.set(item.surah, timestamps);
+      }
+      ayahTimestampsRef.current = timestamps;
+
       const verseAudio = await fetchVerseAudioData(verseKey, quranComId);
       if (verseAudio) {
-        audioUrl = verseAudio.audioUrl;
-
-        const chapterEntry = ayahTimestampsRef.current.find(
-          (entry) => entry.ayah === ayah,
-        );
+        const chapterEntry = timestamps.find((entry) => entry.ayah === item.ayah);
         segmentsRef.current = chapterEntry
           ? mergeWordSegments(
               verseAudio.segments,
@@ -224,154 +373,102 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
               verseAudio.wordsByPosition,
             )
           : verseAudio.segments;
-      }
-    }
 
-    if (!audioUrl) {
-      audioUrl = getAyahAudioUrl(reciter, surah, ayah);
-    }
-
-    const audio = new Audio(audioUrl);
-    audioRef.current = audio;
-
-    audio.onpause = () => {
-      stopSyncLoop();
-      syncPlaybackState();
-    };
-
-    audio.onended = () => {
-      const ayahTimestamp = ayahTimestampsRef.current.find(
-        (entry) => entry.ayah === ayah,
-      );
-      const playedDurationMs =
-        ayahTimestamp?.durationMs ??
-        Math.round(
-          (Number.isFinite(audio.duration) ? audio.duration : 0) * 1000,
-        );
-      sessionRef.current.completedAyahDurationMs += playedDurationMs;
-
-      if (ayahTimestamp) {
-        setState((prev) => ({
-          ...prev,
-          elapsedMs: ayahTimestamp.endMs,
-        }));
-      }
-
-      if (ayah < sessionRef.current.ayahCount) {
-        sessionRef.current.currentAyah = ayah + 1;
-        const nextVerseKey = `${surah}:${ayah + 1}`;
-        pageNavigatorRef.current?.(nextVerseKey);
-        setState((prev) => ({
-          ...prev,
-          currentAyah: ayah + 1,
-          activeVerseKey: nextVerseKey,
-          activeWordLocation: null,
-        }));
-        void playAyahRef.current(surah, ayah + 1);
+        const audio = new Audio(verseAudio.audioUrl);
+        audioRef.current = audio;
+        attachAudioHandlers(audio, item);
+        try {
+          await audio.play();
+          updateUiForCurrentItem(true);
+          startSyncLoop();
+        } catch {
+          updateUiForCurrentItem(false, "تعذر تشغيل التلاوة");
+        }
         return;
       }
+    }
 
-      stop();
-    };
-
-    audio.onerror = () => {
-      setState((prev) => ({
-        ...prev,
-        playing: false,
-        error: "تعذر تشغيل التلاوة",
-      }));
-    };
+    ayahTimestampsRef.current =
+      session.surahTimestampsCache.get(item.surah) ?? [];
+    const audio = new Audio(getAyahAudioUrl(reciter, item.surah, item.ayah));
+    audioRef.current = audio;
+    attachAudioHandlers(audio, item);
 
     try {
-      sessionRef.current.currentAyah = ayah;
       await audio.play();
-      pageNavigatorRef.current?.(verseKey);
-      const elapsedMs = getElapsedInSurahMs(ayah, audio.currentTime * 1000);
-      const surahDurationMs = getSurahDurationMs();
-      setState((prev) => ({
-        ...prev,
-        active: true,
-        playing: true,
-        surah,
-        surahName: SURAH_NAMES[surah - 1] ?? "",
-        startAyah: session.startAyah,
-        currentAyah: ayah,
-        ayahCount: session.ayahCount,
-        reciterName: reciter.nameAr,
-        supportsWordHighlight: session.supportsWordHighlight,
-        activeVerseKey: verseKey,
-        activeWordLocation: null,
-        surahDurationMs: surahDurationMs || prev.surahDurationMs,
-        elapsedMs,
-        error: null,
-      }));
+      updateUiForCurrentItem(true);
       startSyncLoop();
     } catch {
-      setState((prev) => ({
-        ...prev,
-        playing: false,
-        error: "تعذر تشغيل التلاوة",
-      }));
+      updateUiForCurrentItem(false, "تعذر تشغيل التلاوة");
     }
   };
 
-  const playAyah = useCallback(async (surah: number, ayah: number) => {
-    await playAyahRef.current(surah, ayah);
-  }, []);
-
-  const startAyahPlayback = useCallback(
-    async (surah: number, ayah: number) => {
+  const startListening = useCallback(
+    async (built: BuiltListenSession) => {
       stop();
 
-      const ayahCount = SURAH_AYAH_COUNTS[surah - 1] ?? 0;
       const quranComId = getQuranComRecitationId(reciter.id);
-      let ayahTimestamps: SurahTimestamp[] = [];
-
-      if (quranComId) {
-        const meta = await fetchSurahAudioMeta(surah, quranComId);
-        if (meta) {
-          ayahTimestamps = meta.ayahTimestamps;
-        }
-      }
-
-      ayahTimestampsRef.current = ayahTimestamps;
-
-      const startAyahEntry = ayahTimestamps.find((entry) => entry.ayah === ayah);
-      const surahDurationMs = getSurahDurationMsFromTimestamps(ayahTimestamps);
-      const surahElapsedMs =
-        startAyahEntry?.startMs ??
-        sumAyahDurationsBefore(ayahTimestamps, ayah);
+      const first = built.playlist[0]!;
 
       sessionRef.current = {
-        surah,
-        startAyah: ayah,
-        currentAyah: ayah,
-        ayahCount,
+        playlist: built.playlist,
+        index: 0,
+        repeatMode: built.repeatMode,
+        repeatCount: built.repeatCount,
+        repeatEachAyah: built.repeatEachAyah,
+        blockRepeatDone: 0,
+        unitRepeatLeft:
+          built.repeatEachAyah && built.repeatMode === "count"
+            ? built.repeatCount
+            : 0,
+        scopeLabel: built.label,
         quranComId,
         supportsWordHighlight: Boolean(quranComId),
-        completedAyahDurationMs: surahElapsedMs,
+        completedAyahDurationMs: 0,
+        surahTimestampsCache: new Map(),
       };
 
       setState({
+        ...initialState,
         active: true,
         playing: false,
-        surah,
-        surahName: SURAH_NAMES[surah - 1] ?? "",
-        startAyah: ayah,
-        currentAyah: ayah,
-        ayahCount,
+        surah: first.surah,
+        surahName: SURAH_NAMES[first.surah - 1] ?? "",
+        startAyah: first.ayah,
+        currentAyah: first.ayah,
+        ayahCount: first.ayah,
         reciterName: reciter.nameAr,
         supportsWordHighlight: Boolean(quranComId),
-        activeVerseKey: `${surah}:${ayah}`,
-        activeWordLocation: null,
-        surahDurationMs,
-        elapsedMs: surahElapsedMs,
-        error: null,
+        activeVerseKey: `${first.surah}:${first.ayah}`,
+        scopeLabel: built.label,
+        playlistIndex: 1,
+        playlistTotal: built.playlist.length,
+        repeatLabel: formatRepeatLabel(sessionRef.current),
+        autoFollowPages: true,
       });
 
-      await playAyah(surah, ayah);
+      await playAtIndexRef.current(0);
     },
-    [playAyah, reciter.id, reciter.nameAr, stop],
+    [stop, reciter, attachAudioHandlers, cleanupAudio, startSyncLoop, updateUiForCurrentItem],
+  );
+
+  const startAyahPlayback = useCallback(
+    async (surah: number, ayah: number) => {
+      const ayahCount = SURAH_AYAH_COUNTS[surah - 1] ?? 0;
+      const playlist = Array.from({ length: ayahCount - ayah + 1 }, (_, index) => ({
+        surah,
+        ayah: ayah + index,
+      }));
+
+      await startListening({
+        playlist,
+        repeatMode: "none",
+        repeatCount: 1,
+        repeatEachAyah: false,
+        label: `سورة ${SURAH_NAMES[surah - 1] ?? surah} — من ${surah}:${ayah}`,
+      });
+    },
+    [startListening],
   );
 
   const pause = useCallback(() => {
@@ -386,9 +483,35 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     startSyncLoop();
   }, [startSyncLoop]);
 
+  const goToVerse = useCallback((verseKey: string) => {
+    pendingVerseKeyRef.current = verseKey;
+    if (pageNavigatorRef.current) {
+      pageNavigatorRef.current(verseKey);
+      pendingVerseKeyRef.current = null;
+    }
+  }, []);
+
+  const setActiveVerseInView = useCallback((inView: boolean) => {
+    setState((prev) =>
+      prev.activeVerseInView === inView
+        ? prev
+        : { ...prev, activeVerseInView: inView },
+    );
+  }, []);
+
+  const setAutoFollowPages = useCallback((follow: boolean) => {
+    setState((prev) =>
+      prev.autoFollowPages === follow ? prev : { ...prev, autoFollowPages: follow },
+    );
+  }, []);
+
   const registerPageNavigator = useCallback(
-    (navigator: (verseKey: string) => void) => {
+    (navigator: ((verseKey: string) => void) | null) => {
       pageNavigatorRef.current = navigator;
+      if (navigator && pendingVerseKeyRef.current) {
+        navigator(pendingVerseKeyRef.current);
+        pendingVerseKeyRef.current = null;
+      }
     },
     [],
   );
@@ -398,13 +521,28 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       ...state,
+      startListening,
       startAyahPlayback,
       pause,
       resume,
       stop,
       registerPageNavigator,
+      goToVerse,
+      setActiveVerseInView,
+      setAutoFollowPages,
     }),
-    [state, startAyahPlayback, pause, resume, stop, registerPageNavigator],
+    [
+      state,
+      startListening,
+      startAyahPlayback,
+      pause,
+      resume,
+      stop,
+      registerPageNavigator,
+      goToVerse,
+      setActiveVerseInView,
+      setAutoFollowPages,
+    ],
   );
 
   return (
