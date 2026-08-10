@@ -44,12 +44,42 @@ export interface VerseInfoItem {
 
 export type QuestionType =
   | "fill_blank"
+  | "complete_ayah"
+  | "audio_identify"
   | "surah_name"
   | "ayah_number"
   | "juz_number"
   | "hizb_number"
   | "page_number";
 
+export type QuizScopeMode = "surah" | "juz" | "page" | "ayah_range";
+
+export interface QuizScope {
+  mode: QuizScopeMode;
+  /** Selected surah numbers (1–114) when mode is surah */
+  surahIndices?: number[];
+  /** Selected juz numbers (1–30) when mode is juz */
+  juzIndices?: number[];
+  /** Inclusive page range when mode is page */
+  pageFrom?: number;
+  pageTo?: number;
+  /** Surah for ayah-range mode */
+  ayahRangeSurah?: number;
+  ayahFrom?: number;
+  ayahTo?: number;
+}
+
+export type QuizSessionMode = "fixed" | "endless";
+
+export interface QuizConfig {
+  scope: QuizScope;
+  questionTypes: QuestionType[];
+  sessionMode: QuizSessionMode;
+  /** Required when sessionMode is fixed */
+  questionCount?: number;
+}
+
+/** @deprecated Use QuizConfig instead */
 export interface QuizSelection {
   mode: "surah" | "juz";
   indices: number[];

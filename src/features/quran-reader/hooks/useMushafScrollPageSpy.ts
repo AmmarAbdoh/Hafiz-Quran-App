@@ -25,6 +25,39 @@ export function getAdjacentPageInSequence(
   return pageSequence[nextIndex]!;
 }
 
+function measureVisiblePage(
+  container: HTMLElement,
+  sections: HTMLElement[],
+): number | null {
+  if (sections.length === 0) return null;
+
+  const containerRect = container.getBoundingClientRect();
+  const viewCenter = (containerRect.top + containerRect.bottom) / 2;
+
+  let bestPage = Number.parseInt(sections[0]!.dataset.mushafPage ?? "1", 10);
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (const section of sections) {
+    const page = Number.parseInt(section.dataset.mushafPage ?? "", 10);
+    if (!Number.isFinite(page)) continue;
+
+    const rect = section.getBoundingClientRect();
+    const visibleTop = Math.max(rect.top, containerRect.top);
+    const visibleBottom = Math.min(rect.bottom, containerRect.bottom);
+    if (visibleBottom <= visibleTop) continue;
+
+    const sectionCenter = (rect.top + rect.bottom) / 2;
+    const distance = Math.abs(sectionCenter - viewCenter);
+
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestPage = page;
+    }
+  }
+
+  return bestPage;
+}
+
 export function useMushafScrollPageSpy(
   containerRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>,
@@ -32,6 +65,7 @@ export function useMushafScrollPageSpy(
   onVisiblePageChange: (page: number) => void,
   enabled = true,
   scrollLockRef?: MutableRefObject<number | null>,
+  contentKey?: string | number,
 ) {
   const onChangeRef = useRef(onVisiblePageChange);
   onChangeRef.current = onVisiblePageChange;
@@ -48,23 +82,11 @@ export function useMushafScrollPageSpy(
     );
     if (sections.length === 0) return;
 
-    const visibleRatios = new Map<number, number>();
+    let frameId: number | null = null;
 
-    const pickVisiblePage = () => {
-      let bestPage = Number.parseInt(
-        sections[0]?.dataset.mushafPage ?? "1",
-        10,
-      );
-      let bestRatio = -1;
-
-      for (const [page, ratio] of visibleRatios) {
-        if (ratio > bestRatio) {
-          bestRatio = ratio;
-          bestPage = page;
-        }
-      }
-
-      if (bestRatio < 0) return;
+    const publishVisiblePage = () => {
+      const bestPage = measureVisiblePage(container, sections);
+      if (bestPage === null) return;
 
       const lockedPage = scrollLockRef?.current ?? null;
       if (lockedPage !== null) {
@@ -77,30 +99,41 @@ export function useMushafScrollPageSpy(
       onChangeRef.current(bestPage);
     };
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const page = Number.parseInt(
-            (entry.target as HTMLElement).dataset.mushafPage ?? "",
-            10,
-          );
-          if (!Number.isFinite(page)) continue;
-          visibleRatios.set(page, entry.intersectionRatio);
-        }
-        pickVisiblePage();
-      },
-      {
-        root: container,
-        threshold: [0, 0.15, 0.35, 0.55, 0.75, 1],
-      },
-    );
+    const schedulePublish = () => {
+      if (frameId !== null) return;
+      frameId = requestAnimationFrame(() => {
+        frameId = null;
+        publishVisiblePage();
+      });
+    };
 
+    container.addEventListener("scroll", schedulePublish, { passive: true });
+    window.addEventListener("resize", schedulePublish);
+
+    const observer = new ResizeObserver(schedulePublish);
+    observer.observe(container);
     for (const section of sections) {
       observer.observe(section);
     }
 
-    return () => observer.disconnect();
-  }, [containerRef, contentRef, pageSelector, enabled, scrollLockRef]);
+    schedulePublish();
+
+    return () => {
+      container.removeEventListener("scroll", schedulePublish);
+      window.removeEventListener("resize", schedulePublish);
+      observer.disconnect();
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [
+    containerRef,
+    contentRef,
+    pageSelector,
+    enabled,
+    scrollLockRef,
+    contentKey,
+  ]);
 }
 
 export function scrollMushafToPage(

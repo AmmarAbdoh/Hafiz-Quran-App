@@ -166,11 +166,27 @@ export const QUESTION_TYPE_LABELS: Record<
   string
 > = {
   fill_blank: "املأ الفراغ",
+  complete_ayah: "أكمل الآية",
+  audio_identify: "استمع وحدد",
   surah_name: "اسم السورة",
-  ayah_number: "رقم الاية",
+  ayah_number: "رقم الآية",
   juz_number: "رقم الجزء",
   hizb_number: "رقم الحزب",
   page_number: "رقم الصفحة",
+};
+
+export const QUESTION_TYPE_DESCRIPTIONS: Record<
+  import("@/shared/types/quran").QuestionType,
+  string
+> = {
+  fill_blank: "اختر الآية المخفية من المصحف",
+  complete_ayah: "أكمل بداية الآية بالجزء الصحيح",
+  audio_identify: "استمع للآية وحدد السورة أو الآية التالية",
+  surah_name: "حدد اسم السورة من نص الآية",
+  ayah_number: "حدد رقم الآية في سورتها",
+  juz_number: "حدد رقم الجزء",
+  hizb_number: "حدد رقم الحزب",
+  page_number: "حدد رقم الصفحة في المصحف",
 };
 
 export const TOTAL_MUSHAF_PAGES = 604;

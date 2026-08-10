@@ -293,6 +293,82 @@
     color: var(--primary);
   }
 
+  .mushaf-footer-surah-nav {
+    display: inline-flex;
+    min-width: 0;
+    max-width: 7rem;
+    min-height: 2.25rem;
+    align-items: center;
+    gap: 0.25rem;
+    border: 0;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: var(--foreground);
+    cursor: pointer;
+    padding: 0.25rem 0.35rem;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  @media (min-width: 640px) {
+    .mushaf-footer-surah-nav {
+      max-width: 10rem;
+      gap: 0.375rem;
+      padding: 0.3rem 0.5rem;
+    }
+  }
+
+  .mushaf-footer-surah-nav--prev {
+    justify-content: flex-start;
+    text-align: right;
+  }
+
+  .mushaf-footer-surah-nav--next {
+    justify-content: flex-end;
+    text-align: left;
+  }
+
+  .mushaf-footer-surah-nav__icon {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    opacity: 0.75;
+  }
+
+  @media (min-width: 640px) {
+    .mushaf-footer-surah-nav__icon {
+      width: 1.125rem;
+      height: 1.125rem;
+    }
+  }
+
+  .mushaf-footer-surah-nav__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    font-weight: 600;
+  }
+
+  @media (min-width: 640px) {
+    .mushaf-footer-surah-nav__label {
+      font-size: 1rem;
+    }
+  }
+
+  .mushaf-footer-surah-nav:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--muted) 55%, transparent);
+  }
+
+  .mushaf-footer-surah-nav--disabled,
+  .mushaf-footer-surah-nav:disabled {
+    cursor: default;
+    opacity: 0.35;
+  }
+
   .mushaf-tajweed-dock {
     position: relative;
     border-top: 1px solid var(--border);
@@ -394,63 +470,30 @@
     color: var(--primary);
   }
 
-  .mushaf-tajweed-dock__bar {
-    position: relative;
-    display: flex;
+  .mushaf-tajweed-dock__toggle {
+    display: inline-flex;
     width: 100%;
     align-items: center;
     justify-content: center;
+    gap: 0.375rem;
     border: 0;
     background: transparent;
-    padding: 0.375rem 2rem;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-  }
-
-  .mushaf-tajweed-dock__bar:hover,
-  .mushaf-tajweed-dock--pinned .mushaf-tajweed-dock__bar {
-    background: color-mix(in srgb, var(--primary) 6%, transparent);
-  }
-
-  .mushaf-tajweed-dock__pin-icon {
-    position: absolute;
-    top: 50%;
-    left: 0.75rem;
-    display: inline-flex;
-    height: 1.75rem;
-    width: 1.75rem;
-    align-items: center;
-    justify-content: center;
+    padding: 0.4375rem 0.75rem;
     color: var(--muted-foreground);
-    opacity: 0;
-    transform: translateY(-50%);
+    cursor: pointer;
     transition:
-      opacity 0.15s ease,
+      background-color 0.15s ease,
       color 0.15s ease;
   }
 
-  .group\/dock:hover .mushaf-tajweed-dock__pin-icon,
-  .mushaf-tajweed-dock__pin-icon--visible {
-    opacity: 1;
+  .mushaf-tajweed-dock__toggle:hover,
+  .mushaf-tajweed-dock__toggle--active {
+    background: color-mix(in srgb, var(--primary) 6%, transparent);
+    color: var(--foreground);
   }
 
-  .mushaf-tajweed-dock--pinned .mushaf-tajweed-dock__pin-icon {
+  .mushaf-tajweed-dock__toggle--active {
     color: var(--primary);
-  }
-
-  .mushaf-tajweed-dock__bar-label {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.375rem;
-  }
-
-  .mushaf-tajweed-dock--collapsed .mushaf-tajweed-dock__bar {
-    box-shadow: 0 4px 16px -10px rgb(0 0 0 / 0.2);
-  }
-
-  .dark .mushaf-tajweed-dock--collapsed .mushaf-tajweed-dock__bar {
-    box-shadow: 0 4px 16px -10px rgb(0 0 0 / 0.45);
   }
 
   /*
@@ -626,6 +669,29 @@
 
   .mushaf-surah-end-nav__link--next {
     justify-content: flex-end;
+  }
+
+  .quiz-mushaf-preview {
+    direction: rtl;
+    width: 100%;
+    max-width: min(100%, 42rem);
+    margin-inline: auto;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  .quiz-mushaf-preview .mushaf-page--full {
+    --mushaf-line-width: min(100%, 36rem);
+    --mushaf-font-size: clamp(0.95rem, 1.4vw + 0.55rem, 1.4rem);
+    --mushaf-line-height: clamp(2rem, 2.8vw + 1.2rem, 2.75rem);
+  }
+
+  @media (min-width: 640px) {
+    .quiz-mushaf-preview .mushaf-page--full {
+      --mushaf-line-width: min(100%, 38rem);
+      --mushaf-font-size: clamp(1rem, 0.9vw + 0.75rem, 1.45rem);
+      --mushaf-line-height: clamp(2.1rem, 1.6vw + 1.6rem, 2.85rem);
+    }
   }
 
   .mushaf-page {

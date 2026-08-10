@@ -1,22 +1,25 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  checkFillBlankAnswer,
-  checkInfoAnswer,
   generateHiddenIndex,
+  getDefaultQuestionTypes,
   isJuzNameDisabled,
   isSurahNameDisabled,
   pickRandomQuestionType,
-} from "./question-utils";
+} from "@/features/quiz/lib/question-utils";
 
 describe("question-utils", () => {
   it("disables surah name when single surah selected", () => {
-    expect(isSurahNameDisabled("surah", [1])).toBe(true);
-    expect(isSurahNameDisabled("surah", [1, 2])).toBe(false);
+    expect(isSurahNameDisabled({ mode: "surah", surahIndices: [1] })).toBe(
+      true,
+    );
+    expect(isSurahNameDisabled({ mode: "surah", surahIndices: [1, 2] })).toBe(
+      false,
+    );
   });
 
   it("disables juz number when single juz selected", () => {
-    expect(isJuzNameDisabled("juz", [1])).toBe(true);
-    expect(isJuzNameDisabled("juz", [1, 2])).toBe(false);
+    expect(isJuzNameDisabled({ mode: "juz", juzIndices: [1] })).toBe(true);
+    expect(isJuzNameDisabled({ mode: "juz", juzIndices: [1, 2] })).toBe(false);
   });
 
   it("picks from available question types", () => {
@@ -29,13 +32,12 @@ describe("question-utils", () => {
     expect([0, 1, 2]).toContain(index);
   });
 
-  it("checks fill blank answers", () => {
-    expect(checkFillBlankAnswer("بسم الله", "بسم الله")).toBe(true);
-    expect(checkFillBlankAnswer("wrong", "بسم الله")).toBe(false);
-  });
-
-  it("checks info answers", () => {
-    expect(checkInfoAnswer("5", 5)).toBe(true);
-    expect(checkInfoAnswer("3", 5)).toBe(false);
+  it("returns default types without disabled ones", () => {
+    const types = getDefaultQuestionTypes({
+      mode: "surah",
+      surahIndices: [1],
+    });
+    expect(types).not.toContain("surah_name");
+    expect(types).toContain("fill_blank");
   });
 });

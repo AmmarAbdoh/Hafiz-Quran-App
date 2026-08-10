@@ -1,15 +1,15 @@
 import { QuizChoiceGrid } from "@/features/quiz/components/QuizChoiceGrid";
 import { QuizFeedback } from "@/features/quiz/components/QuizFeedback";
 import { QuizMushafPreview } from "@/features/quiz/components/QuizMushafPreview";
-import type { InfoQuizQuestion } from "@/features/quiz/lib/quiz-types";
+import type { CompleteAyahQuizQuestion } from "@/features/quiz/lib/quiz-types";
 import type {
   MushafVerse,
   MushafWordLayoutData,
   VerseInfoRecord,
 } from "@/shared/types/quran";
 
-interface InfoQuestionProps {
-  question: InfoQuizQuestion;
+interface CompleteAyahQuestionProps {
+  question: CompleteAyahQuizQuestion;
   mushafData: MushafVerse[];
   wordLayout: MushafWordLayoutData;
   verseInfoRecords: VerseInfoRecord[];
@@ -21,7 +21,7 @@ interface InfoQuestionProps {
   onNext: () => void;
 }
 
-export function InfoQuestion({
+export function CompleteAyahQuestion({
   question,
   mushafData,
   wordLayout,
@@ -32,17 +32,20 @@ export function InfoQuestion({
   streak,
   onSubmit,
   onNext,
-}: InfoQuestionProps) {
+}: CompleteAyahQuestionProps) {
   return (
     <div className="space-y-6">
       <div className="space-y-3 text-center">
-        <p className="text-sm text-muted-foreground">{question.prompt}</p>
+        <p className="text-sm text-muted-foreground">أكمل الآية:</p>
         <QuizMushafPreview
           page={question.verse.page}
           mushafData={mushafData}
           wordLayout={wordLayout}
           highlightVerseKey={question.verseKey}
         />
+        <p className="quran-text font-mushaf text-lg leading-loose text-muted-foreground">
+          {question.promptText} …
+        </p>
       </div>
 
       <QuizChoiceGrid

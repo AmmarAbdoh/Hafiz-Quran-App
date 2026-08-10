@@ -18,7 +18,7 @@ const features = [
   },
   {
     title: "اختبار مخصص",
-    description: "اختبر حفظك بأسئلة متنوعة على سور أو أجزاء محددة",
+    description: "اختبر حفظك بأسئلة تفاعلية من المصحف مع نتائج وتاريخ الجلسات",
     icon: GraduationCap,
     path: "/quiz",
   },

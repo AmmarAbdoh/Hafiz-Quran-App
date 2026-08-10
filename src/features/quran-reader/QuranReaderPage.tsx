@@ -159,10 +159,14 @@ export function QuranReaderPage() {
   const [listenOpen, setListenOpen] = useState(false);
   const [listenPreset, setListenPreset] = useState<ListenPreset | null>(null);
   const [legendPinned, setLegendPinned] = useState(false);
+  const [pendingSurahNumber, setPendingSurahNumber] = useState<number | null>(
+    null,
+  );
   const [footerPinned, setFooterPinned] = useState(readFooterPinnedPreference);
   const [legendGuideOpen, setLegendGuideOpen] = useState(false);
   const [tajweedColored, setTajweedColored] = useState(readTajweedPreference);
   const { theme } = useTheme();
+  const displayedSurahNumber = pendingSurahNumber ?? currentSurahNumber;
   const [pageSurahNames, setPageSurahNames] = useState<string[]>([]);
   const [surahAyahCount, setSurahAyahCount] = useState<number | undefined>();
   const [juzNumber, setJuzNumber] = useState<number | string | undefined>();
@@ -183,6 +187,10 @@ export function QuranReaderPage() {
 
   const loading = metaLoading || layoutLoading;
   const error = metaError ?? layoutError;
+
+  useEffect(() => {
+    setPendingSurahNumber(null);
+  }, [currentSurahNumber]);
 
   useEffect(() => {
     if (layoutMode === "page") {
@@ -276,6 +284,7 @@ export function QuranReaderPage() {
       clearHighlightTimer();
       setHighlightVerseKey(null);
       if (practice.active) practice.stopPractice();
+      setPendingSurahNumber(surah);
 
       if (layoutMode === "surah") {
         navigate(buildQuranSurahPath(surah));
@@ -790,9 +799,10 @@ export function QuranReaderPage() {
 
           {wordLayout && layoutMode === "surah" && (
             <MushafSurahViewer
+              key={displayedSurahNumber}
               mushafData={mushafData}
               wordLayout={wordLayout}
-              surahNumber={currentSurahNumber}
+              surahNumber={displayedSurahNumber}
               tajweedColored={tajweedColored}
               highlightVerseKey={highlightVerseKey}
               scrollContainerRef={mushafStageRef}
@@ -837,6 +847,8 @@ export function QuranReaderPage() {
           <MushafSurahFooter
             surahName={pageSurahNames[0] ?? ""}
             ayahCount={surahAyahCount}
+            currentSurah={displayedSurahNumber}
+            mushafData={mushafData}
             currentPage={surahVisiblePage}
             totalPages={totalPages}
             minPage={surahPageBounds.min}
@@ -844,6 +856,7 @@ export function QuranReaderPage() {
             pageSequence={surahPages}
             juzNumber={juzNumber}
             onPageChange={handleSurahPageChange}
+            onSurahChange={handleSurahChange}
             pinned={footerPinned}
             onPinnedChange={handleFooterPinnedChange}
           />

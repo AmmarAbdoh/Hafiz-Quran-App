@@ -1,17 +1,12 @@
 import type { QuestionType } from "@/shared/types/quran";
+import type { QuizScope } from "@/shared/types/quran";
 
-export function isSurahNameDisabled(
-  mode: "surah" | "juz",
-  indices: number[],
-): boolean {
-  return mode === "surah" && indices.length === 1;
+export function isSurahNameDisabled(scope: QuizScope): boolean {
+  return scope.mode === "surah" && (scope.surahIndices?.length ?? 0) === 1;
 }
 
-export function isJuzNameDisabled(
-  mode: "surah" | "juz",
-  indices: number[],
-): boolean {
-  return mode === "juz" && indices.length === 1;
+export function isJuzNameDisabled(scope: QuizScope): boolean {
+  return scope.mode === "juz" && (scope.juzIndices?.length ?? 0) === 1;
 }
 
 export function pickRandomQuestionType(
@@ -34,20 +29,33 @@ export function generateHiddenIndex(
   return available[index] ?? 1;
 }
 
-export function getHiddenPlaceholder(length: number): string {
-  return "_".repeat(length);
-}
-
-export function checkFillBlankAnswer(
-  selectedText: string,
-  correctText: string,
-): boolean {
-  return selectedText === correctText;
-}
-
 export function checkInfoAnswer(
   selected: string,
   correct: string | number,
 ): boolean {
   return selected === String(correct);
+}
+
+export const ALL_QUESTION_TYPES: QuestionType[] = [
+  "fill_blank",
+  "complete_ayah",
+  "audio_identify",
+  "surah_name",
+  "ayah_number",
+  "juz_number",
+  "hizb_number",
+  "page_number",
+];
+
+export function isQuestionTypeDisabled(
+  type: QuestionType,
+  scope: QuizScope,
+): boolean {
+  if (type === "surah_name") return isSurahNameDisabled(scope);
+  if (type === "juz_number") return isJuzNameDisabled(scope);
+  return false;
+}
+
+export function getDefaultQuestionTypes(scope: QuizScope): QuestionType[] {
+  return ALL_QUESTION_TYPES.filter((type) => !isQuestionTypeDisabled(type, scope));
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Theme } from "@/shared/hooks/use-theme";
 
 const CDN_BASE = "https://verses.quran.foundation";
@@ -154,6 +154,58 @@ export function preloadQcfFontsForReaderPage(
 ): void {
   void preloadQcfPageFont(page, theme, colored);
   preloadAdjacentQcfPageFonts(page, totalPages, theme, colored);
+}
+
+function arePagesFontsReady(pages: number[], colored: boolean): boolean {
+  return pages.length > 0 && pages.every((page) => isQcfFontInDocument(page, colored));
+}
+
+export function useMushafPagesFontReady(
+  pages: number[],
+  theme: Theme,
+  colored: boolean,
+  options?: { requiredCount?: number; enabled?: boolean },
+): boolean {
+  const requiredCount = options?.requiredCount ?? 1;
+  const enabled = options?.enabled ?? true;
+  const requiredPages = useMemo(
+    () => pages.slice(0, Math.max(0, requiredCount)),
+    [pages, requiredCount],
+  );
+  const requiredKey = requiredPages.join(",");
+
+  const [ready, setReady] = useState(() =>
+    arePagesFontsReady(requiredPages, colored),
+  );
+
+  useEffect(() => {
+    if (!enabled || requiredPages.length === 0) {
+      setReady(true);
+      return;
+    }
+
+    if (arePagesFontsReady(requiredPages, colored)) {
+      setReady(true);
+      return;
+    }
+
+    let cancelled = false;
+    setReady(false);
+
+    void Promise.all(
+      requiredPages.map((page) => preloadQcfPageFont(page, theme, colored)),
+    ).then((results) => {
+      if (!cancelled) {
+        setReady(results.every(Boolean));
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requiredKey, theme, colored, enabled]);
+
+  return ready;
 }
 
 export function useQcfPageFont(

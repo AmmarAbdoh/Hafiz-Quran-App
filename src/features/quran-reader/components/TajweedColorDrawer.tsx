@@ -1,53 +1,32 @@
-import { Info, Palette, Pin, PinOff } from "lucide-react";
-import { useAutoHideDock } from "@/features/quran-reader/hooks/useAutoHideDock";
+import { Info, Palette } from "lucide-react";
 import { TAJWEED_LEGEND } from "@/shared/constants/tajweed";
 import { cn } from "@/shared/lib/utils";
 
 interface TajweedColorDrawerProps {
   visible: boolean;
-  pinned: boolean;
-  onPinnedChange: (pinned: boolean) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onOpenLegendGuide: () => void;
 }
 
 export function TajweedColorDrawer({
   visible,
-  pinned,
-  onPinnedChange,
+  open,
+  onOpenChange,
   onOpenLegendGuide,
 }: TajweedColorDrawerProps) {
-  const {
-    expanded,
-    handleMouseEnter,
-    handleMouseLeave,
-    handleFocusCapture,
-    handleBlurCapture,
-    handleFocus,
-  } = useAutoHideDock({ pinned, enabled: visible });
-
   if (!visible) return null;
-
-  const showLegend = expanded;
 
   return (
     <div
-      className={cn(
-        "group/dock mushaf-tajweed-dock",
-        !showLegend && "mushaf-tajweed-dock--collapsed",
-        pinned && "mushaf-tajweed-dock--pinned",
-      )}
-      onMouseEnter={!pinned ? handleMouseEnter : undefined}
-      onMouseLeave={!pinned ? handleMouseLeave : undefined}
-      onFocusCapture={handleFocusCapture}
-      onBlurCapture={handleBlurCapture}
-      onFocus={handleFocus}
+      className={cn("mushaf-tajweed-dock", open && "mushaf-tajweed-dock--open")}
     >
       <div
         className={cn(
           "mushaf-tajweed-dock__chrome",
-          showLegend && "mushaf-tajweed-dock__chrome--visible",
+          open && "mushaf-tajweed-dock__chrome--visible",
         )}
-        aria-hidden={!showLegend}
+        aria-hidden={!open}
       >
         <div className="mushaf-footer-bar">
           <div className="mushaf-tajweed-dock__legend-wrap">
@@ -82,31 +61,18 @@ export function TajweedColorDrawer({
 
       <button
         type="button"
-        className="mushaf-tajweed-dock__bar"
-        onClick={() => onPinnedChange(!pinned)}
-        aria-expanded={showLegend}
-        aria-label={pinned ? "إلغاء تثبيت معنى الألوان" : "تثبيت معنى الألوان"}
-        title={pinned ? "إلغاء التثبيت" : "تثبيت معنى الألوان"}
+        className={cn(
+          "mushaf-tajweed-dock__toggle",
+          open && "mushaf-tajweed-dock__toggle--active",
+        )}
+        onClick={() => onOpenChange(!open)}
+        aria-expanded={open}
+        aria-label={open ? "إخفاء معنى الألوان" : "عرض معنى الألوان"}
+        title={open ? "إخفاء معنى الألوان" : "معنى الألوان"}
       >
-        <span
-          className={cn(
-            "mushaf-tajweed-dock__pin-icon",
-            pinned && "mushaf-tajweed-dock__pin-icon--visible",
-          )}
-          aria-hidden
-        >
-          {pinned ? (
-            <PinOff className="h-3.5 w-3.5" />
-          ) : (
-            <Pin className="h-3.5 w-3.5" />
-          )}
-        </span>
-
-        <span className="mushaf-tajweed-dock__bar-label">
-          <Palette className="h-3.5 w-3.5 text-primary" aria-hidden />
-          <span className="text-[10px] font-medium text-muted-foreground sm:text-[11px]">
-            معنى الألوان
-          </span>
+        <Palette className="h-3.5 w-3.5 text-primary" aria-hidden />
+        <span className="text-[10px] font-medium sm:text-[11px]">
+          معنى الألوان
         </span>
       </button>
     </div>

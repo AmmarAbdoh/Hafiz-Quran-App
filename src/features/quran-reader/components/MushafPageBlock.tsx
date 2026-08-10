@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
+import { MushafFontLoadingState } from "@/features/quran-reader/components/MushafFontLoadingState";
 import { MushafLine } from "@/features/quran-reader/components/MushafLine";
 import { MushafSurahHeader } from "@/features/quran-reader/components/MushafSurahHeader";
 import { useQcfPageFont } from "@/features/quran-reader/hooks/useQcfPageFont";
@@ -90,12 +91,8 @@ export function MushafPageBlock({
     [pageItems],
   );
 
-  if (!pageLayout || pageItems.length === 0) {
-    return null;
-  }
-
-  const isSparsePage = isCenterAlignedPage(page);
-  const useSpreadLayout = !isSparsePage;
+  const isSparsePage = pageLayout ? isCenterAlignedPage(page) : false;
+  const useSpreadLayout = Boolean(pageLayout) && !isSparsePage;
 
   useLayoutEffect(() => {
     const pageEl = pageRef.current;
@@ -123,14 +120,20 @@ export function MushafPageBlock({
     return () => observer.disconnect();
   }, [page, fontReady, visibleLines, useSpreadLayout, fontFamily]);
 
+  if (!pageLayout || pageItems.length === 0) {
+    return null;
+  }
+
+  if (loadFont && !fontReady) {
+    return (
+      <div className={cn("mx-auto w-full max-w-3xl px-2", className)}>
+        <MushafFontLoadingState compact message="جاري تحميل الصفحة…" />
+      </div>
+    );
+  }
+
   return (
     <div className={cn("relative mx-auto w-fit max-w-full px-2", className)}>
-      {loadFont && !fontReady && (
-        <div className="absolute inset-0 z-10 flex min-h-[6rem] items-center justify-center text-sm text-muted-foreground">
-          جاري تحميل خط الصفحة...
-        </div>
-      )}
-
       <div
         ref={pageRef}
         id={id}

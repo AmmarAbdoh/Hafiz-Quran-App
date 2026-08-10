@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, type MutableRefObject, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject, type RefObject } from "react";
+import { MushafFontLoadingState } from "@/features/quran-reader/components/MushafFontLoadingState";
 import { MushafPageBlock } from "@/features/quran-reader/components/MushafPageBlock";
 import { MushafSurahEndNav } from "@/features/quran-reader/components/MushafSurahEndNav";
 import { VerseActionsPopover } from "@/features/quran-reader/components/VerseActionsPopover";
@@ -10,7 +11,9 @@ import {
   scrollMushafToPage,
   useMushafScrollPageSpy,
 } from "@/features/quran-reader/hooks/useMushafScrollPageSpy";
-import { preloadQcfPageFont } from "@/features/quran-reader/hooks/useQcfPageFont";
+import {
+  preloadQcfPageFont,
+} from "@/features/quran-reader/hooks/useQcfPageFont";
 import { toArabicNumerals } from "@/shared/lib/arabic-numerals";
 import { useTheme } from "@/shared/hooks/use-theme";
 import {
@@ -94,13 +97,41 @@ export function MushafSurahViewer({
     }
   }, [surahPages, theme, tajweedColored]);
 
+  const [surahFontsLoading, setSurahFontsLoading] = useState(true);
+
+  useEffect(() => {
+    if (surahPages.length === 0) {
+      setSurahFontsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setSurahFontsLoading(true);
+
+    const pagesToLoad = surahPages.slice(0, Math.min(2, surahPages.length));
+    void Promise.all(
+      pagesToLoad.map((page) => preloadQcfPageFont(page, theme, tajweedColored)),
+    ).then(() => {
+      if (!cancelled) {
+        setSurahFontsLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [surahNumber, theme, tajweedColored, surahPages]);
+
   useMushafScrollPageSpy(
     scrollContainerRef ?? { current: null },
     mushafRef,
     "[data-mushaf-page]",
     (page) => onVisiblePageChange?.(page),
-    Boolean(scrollContainerRef && onVisiblePageChange),
+    Boolean(
+      scrollContainerRef && onVisiblePageChange && !surahFontsLoading,
+    ),
     scrollLockRef,
+    `${surahNumber}:${surahPages.join(",")}`,
   );
 
   useEffect(() => {
@@ -154,6 +185,10 @@ export function MushafSurahViewer({
         لا توجد بيانات لهذه السورة.
       </p>
     );
+  }
+
+  if (surahFontsLoading) {
+    return <MushafFontLoadingState compact message="جاري تحميل السورة…" />;
   }
 
   return (

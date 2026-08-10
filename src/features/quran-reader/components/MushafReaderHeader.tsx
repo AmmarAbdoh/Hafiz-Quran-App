@@ -156,8 +156,8 @@ export function MushafReaderHeader({
 
       <TajweedColorDrawer
         visible={tajweedColored}
-        pinned={legendPinned}
-        onPinnedChange={onLegendPinnedChange}
+        open={legendPinned}
+        onOpenChange={onLegendPinnedChange}
         onOpenLegendGuide={onOpenLegendGuide}
       />
     </div>
