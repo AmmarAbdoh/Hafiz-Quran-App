@@ -138,7 +138,7 @@ export function MushafAudioBar() {
   };
 
   return (
-    <div className="z-30 shrink-0 border-b border-border bg-muted/80 shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.15)] backdrop-blur-md dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.45)]">
+    <div className="z-30 shrink-0 border-b border-border bg-muted/80 shadow-[var(--shadow-overlay)] backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl flex-col gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2">
         <div className="flex items-center gap-2 sm:gap-3">
           <Volume2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />

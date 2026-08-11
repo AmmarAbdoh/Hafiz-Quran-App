@@ -54,11 +54,11 @@ export function QuizResults({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border bg-gradient-to-b from-primary/10 to-background p-6 text-center">
-        <h2 ref={headingRef} tabIndex={-1} className="text-2xl font-bold">
+      <section className="editorial-panel text-center">
+        <h2 ref={headingRef} tabIndex={-1}>
           {t("results.title")}
         </h2>
-        <p className="mt-2 text-4xl font-bold text-primary">
+        <p className="mt-2 text-display font-bold text-primary">
           {t("results.percentage", { count: formatNumber(percentage) })}
         </p>
         <p className="mt-1 text-muted-foreground">

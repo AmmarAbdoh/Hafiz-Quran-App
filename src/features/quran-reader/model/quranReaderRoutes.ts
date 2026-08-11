@@ -3,6 +3,7 @@ import {
   getPageSurahNumbers,
   TOTAL_MUSHAF_PAGES,
 } from "@/domain/quran";
+import { SURAH_AYAH_COUNTS } from "@/domain/quran/audio/reciters";
 import type { MushafVerse } from "@/domain/quran";
 
 const MAX_SURAHS = 114;
@@ -44,14 +45,18 @@ export function buildQuranSurahPath(surahNumber: number): string {
   return `/quran/surah/${clampSurah(surahNumber)}`;
 }
 
+function clampAyah(surah: number, ayah: number): number {
+  if (!Number.isFinite(ayah)) return 1;
+  const maxAyah = SURAH_AYAH_COUNTS[clampSurah(surah) - 1] ?? 1;
+  return Math.min(maxAyah, Math.max(1, Math.round(ayah)));
+}
+
 export function buildQuranAyahPath(
   surahNumber: number,
   ayahNumber: number,
 ): string {
-  return `/quran/surah/${clampSurah(surahNumber)}/ayah/${Math.max(
-    1,
-    Math.round(ayahNumber),
-  )}`;
+  const surah = clampSurah(surahNumber);
+  return `/quran/surah/${surah}/ayah/${clampAyah(surah, ayahNumber)}`;
 }
 
 export function isQuranReaderPath(pathname: string): boolean {
@@ -112,7 +117,7 @@ export function parseExplicitAyahPath(
     return null;
   }
 
-  return { surah, ayah };
+  return { surah, ayah: clampAyah(surah, ayah) };
 }
 
 /** Legacy short paths like /quran/2/255 (ambiguous for ayah <= 114). */

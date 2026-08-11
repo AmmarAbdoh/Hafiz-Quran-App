@@ -7,6 +7,7 @@ import {
   type MushafPageLayout,
   type MushafVerse,
 } from "@/domain/quran";
+import { Button } from "@/shared/components/ui/button";
 import { useTheme } from "@/shared/hooks/use-theme";
 import { safeStorage } from "@/shared/storage";
 
@@ -57,6 +58,8 @@ export function QuizMushafPreview({
   const { theme } = useTheme();
   const { loadPageLayout } = useQuranData();
   const [pageLayout, setPageLayout] = useState<MushafPageLayout | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   const [tajweedColored] = useState(
     () => tajweedColoredProp ?? readTajweedColored(),
   );
@@ -65,15 +68,18 @@ export function QuizMushafPreview({
   useEffect(() => {
     let cancelled = false;
     setPageLayout(null);
+    setLoadError(false);
     void loadPageLayout(page)
       .then((layout) => {
         if (!cancelled) setPageLayout(layout);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      });
     return () => {
       cancelled = true;
     };
-  }, [loadPageLayout, page]);
+  }, [loadPageLayout, page, reloadToken]);
 
   const revealedLocations = getRevealedLocations(
     pageLayout,
@@ -85,12 +91,26 @@ export function QuizMushafPreview({
     <div
       className={
         className ??
-        "quiz-mushaf-preview mx-auto w-full rounded-xl border bg-background p-2 shadow-sm"
+        "quiz-mushaf-preview editorial-panel--inset mx-auto w-full p-2"
       }
       dir="rtl"
       lang="ar"
     >
-      {!pageLayout ? (
+      {loadError ? (
+        <div className="space-y-3 px-2 py-6 text-center">
+          <p className="text-sm text-destructive" role="alert">
+            {t("errors.mushafPreviewLoadFailed")}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11"
+            onClick={() => setReloadToken((value) => value + 1)}
+          >
+            {t("actions.retry")}
+          </Button>
+        </div>
+      ) : !pageLayout ? (
         <MushafFontLoadingState compact message={t("active.loading")} />
       ) : (
         <MushafPageView
@@ -100,10 +120,9 @@ export function QuizMushafPreview({
           theme={theme}
           loadingMessage={t("active.loading")}
           highlightVerseKey={highlightVerseKey}
-          practiceMode={Boolean(hiddenVerseKey)}
+          surahFilter={surahFilter}
           hidePracticeWords={Boolean(hiddenVerseKey)}
           revealedWordLocations={revealedLocations}
-          surahFilter={surahFilter}
         />
       )}
     </div>

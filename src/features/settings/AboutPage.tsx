@@ -50,13 +50,13 @@ export function AboutPage() {
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
           <Landmark aria-hidden="true" className="h-7 w-7" />
         </span>
-        <h1 className="mt-5 text-3xl font-bold">{t("about.title")}</h1>
-        <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+        <h1 className="mt-5">{t("about.title")}</h1>
+        <p className="mx-auto mt-3 max-w-2xl text-body text-muted-foreground">
           {t("about.description")}
         </p>
       </header>
 
-      <section className="editorial-panel flex items-start gap-4 p-5 sm:p-6">
+      <section className="editorial-panel flex items-start gap-4">
         <Heart
           aria-hidden="true"
           className="mt-0.5 h-5 w-5 shrink-0 text-primary"
@@ -65,13 +65,11 @@ export function AboutPage() {
       </section>
 
       <section aria-labelledby="source-list-title">
-        <h2 id="source-list-title" className="text-xl font-bold">
-          {t("about.sourcesTitle")}
-        </h2>
+        <h2 id="source-list-title">{t("about.sourcesTitle")}</h2>
         <div className="mt-4 grid gap-4">
           {dataSources.map((source) => (
-            <article key={source.url} className="editorial-panel p-5 sm:p-6">
-              <h3 className="text-base font-bold">
+            <article key={source.url} className="editorial-panel">
+              <h3>
                 <a
                   href={source.url}
                   target="_blank"

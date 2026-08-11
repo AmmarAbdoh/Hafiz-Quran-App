@@ -121,7 +121,12 @@ export function VerseDialog({ verse, open, onOpenChange }: VerseDialogProps) {
           </div>
         </div>
 
-        <div className="app-main-scroll min-h-[min(50vh,28rem)] flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
+        <div
+          className="app-main-scroll min-h-[min(50vh,28rem)] flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6"
+          role="region"
+          aria-label={t("tafsirDialog.title")}
+          tabIndex={0}
+        >
           {loading ? (
             <div
               className="flex min-h-[12rem] flex-col items-center justify-center gap-3 text-muted-foreground"

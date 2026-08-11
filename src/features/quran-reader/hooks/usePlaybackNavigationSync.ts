@@ -76,6 +76,22 @@ export function usePlaybackNavigationSync({
   ]);
 
   useEffect(() => {
+    if (
+      layoutMode !== "surah" ||
+      !active ||
+      !activeVerseKey ||
+      !autoFollowPages
+    ) {
+      return;
+    }
+
+    const target = document.querySelector(
+      `[data-verse-key="${activeVerseKey}"]`,
+    );
+    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [active, activeVerseKey, autoFollowPages, layoutMode]);
+
+  useEffect(() => {
     if (!active || !activeVerseKey) {
       setActiveVerseInView(false);
       return;

@@ -52,6 +52,12 @@ export default tseslint.config(
         { checksVoidReturn: { attributes: false } },
       ],
       "react-refresh/only-export-components": "off",
+      // A scrollable region needs to be focusable so keyboard users can scroll
+      // it, which WCAG 2.1.1 requires and axe enforces.
+      "jsx-a11y/no-noninteractive-tabindex": [
+        "error",
+        { tags: [], roles: ["tabpanel", "region"] },
+      ],
     },
   },
 );

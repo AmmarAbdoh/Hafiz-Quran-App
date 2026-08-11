@@ -73,14 +73,14 @@ export function MushafSurahFooter({
         <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5 text-center">
             <p
-              className="text-[11px] font-semibold text-foreground sm:text-xs"
+              className="text-sm font-semibold text-foreground"
               dir="rtl"
               lang="ar"
             >
               {surahName}
             </p>
             {ayahCount !== undefined && (
-              <p className="text-[10px] text-muted-foreground sm:text-xs">
+              <p className="text-caption text-muted-foreground">
                 ·{" "}
                 {t("metadata.ayahCount", {
                   count: ayahCount,
@@ -89,7 +89,7 @@ export function MushafSurahFooter({
               </p>
             )}
             {juzNumber !== undefined && (
-              <p className="text-[10px] text-muted-foreground sm:text-xs">
+              <p className="text-caption text-muted-foreground">
                 ·{" "}
                 {t("metadata.juz", {
                   number:

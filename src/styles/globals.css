@@ -18,6 +18,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -31,72 +33,18 @@
   --radius-xl: calc(var(--radius) + 4px);
   --font-sans: var(--font-ui);
   --font-mushaf: var(--font-quran);
-}
-
-:root {
-  --radius: 0.625rem;
-  --background: #faf8f5;
-  --foreground: #1a1a2e;
-  --card: #ffffff;
-  --card-foreground: #1a1a2e;
-  --popover: #ffffff;
-  --popover-foreground: #1a1a2e;
-  --primary: #0d6e6e;
-  --primary-foreground: #faf8f5;
-  --secondary: #e8f4f4;
-  --secondary-foreground: #0d6e6e;
-  --muted: #f0ebe3;
-  --muted-foreground: #5c5c6e;
-  --accent: #c9a84c;
-  --accent-foreground: #1a1a2e;
-  --destructive: #dc2626;
-  --border: #e0d8cc;
-  --input: #e0d8cc;
-  --ring: #0d6e6e;
-  /* Aliased to app tokens — keeps reader chrome consistent site-wide */
-  --mushaf-header: var(--background);
-  --mushaf-header-panel: var(--muted);
-  --mushaf-page: var(--background);
-  --mushaf-footer: var(--background);
-  --mushaf-ayah-highlight: rgb(26 26 46 / 0.07);
-  --mushaf-ayah-highlight-strong: rgb(26 26 46 / 0.12);
-  --mushaf-ayah-highlight-pulse: rgb(26 26 46 / 0.16);
-}
-
-.dark {
-  --background: #12121a;
-  --foreground: #f0ebe3;
-  --card: #1a1a2e;
-  --card-foreground: #f0ebe3;
-  --popover: #1a1a2e;
-  --popover-foreground: #f0ebe3;
-  --primary: #1a9e9e;
-  --primary-foreground: #12121a;
-  --secondary: #1e2e2e;
-  --secondary-foreground: #e8f4f4;
-  --muted: #252535;
-  --muted-foreground: #a0a0b0;
-  --accent: #c9a84c;
-  --accent-foreground: #12121a;
-  --destructive: #ef4444;
-  --border: #2e2e40;
-  --input: #2e2e40;
-  --ring: #1a9e9e;
-  --mushaf-header: var(--background);
-  --mushaf-header-panel: var(--muted);
-  --mushaf-page: var(--background);
-  --mushaf-footer: var(--background);
-  --mushaf-ayah-highlight: color-mix(in srgb, var(--primary) 16%, transparent);
-  --mushaf-ayah-highlight-strong: color-mix(
-    in srgb,
-    var(--primary) 28%,
-    transparent
-  );
-  --mushaf-ayah-highlight-pulse: color-mix(
-    in srgb,
-    var(--primary) 35%,
-    transparent
-  );
+  --text-display: 2.25rem;
+  --text-display--line-height: 1.15;
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.2;
+  --text-heading: 1.375rem;
+  --text-heading--line-height: 1.35;
+  --text-subheading: 1.125rem;
+  --text-subheading--line-height: 1.4;
+  --text-body: 1rem;
+  --text-body--line-height: var(--leading-ui);
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.5;
 }
 
 @layer base {
@@ -104,21 +52,37 @@
     @apply border-border;
   }
 
+  h1 {
+    font-size: var(--text-title);
+    font-weight: 700;
+    line-height: var(--text-title--line-height);
+  }
+
+  h2 {
+    font-size: var(--text-heading);
+    font-weight: 700;
+    line-height: var(--text-heading--line-height);
+  }
+
+  h3 {
+    font-size: var(--text-subheading);
+    font-weight: 650;
+    line-height: var(--text-subheading--line-height);
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-size: var(--text-body);
+    font-weight: 650;
+    line-height: var(--text-body--line-height);
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     margin: 0;
     min-height: 100vh;
-    background-image:
-      radial-gradient(
-        circle at 20% 20%,
-        color-mix(in srgb, var(--primary) 8%, transparent) 0%,
-        transparent 50%
-      ),
-      radial-gradient(
-        circle at 80% 80%,
-        color-mix(in srgb, var(--accent) 6%, transparent) 0%,
-        transparent 50%
-      );
+    line-height: var(--leading-ui);
   }
 
   #root {
@@ -138,7 +102,6 @@
     user-select: none;
   }
 
-  /* Subtle edge scrollbar for settings / about and other main pages */
   .app-main-scroll {
     overflow-x: hidden;
     overflow-y: auto;

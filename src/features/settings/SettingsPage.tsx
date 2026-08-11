@@ -42,7 +42,7 @@ function SettingsSection({
 
   return (
     <section
-      className="editorial-panel overflow-hidden"
+      className="editorial-panel editorial-panel--flush overflow-hidden"
       aria-labelledby={titleId}
     >
       <header className="flex items-start gap-4 border-b border-border/80 px-5 py-5 sm:px-6">
@@ -50,9 +50,7 @@ function SettingsSection({
           <Icon aria-hidden="true" className="h-5 w-5" />
         </span>
         <div>
-          <h2 id={titleId} className="text-lg font-bold">
-            {title}
-          </h2>
+          <h2 id={titleId}>{title}</h2>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
             {description}
           </p>
@@ -93,10 +91,8 @@ export function SettingsPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="mb-8">
         <p className="editorial-kicker">{tCommon("appName")}</p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-          {t("title")}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+        <h1 className="mt-3 tracking-tight">{t("title")}</h1>
+        <p className="mt-3 max-w-2xl text-body text-muted-foreground">
           {t("description")}
         </p>
       </header>
@@ -187,7 +183,7 @@ export function SettingsPage() {
               type="button"
               variant="ghost"
               size="sm"
-              className="min-h-11 px-2 text-xs text-primary"
+              className="min-h-11 px-2 text-sm text-primary"
               onClick={() => setWordByWordGuideOpen(true)}
             >
               <Info aria-hidden="true" />
@@ -226,7 +222,7 @@ export function SettingsPage() {
             {DEMO_AYAH_LABEL}
           </span>
         </Button>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-caption text-muted-foreground">
           {t("recitation.count", {
             count: formatNumber(RECITERS.length, locale),
           })}
@@ -268,7 +264,7 @@ export function SettingsPage() {
           <h3 className="flex items-center gap-2 font-semibold">
             <Network
               aria-hidden="true"
-              className="h-4 w-4 text-[var(--editorial-brass)]"
+              className="h-4 w-4 text-[var(--accent-strong)]"
             />
             {t("privacy.externalTitle")}
           </h3>

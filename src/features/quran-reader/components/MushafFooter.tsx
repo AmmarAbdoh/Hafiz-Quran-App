@@ -47,7 +47,7 @@ export function MushafFooter({
           {hasStartMeta && (
             <div className="min-w-0 text-right leading-snug">
               {surahNames.length > 0 && (
-                <p className="truncate text-xs font-semibold text-foreground sm:text-sm">
+                <p className="truncate text-sm font-semibold text-foreground">
                   {surahNames.map((name, index) => (
                     <span key={name}>
                       {index > 0 ? (locale === "ar" ? "، " : ", ") : ""}
@@ -60,7 +60,7 @@ export function MushafFooter({
                 </p>
               )}
               {showSingleSurahAyahCount && (
-                <p className="text-[10px] text-muted-foreground sm:text-xs">
+                <p className="text-caption text-muted-foreground">
                   {t("metadata.ayahCount", {
                     count: surahAyahCount,
                     formattedCount: formatNumber(surahAyahCount, locale),
@@ -80,7 +80,7 @@ export function MushafFooter({
 
         <div className="flex min-w-0 items-center justify-end overflow-hidden">
           {hasEndMeta && (
-            <div className="text-left text-[10px] leading-snug text-muted-foreground sm:text-xs">
+            <div className="text-left text-caption leading-snug text-muted-foreground">
               {juzNumber !== undefined && (
                 <p>
                   {t("metadata.juz", {

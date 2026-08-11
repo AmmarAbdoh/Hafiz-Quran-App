@@ -91,6 +91,7 @@ export async function preloadQcfPageFont(
       if (colored) ensureTajweedPalettes(fontFamily);
       return true;
     } catch {
+      loadedFonts.delete(cacheKey);
       return false;
     }
   })();
@@ -130,6 +131,7 @@ export function useQcfPageFont(
   const { colored, theme, enabled = true } = options;
   const fontFamily = getQcfFontFamily(page, colored);
   const [ready, setReady] = useState(() => isQcfFontInDocument(page, colored));
+  const [failed, setFailed] = useState(false);
 
   const fontPalette = colored
     ? getMushafFontPalette(fontFamily, theme)
@@ -140,11 +142,13 @@ export function useQcfPageFont(
 
     if (!enabled) {
       setReady(isQcfFontInDocument(page, colored));
+      setFailed(false);
       return;
     }
 
     if (isQcfFontInDocument(page, colored)) {
       setReady(true);
+      setFailed(false);
       return;
     }
 
@@ -152,7 +156,10 @@ export function useQcfPageFont(
     const cached = loadedFonts.get(cacheKey);
     if (cached) {
       void cached.then((loaded) => {
-        if (!cancelled) setReady(loaded);
+        if (!cancelled) {
+          setReady(loaded);
+          setFailed(!loaded);
+        }
       });
       return () => {
         cancelled = true;
@@ -160,8 +167,12 @@ export function useQcfPageFont(
     }
 
     setReady(false);
+    setFailed(false);
     void preloadQcfPageFont(page, theme, colored).then((loaded) => {
-      if (!cancelled) setReady(loaded);
+      if (!cancelled) {
+        setReady(loaded);
+        setFailed(!loaded);
+      }
     });
 
     return () => {
@@ -169,5 +180,5 @@ export function useQcfPageFont(
     };
   }, [page, theme, colored, enabled]);
 
-  return { fontFamily, fontPalette, ready, colored };
+  return { fontFamily, fontPalette, ready, colored, failed };
 }

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CancellableAudioPlayer } from "@/shared/media";
 
-const AUDIO_ERROR = "تعذر تشغيل الصوت";
-
 export function useQuranAudio() {
+  const { t } = useTranslation("errors");
   const playerRef = useRef<CancellableAudioPlayer | null>(null);
   if (!playerRef.current) playerRef.current = new CancellableAudioPlayer();
   const player = playerRef.current;
@@ -23,7 +23,7 @@ export function useQuranAudio() {
       onEnded: () => setPlaying(false),
       onError: () => {
         setPlaying(false);
-        setError(AUDIO_ERROR);
+        setError(t("audioPlay"));
       },
     });
   };

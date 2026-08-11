@@ -90,6 +90,11 @@ export function QuranReaderPage() {
     loadedPageLayouts,
     totalPages,
   });
+  const layoutReady =
+    route.layoutMode === "page"
+      ? currentPageLayout !== null
+      : surahLayout.pageLayouts.length > 0;
+  const awaitingLayout = mushafData.length > 0 && !layoutReady;
   const surahNavigation = useSurahPageNavigation({
     loading,
     layoutMode: route.layoutMode,
@@ -216,7 +221,7 @@ export function QuranReaderPage() {
     setActiveVerseInView,
   });
 
-  if (loading) {
+  if (loading || awaitingLayout) {
     return (
       <div
         className="flex min-h-[50vh] flex-col items-center justify-center gap-3 px-4"

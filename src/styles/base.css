@@ -8,30 +8,62 @@ html.dark {
   color-scheme: dark;
 }
 
-body {
-  background-color: var(--background);
-  background-image:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--accent) 3%, transparent) 1px,
-      transparent 1px
-    ),
-    radial-gradient(
-      circle at 15% 10%,
-      color-mix(in srgb, var(--primary) 8%, transparent),
-      transparent 32rem
-    );
-  background-size:
-    4rem 4rem,
-    auto;
-}
-
 button,
 a,
 input,
 select,
 textarea {
   font: inherit;
+}
+
+/* Preflight gives interactive elements `color: inherit`, which can beat layered
+   text-* utilities on links and buttons (including Button asChild). */
+:is(a, button).text-primary-foreground,
+.text-primary-foreground:is(a, button) {
+  color: var(--primary-foreground);
+}
+
+:is(a, button).text-secondary-foreground,
+.text-secondary-foreground:is(a, button) {
+  color: var(--secondary-foreground);
+}
+
+:is(a, button).text-success-foreground,
+.text-success-foreground:is(a, button) {
+  color: var(--success-foreground);
+}
+
+:is(a, button).text-accent-foreground,
+.text-accent-foreground:is(a, button) {
+  color: var(--accent-foreground);
+}
+
+:is(a, button).text-white {
+  color: #fff;
+}
+
+button[class*="text-primary-foreground"][data-state="checked"] {
+  color: var(--primary-foreground);
+}
+
+:is(a, button).bg-primary,
+.bg-primary:is(a, button) {
+  background-color: var(--primary);
+}
+
+:is(a, button).bg-secondary,
+.bg-secondary:is(a, button) {
+  background-color: var(--secondary);
+}
+
+:is(a, button).bg-destructive,
+.bg-destructive:is(a, button) {
+  background-color: var(--destructive);
+}
+
+:is(a, button).bg-success,
+.bg-success:is(a, button) {
+  background-color: var(--success);
 }
 
 :focus-visible {
@@ -56,10 +88,27 @@ textarea {
   translate: 0;
 }
 
+.route-state {
+  display: grid;
+  min-height: 60vh;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-stack);
+  padding: var(--space-section) 1rem;
+  text-align: center;
+}
+
+.route-state__mark {
+  font-size: var(--text-display);
+  line-height: var(--text-display--line-height);
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
 .editorial-shell {
   display: flex;
   min-height: 100dvh;
-  background: color-mix(in srgb, var(--background) 96%, transparent);
+  background: var(--background);
 }
 
 .editorial-sidebar {
@@ -71,8 +120,8 @@ textarea {
   flex: 0 0 var(--editorial-sidebar-width);
   flex-direction: column;
   border-inline-end: 1px solid var(--border);
-  background: color-mix(in srgb, var(--card) 90%, transparent);
-  padding: 1.5rem 1rem;
+  background: color-mix(in srgb, var(--card) 96%, transparent);
+  padding: var(--space-panel) 1rem;
   backdrop-filter: blur(18px);
 }
 
@@ -92,16 +141,20 @@ textarea {
   min-height: 4rem;
   align-items: center;
   justify-content: space-between;
-  border-block-end: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
-  background: color-mix(in srgb, var(--background) 88%, transparent);
+  border-block-end: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 92%, transparent);
   padding-inline: 1rem;
   backdrop-filter: blur(16px);
+}
+
+.editorial-topbar--reader {
+  display: flex;
 }
 
 .editorial-main {
   width: min(100%, 76rem);
   margin-inline: auto;
-  padding: 1.25rem 1rem 6.5rem;
+  padding: var(--space-panel) 1rem 6.5rem;
 }
 
 .editorial-bottom-nav {
@@ -112,31 +165,65 @@ textarea {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   border-block-start: 1px solid var(--border);
-  background: color-mix(in srgb, var(--card) 94%, transparent);
+  background: color-mix(in srgb, var(--card) 96%, transparent);
   padding: 0.35rem max(0.35rem, env(safe-area-inset-right))
     max(0.35rem, env(safe-area-inset-bottom))
     max(0.35rem, env(safe-area-inset-left));
-  box-shadow: 0 -12px 30px rgb(40 34 24 / 0.1);
+  box-shadow: var(--shadow-dock);
   backdrop-filter: blur(18px);
 }
 
 .editorial-panel {
-  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
-  border-radius: 1.25rem;
-  background: color-mix(in srgb, var(--card) 94%, transparent);
-  box-shadow: var(--editorial-shadow);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 0.25rem);
+  background: var(--card);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-panel);
+}
+
+.editorial-panel--flush {
+  padding: 0;
+}
+
+.editorial-panel--hero {
+  padding: var(--space-section) var(--space-panel);
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .editorial-panel--hero {
+    padding: calc(var(--space-section) + 0.5rem) var(--space-panel);
+  }
+}
+
+@media (min-width: 768px) {
+  .editorial-panel--hero {
+    padding: calc(var(--space-section) + 1rem) var(--space-panel);
+  }
+}
+
+.editorial-panel--inset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--muted) 55%, var(--card));
+  box-shadow: none;
+  padding: var(--space-panel);
+}
+
+.editorial-panel--raised {
+  background: var(--surface-raised);
 }
 
 .editorial-kicker {
-  color: var(--editorial-brass);
-  font-size: 0.75rem;
-  font-weight: 750;
-  letter-spacing: 0.12em;
+  color: var(--accent-strong);
+  font-size: var(--text-caption);
+  font-weight: 650;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 [dir="rtl"] .editorial-kicker {
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
 }
 
 .editorial-rule {
@@ -157,6 +244,16 @@ textarea {
   );
 }
 
+.mushaf-reader-header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 30;
+  flex-shrink: 0;
+  border-block-end: 1px solid var(--border);
+  background: var(--mushaf-header);
+  backdrop-filter: blur(16px);
+}
+
 .quran-snippet {
   font-family: var(--font-quran);
   direction: rtl;
@@ -169,7 +266,7 @@ textarea {
     display: flex;
   }
 
-  .editorial-topbar {
+  .editorial-topbar:not(.editorial-topbar--reader) {
     display: none;
   }
 

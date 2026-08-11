@@ -128,6 +128,8 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   const segmentsRef = useRef<WordSegment[]>([]);
   const publishedWordRef = useRef<string | null>(null);
   const sessionRef = useRef<ListenSession>(createEmptySession());
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const operationControllerRef = useRef<MediaOperationController | null>(null);
   if (!operationControllerRef.current) {
     operationControllerRef.current = new MediaOperationController();
@@ -432,8 +434,26 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   }, [audioPlayer]);
 
   const resume = useCallback(() => {
+    if (state.error) {
+      void playAtIndexRef.current(sessionRef.current.index);
+      return;
+    }
     void audioPlayer.resume();
-  }, [audioPlayer]);
+  }, [audioPlayer, state.error]);
+
+  useEffect(() => {
+    const session = sessionRef.current;
+    if (!stateRef.current.active || session.playlist.length === 0) return;
+
+    const quranComId = getQuranComRecitationId(reciter.id);
+    session.quranComId = quranComId;
+    session.supportsWordHighlight = Boolean(quranComId);
+    session.surahTimestampsCache.clear();
+
+    if (stateRef.current.playing) {
+      void playAtIndexRef.current(session.index);
+    }
+  }, [reciter.id]);
 
   const goToVerse = useCallback((verseKey: string) => {
     pendingVerseKeyRef.current = verseKey;

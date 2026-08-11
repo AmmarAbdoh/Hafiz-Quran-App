@@ -73,18 +73,18 @@ export function TajweedLegendDialog({
             return (
               <li
                 key={rule.id}
-                className="flex items-start gap-3 rounded-lg border bg-muted/40 p-3"
+                className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3"
               >
                 <span
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded-full border border-border shadow-sm"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded-full border border-black/10 shadow-sm dark:border-white/10"
                   style={{ backgroundColor: rule.color }}
                   aria-hidden
                 />
                 <div className="min-w-0">
-                  <p className="font-medium leading-snug">
+                  <p className="text-body font-medium leading-snug">
                     {translatedRule?.label ?? rule.label}
                   </p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
+                  <p className="mt-1 text-caption text-muted-foreground">
                     {translatedRule?.description ?? rule.description}
                   </p>
                 </div>

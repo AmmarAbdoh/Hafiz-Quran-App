@@ -29,7 +29,7 @@ export function PracticeSettings() {
 
   return (
     <section
-      className="editorial-panel overflow-hidden"
+      className="editorial-panel editorial-panel--flush overflow-hidden"
       aria-labelledby={titleId}
     >
       <header className="flex items-start gap-4 border-b border-border/80 px-5 py-5 sm:px-6">
@@ -37,9 +37,7 @@ export function PracticeSettings() {
           <Mic aria-hidden="true" className="h-5 w-5" />
         </span>
         <div>
-          <h2 id={titleId} className="text-lg font-bold">
-            {t("practice.title")}
-          </h2>
+          <h2 id={titleId}>{t("practice.title")}</h2>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
             {t("practice.description")}
           </p>
@@ -54,7 +52,7 @@ export function PracticeSettings() {
           id="practice-model-select"
           value={modelId}
           onChange={(event) => setModelId(event.target.value)}
-          className="min-h-12 w-full rounded-xl border border-input bg-background px-3 text-sm"
+          className="min-h-12 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring"
         >
           {Object.entries(PRACTICE_MODEL_OPTIONS).map(([id, model]) => (
             <option key={id} value={id}>

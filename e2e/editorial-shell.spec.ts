@@ -8,10 +8,29 @@ function expectedLocale(testInfo: TestInfo): "ar" | "en" {
   return testInfo.project.name === "mobile-arabic" ? "ar" : "en";
 }
 
+// Theme and locale are applied after mount, so colour transitions are still
+// running on first paint. Axe reads blended mid-transition colours, so let the
+// animations settle to keep the contrast checks measuring the resting state.
+async function waitForSettledStyles(page: Page) {
+  // Only transitions are awaited; looping animations such as the loading
+  // spinner never finish and do not affect the audited colours.
+  await page.waitForFunction(
+    () =>
+      document
+        .getAnimations()
+        .filter((animation) => animation instanceof CSSTransition)
+        .every((animation) => animation.playState !== "running"),
+    undefined,
+    { timeout: 5000 },
+  );
+}
+
 async function expectNoAccessibilityViolations(
   page: Page,
   options: { allowInlineMushafTargets?: boolean } = {},
 ) {
+  await waitForSettledStyles(page);
+
   const audit = new AxeBuilder({ page }).withTags([
     "wcag2a",
     "wcag2aa",
@@ -71,7 +90,7 @@ test("localizes the adaptive shell without loading Quran data", async ({
     "direction",
     locale === "ar" ? "rtl" : "ltr",
   );
-  await expect(page.locator("body")).toHaveCSS("font-family", /Reem Kufi/);
+  await expect(page.locator("body")).toHaveCSS("font-family", /Inter Variable/);
   await expect(page.locator("h1")).toBeVisible();
   expect(quranRequests).toEqual([]);
   await expectNoAccessibilityViolations(page);

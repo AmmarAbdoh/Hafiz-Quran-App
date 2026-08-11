@@ -18,6 +18,7 @@ import {
   type MushafVerse,
   getSurahAyahCount,
 } from "@/domain/quran";
+import { normalizeArabicForMatch } from "@/shared/lib/arabic-normalize";
 import { useQuizFormatters } from "../hooks/useQuizFormatters";
 import type { QuizScope, QuizScopeMode } from "../model/types";
 
@@ -52,7 +53,9 @@ function CheckboxGrid({
   const [search, setSearch] = useState("");
   const filtered = names
     .map((name, index) => ({ name, index: index + 1 }))
-    .filter(({ name }) => name.includes(search));
+    .filter(({ name }) =>
+      normalizeArabicForMatch(name).includes(normalizeArabicForMatch(search)),
+    );
   const allSelected = selected.size === count;
 
   return (

@@ -60,6 +60,14 @@ export function useQuizEngine(
       return { ok: false, error: "noTypes" };
     }
 
+    const needsMultipleChoices = config.questionTypes.some(
+      (type) => type !== "fill_blank",
+    );
+    if (needsMultipleChoices && pool.length < 4) {
+      dispatch({ type: "START_FAILED", error: "poolTooSmall" });
+      return { ok: false, error: "poolTooSmall" };
+    }
+
     poolRef.current = pool;
     queueRef.current = shuffleArray(pool);
     const question = createQuestion(config);
@@ -93,7 +101,13 @@ export function useQuizEngine(
   }
 
   function finishQuiz(): void {
-    if (!state.config || state.startedAt === null) return;
+    if (
+      !state.config ||
+      state.startedAt === null ||
+      (state.phase !== "active" && state.phase !== "feedback")
+    ) {
+      return;
+    }
     const summary = buildSessionSummary({
       scope: state.config.scope,
       sessionMode: state.config.sessionMode,

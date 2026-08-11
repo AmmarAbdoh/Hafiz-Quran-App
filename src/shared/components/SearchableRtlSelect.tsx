@@ -140,7 +140,7 @@ export function SearchableRtlSelect({
     <div ref={containerRef} dir="rtl" className="relative w-full text-right">
       <div
         className={cn(
-          "flex h-11 w-full items-center gap-1 rounded-md border border-input bg-background text-sm shadow-sm",
+          "flex min-h-12 w-full items-center gap-1 rounded-xl border border-input bg-background text-sm shadow-sm",
           "focus-within:ring-2 focus-within:ring-ring",
           triggerClassName,
         )}

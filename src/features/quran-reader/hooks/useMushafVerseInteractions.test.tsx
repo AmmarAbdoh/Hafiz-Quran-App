@@ -19,6 +19,7 @@ const audio = vi.hoisted(() => ({
 
 vi.mock("@/features/quran-reader/context/QuranPlaybackContext", () => ({
   useQuranPlaybackActions: () => playback,
+  useQuranPlaybackState: () => ({ active: false }),
 }));
 
 vi.mock("@/features/quran-reader/hooks/useQuranAudio", () => ({

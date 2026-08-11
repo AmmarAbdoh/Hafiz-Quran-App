@@ -23,16 +23,32 @@ interface VerseActionsPopoverProps {
 }
 
 function getPopoverPosition(anchor: DOMRect) {
+  const rootStyles = getComputedStyle(document.documentElement);
+  const dockOffset = Number.parseFloat(
+    rootStyles.getPropertyValue("--mushaf-dock-offset"),
+  );
+  const audioOffset = Number.parseFloat(
+    rootStyles.getPropertyValue("--mushaf-audio-offset"),
+  );
+  const bottomReserve =
+    (Number.isFinite(dockOffset) ? dockOffset : 0) +
+    (Number.isFinite(audioOffset) ? audioOffset : 0) +
+    16;
+
   const centerX = anchor.left + anchor.width / 2;
   const placeBelow = anchor.top < HEADER_SAFE_ZONE + 80;
+  const viewportBottom = window.innerHeight - bottomReserve;
 
-  const top = placeBelow
-    ? anchor.bottom + POPOVER_GAP
-    : anchor.top - POPOVER_GAP;
+  let top = placeBelow ? anchor.bottom + POPOVER_GAP : anchor.top - POPOVER_GAP;
 
-  const transform = placeBelow
-    ? "translate(-50%, 0)"
-    : "translate(-50%, -100%)";
+  if (placeBelow && top + 120 > viewportBottom) {
+    top = Math.max(HEADER_SAFE_ZONE, anchor.top - POPOVER_GAP);
+  }
+
+  const transform =
+    placeBelow && top >= anchor.bottom
+      ? "translate(-50%, 0)"
+      : "translate(-50%, -100%)";
 
   const clampedX = Math.min(
     window.innerWidth - VIEWPORT_PADDING,

@@ -463,6 +463,9 @@ const ar = {
       scopeEmpty: "اختر نطاقاً واحداً على الأقل.",
       noTypes: "اختر نوع سؤال واحداً على الأقل.",
       questionUnavailable: "تعذر إنشاء سؤال لهذا النطاق.",
+      poolTooSmall:
+        "النطاق المختار صغير جداً لأسئلة الاختيار. وسّع النطاق أو استخدم ملء الفراغ فقط.",
+      mushafPreviewLoadFailed: "تعذر تحميل معاينة المصحف.",
       startFailed: "تعذر بدء الاختبار. حاول مجدداً.",
       storage: "تعذر حفظ سجل الاختبار على هذا الجهاز.",
     },
@@ -1100,6 +1103,9 @@ const en: StringTree<typeof ar> = {
       scopeEmpty: "Choose at least one review scope.",
       noTypes: "Choose at least one question type.",
       questionUnavailable: "A question could not be created for this scope.",
+      poolTooSmall:
+        "The selected scope is too small for choice-based questions. Widen the scope or use fill-in-the-blank only.",
+      mushafPreviewLoadFailed: "The Mushaf preview could not be loaded.",
       startFailed: "The quiz could not start. Try again.",
       storage: "Quiz history could not be saved on this device.",
     },

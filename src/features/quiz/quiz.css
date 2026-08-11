@@ -1,3 +1,7 @@
+/* Route-split CSS chunks can parse before the Tailwind entry, so every chunk
+   restates the layer order to keep preflight from outranking utilities. */
+@layer theme, base, components, utilities;
+
 @layer utilities {
   .quiz-mushaf-preview {
     direction: rtl;

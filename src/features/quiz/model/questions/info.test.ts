@@ -66,7 +66,7 @@ describe("generateInfoQuestion", () => {
     expect(generate("ayah_number", []).correctChoiceId).toBe("7");
     expect(generate("juz_number", []).correctChoiceId).toBe("3");
     expect(generate("page_number", []).correctChoiceId).toBe("42");
-    expect(generate("hizb_number", []).correctChoiceId).toBe("");
+    expect(generate("hizb_number", []).correctChoiceId).toBe("42");
   });
 
   it("falls back to the verse's Arabic surah label for an unknown number", () => {

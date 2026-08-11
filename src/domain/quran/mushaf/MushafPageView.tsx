@@ -71,6 +71,7 @@ export function MushafPageView({
     fontPalette,
     ready: fontReady,
     colored,
+    failed: fontLoadFailed,
   } = useQcfPageFont(pageLayout.page, {
     colored: tajweedColored,
     theme,
@@ -85,7 +86,7 @@ export function MushafPageView({
     [revealedWordLocations],
   );
 
-  if (loadFont && !fontReady) {
+  if (loadFont && !fontReady && !fontLoadFailed) {
     return (
       <div className={cn("mx-auto w-full max-w-3xl px-2", className)}>
         <MushafFontLoadingState compact message={loadingMessage} />
@@ -93,14 +94,17 @@ export function MushafPageView({
     );
   }
 
+  const resolvedFontFamily = fontLoadFailed ? "var(--font-quran)" : fontFamily;
+  const resolvedFontPalette = fontLoadFailed ? undefined : fontPalette;
+
   return (
     <div className={cn("relative mx-auto w-fit max-w-full px-2", className)}>
       <MushafPage
         pageLayout={pageLayout}
         surahNames={surahNames}
-        fontFamily={fontFamily}
-        fontPalette={fontPalette}
-        fontReady={fontReady}
+        fontFamily={resolvedFontFamily}
+        fontPalette={resolvedFontPalette}
+        fontReady={fontReady || fontLoadFailed}
         colored={colored}
         surahFilter={surahFilter}
         selectedWordLocation={selectedWordLocation}

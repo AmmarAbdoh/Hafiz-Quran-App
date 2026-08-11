@@ -33,6 +33,7 @@ export function ActiveQuiz({
   const {
     currentQuestion,
     error,
+    phase,
     answered,
     lastIsCorrect,
     lastSelectedChoiceId,
@@ -73,11 +74,11 @@ export function ActiveQuiz({
 
   return (
     <div className="space-y-6">
-      <header className="sticky top-0 z-10 rounded-2xl border bg-background/95 p-4 shadow-sm backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <header className="editorial-panel sticky top-0 z-10 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div className="space-y-1">
             <p className="text-sm font-semibold">{progressText}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-caption text-muted-foreground">
               {t("active.score", {
                 score: `${formatNumber(score.correct)}/${formatNumber(score.total)}`,
               })}
@@ -122,13 +123,24 @@ export function ActiveQuiz({
 
       {error && (
         <div
-          className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-center"
+          className="editorial-panel--inset rounded-xl border border-destructive/30 bg-destructive/5 text-center"
           role="alert"
         >
           <p className="text-destructive">{t(`errors.${error}`)}</p>
-          <Button className="mt-3 min-h-11" variant="outline" onClick={onExit}>
-            {t("actions.newSetup")}
-          </Button>
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            {currentQuestion === null && phase === "feedback" ? (
+              <Button
+                className="min-h-11"
+                variant="default"
+                onClick={goToNextQuestion}
+              >
+                {t("feedback.next")}
+              </Button>
+            ) : null}
+            <Button className="min-h-11" variant="outline" onClick={onExit}>
+              {t("actions.newSetup")}
+            </Button>
+          </div>
         </div>
       )}
 

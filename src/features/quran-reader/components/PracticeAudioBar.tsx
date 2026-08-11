@@ -238,7 +238,7 @@ export function PracticeAudioBar() {
             <div
               className={cn(
                 "h-full rounded-full bg-primary transition-[width] duration-300",
-                practice.completed && "bg-green-600 dark:bg-green-500",
+                practice.completed && "bg-success",
               )}
               style={{ width: `${progressPercent}%` }}
             />

@@ -134,7 +134,11 @@ export interface QuizSessionSummaryV1 {
 }
 
 type QuizPhase = "idle" | "setup" | "active" | "feedback" | "results";
-export type QuizEngineError = "scopeEmpty" | "noTypes" | "questionUnavailable";
+export type QuizEngineError =
+  | "scopeEmpty"
+  | "noTypes"
+  | "questionUnavailable"
+  | "poolTooSmall";
 
 export interface QuizState {
   phase: QuizPhase;

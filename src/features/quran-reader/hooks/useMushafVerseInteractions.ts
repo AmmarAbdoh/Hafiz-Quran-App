@@ -6,6 +6,7 @@ import {
   type RefObject,
 } from "react";
 import { useQuranPlaybackActions } from "@/features/quran-reader/context/QuranPlaybackContext";
+import { useQuranPlaybackState } from "@/features/quran-reader/context/QuranPlaybackContext";
 import { useQuranAudio } from "@/features/quran-reader/hooks/useQuranAudio";
 import type { VerseSelection } from "@/features/quran-reader/model/selection";
 import { resolveWordElementInLine } from "@/features/quran-reader/model/mushafWordHitTest";
@@ -44,6 +45,7 @@ export function useMushafVerseInteractions({
   const popoverRef = useRef<HTMLDivElement>(null);
   const selectedWordElementRef = useRef<HTMLElement | null>(null);
   const playback = useQuranPlaybackActions();
+  const playbackState = useQuranPlaybackState();
   const { play, stop, playing } = useQuranAudio();
 
   const clearSelection = useCallback(() => {
@@ -117,6 +119,12 @@ export function useMushafVerseInteractions({
   useEffect(() => {
     if (!playing) setPlayingTarget(null);
   }, [playing]);
+
+  useEffect(() => {
+    if (!playbackState.active) return;
+    stop();
+    setPlayingTarget(null);
+  }, [playbackState.active, stop]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

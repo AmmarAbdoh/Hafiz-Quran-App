@@ -18,7 +18,7 @@ function getCorrectValue(
     case "juz_number":
       return String(record?.juz_number ?? verse.jozz);
     case "hizb_number":
-      return String(record?.hizb_number ?? "");
+      return String(record?.hizb_number ?? verse.page);
     case "page_number":
       return String(record?.page_number ?? verse.page);
   }

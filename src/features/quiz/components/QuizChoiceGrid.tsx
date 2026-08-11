@@ -29,7 +29,8 @@ export function QuizChoiceGrid({
         const isSelected = selectedId === choice.id;
         const isCorrect = showResults && choice.id === correctId;
         const isWrong = showResults && isSelected && !isCorrect;
-        const numericLabel = /^\d+$/.test(choice.label)
+        const isNumeric = /^\d+$/.test(choice.label);
+        const numericLabel = isNumeric
           ? formatNumber(Number.parseInt(choice.label, 10))
           : choice.label;
 
@@ -46,13 +47,17 @@ export function QuizChoiceGrid({
               "disabled:cursor-default disabled:opacity-100",
               isSelected && !showResults && "border-primary bg-primary/10",
               isCorrect &&
-                "border-emerald-600 bg-emerald-50 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-50",
+                "border-success bg-success/15 text-success dark:text-success",
               isWrong &&
                 "border-destructive bg-destructive/10 text-destructive",
             )}
           >
             <span className="flex items-start gap-2">
-              <span className="flex-1" dir="rtl" lang="ar">
+              <span
+                className="line-clamp-3 flex-1"
+                dir={isNumeric ? undefined : "rtl"}
+                lang={isNumeric ? undefined : "ar"}
+              >
                 {numericLabel}
               </span>
               {isCorrect && (

@@ -26,7 +26,7 @@ export function MushafLayoutSwitcher({
         aria-selected={layoutMode === "surah"}
         onClick={() => onLayoutModeChange("surah")}
         className={cn(
-          "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors sm:px-4 sm:text-sm",
+          "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors sm:px-4",
           layoutMode === "surah"
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground",
@@ -42,7 +42,7 @@ export function MushafLayoutSwitcher({
         aria-selected={layoutMode === "page"}
         onClick={() => onLayoutModeChange("page")}
         className={cn(
-          "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors sm:px-4 sm:text-sm",
+          "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors sm:px-4",
           layoutMode === "page"
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground",

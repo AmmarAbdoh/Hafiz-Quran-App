@@ -130,7 +130,7 @@ function Navigation({ mobile = false }: { mobile?: boolean }) {
                 ? "flex-col gap-0.5 px-1 py-1.5 text-[0.68rem]"
                 : "justify-start gap-3 px-3 py-2.5",
               active
-                ? "bg-primary !text-primary-foreground shadow-sm"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
@@ -157,7 +157,7 @@ function ReaderShell({ children }: { children: ReactNode }) {
       {header ? (
         <MushafReaderHeader {...header} />
       ) : (
-        <header className="editorial-topbar !flex">
+        <header className="editorial-topbar editorial-topbar--reader">
           <Button
             type="button"
             variant="ghost"
