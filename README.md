@@ -1,64 +1,80 @@
-# حافظ القرآن — Hafiz Quran
+# Hafiz Quran | حافظ القرآن
 
-A modern Quran memorization companion built with React, TypeScript, and Tailwind CSS.
+An Arabic-first, bilingual Quran reading and memorization app built with React 18, TypeScript, Vite, and Tailwind CSS.
 
-## Features
+The app includes the Editorial Mushaf reader, tafsir, recitation playback, configurable memorization quizzes, Arabic/English interface localization, and light/dark themes. Recitation practice is an isolated, optional build capability and is disabled in the default production build.
 
-- **Quran Reader** — Browse the Mushaf page by page (604 pages), search surahs, and view tafseer for any ayah
-- **Custom Quiz** — Test your memorization with customizable quizzes:
-  - Select specific surahs or juz (parts)
-  - Multiple question types: fill in the blank, surah name, ayah number, juz number, hizb number, page number
-  - Instant feedback with verse metadata after each answer
+## Requirements
 
-## Tech Stack
-
-- React 18 + TypeScript
-- Vite 6
-- Tailwind CSS v4 + shadcn/ui components
-- React Router 6
-- Vitest + Testing Library
-
-## Getting Started
+- Node.js 24 LTS
+- npm 11
+- A current evergreen browser
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+The development server starts at `http://localhost:5173` by default.
 
-## Scripts
+## Architecture
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Type-check and build for production |
-| `npm run preview` | Preview production build |
-| `npm run lint` | Run ESLint |
-| `npm run test` | Run tests |
-| `npm run typecheck` | TypeScript type checking |
-
-## Project Structure
-
-```
+```text
 src/
-├── app/              # Router, layout, providers
-├── features/
-│   ├── home/         # Home page
-│   ├── quran-reader/ # Mushaf reader
-│   └── quiz/         # Custom quiz
-├── shared/
-│   ├── components/   # Reusable UI + shadcn components
-│   ├── services/     # Quran data access layer
-│   ├── types/        # TypeScript types
-│   └── constants/    # Surah names, juz names, etc.
-└── styles/           # Global CSS + design tokens
+  app/                  router, layouts, global preferences, and i18n
+  domain/quran/         Quran models, repository, audio, and passive Mushaf UI
+  features/             reader, quiz, practice, home, and settings flows
+  shared/               generic UI, storage, hooks, and small helpers
+  styles/               design tokens and base styles
 ```
 
-## Data
+Dependencies flow from `app` to `features` to `domain` to `shared`. Feature internals are private to their feature; shared and domain code never import feature code. See [`AGENTS.md`](./AGENTS.md) and the repository maintainer skill in `.agents/skills/hafiz-quran-maintainer/` before making changes.
 
-Quran JSON data lives in `public/data/quran/` and is loaded lazily via fetch (not bundled into JS). This includes mushaf pages, chapter/juz verses, tafseer, and verse metadata.
+## Quran data
+
+Runtime Quran data is deterministic, versioned, and loaded on demand from `public/data/quran/`:
+
+- one compressed core-data file;
+- 604 compressed Mushaf page layouts;
+- 912 compressed tafsir/surah bundles covering eight tafsirs.
+
+Generate and verify the runtime data with:
+
+```bash
+npm run data:generate
+npm run data:verify
+```
+
+Generation sources, attribution, and legacy fidelity hashes live under `scripts/quran/source-data/v1/`. Do not hand-edit generated runtime chunks.
+
+## Verification
+
+```bash
+npm run check
+```
+
+The complete gate checks formatting, both TypeScript projects, zero-warning lint, unit/component coverage, dead code, Quran data invariants, the production dependency audit, default/practice builds, bundle budgets, and Playwright/Axe flows.
+
+Useful focused commands:
+
+| Command                  | Purpose                                                |
+| ------------------------ | ------------------------------------------------------ |
+| `npm run test`           | Run unit and component tests                           |
+| `npm run test:e2e`       | Run browser and accessibility smoke tests              |
+| `npm run lint`           | Run type-aware ESLint with zero warnings               |
+| `npm run typecheck`      | Check application and tool configuration projects      |
+| `npm run build`          | Build the default app without practice model artifacts |
+| `npm run build:practice` | Build the optional recitation-practice variant         |
+| `npm run build:budget`   | Enforce output size, file-count, and isolation budgets |
+
+Install the Playwright browser once with `npm run test:e2e:install`.
+
+## Privacy and external requests
+
+There are no accounts or analytics. Preferences and quiz history remain in browser storage. Quran text, metadata, layouts, and tafsir are served as local static files. Recitation playback requests audio from the configured Quran audio hosts. When the optional practice build is enabled, speech-model files are downloaded from Hugging Face and microphone audio is processed locally in the browser; it is not uploaded by this app.
+
+These external requests and storage behaviors are also disclosed in Arabic and English in Settings.
 
 ## Deployment
 
-The app is a static SPA. Use `npm run build` and deploy the `dist/` folder. Client-side routing is configured via `vercel.json` and `public/_redirects`.
+The default app is a static SPA in `dist/`. Security headers and client-side route rewrites are configured in `vercel.json`; no deployment is performed by the repository scripts.
