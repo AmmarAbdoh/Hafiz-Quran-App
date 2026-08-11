@@ -2,61 +2,49 @@ import { useEffect, useMemo, useRef } from "react";
 import { MushafPageBlock } from "@/features/quran-reader/components/MushafPageBlock";
 import { VerseActionsPopover } from "@/features/quran-reader/components/VerseActionsPopover";
 import { VerseDialog } from "@/features/quran-reader/components/VerseDialog";
-import { useQuranPlayback } from "@/features/quran-reader/context/QuranPlaybackContext";
-import { useRecitationPractice } from "@/features/quran-reader/context/RecitationPracticeContext";
+import {
+  useQuranPlaybackHighlight,
+  useQuranPlaybackState,
+} from "@/features/quran-reader/context/QuranPlaybackContext";
+import { useRecitationPractice } from "@practice/runtime";
 import { useMushafVerseInteractions } from "@/features/quran-reader/hooks/useMushafVerseInteractions";
 import { useTheme } from "@/shared/hooks/use-theme";
 import {
   buildMushafPageItems,
-  getWordLayoutForPage,
-} from "@/shared/services/quran-data";
-import type {
-  MushafVerse as MushafVerseType,
-  MushafWordLayoutData,
-} from "@/shared/types/quran";
+  type MushafPageLayout,
+  type MushafWord,
+} from "@/domain/quran";
+import type { MushafVerse as MushafVerseType } from "@/domain/quran";
 
 interface MushafViewerProps {
   mushafData: MushafVerseType[];
-  wordLayout: MushafWordLayoutData;
-  currentPage: number;
+  pageLayout: MushafPageLayout;
   tajweedColored: boolean;
   highlightVerseKey?: string | null;
 }
 
 export function MushafViewer({
   mushafData,
-  wordLayout,
-  currentPage,
+  pageLayout,
   tajweedColored,
   highlightVerseKey = null,
 }: MushafViewerProps) {
   const mushafRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
-  const playback = useQuranPlayback();
+  const playback = useQuranPlaybackState();
+  const { activeWordLocation } = useQuranPlaybackHighlight();
   const practice = useRecitationPractice();
 
-  const pageLayout = getWordLayoutForPage(wordLayout, currentPage);
-  const pageItems = useMemo(
-    () => (pageLayout ? buildMushafPageItems(pageLayout) : []),
-    [pageLayout],
-  );
-  const visibleLines = useMemo(
-    () =>
-      pageItems
-        .filter((item) => item.type === "line")
-        .map((item) => item.line.words),
-    [pageItems],
-  );
-
   const wordsByLocation = useMemo(() => {
-    const map = new Map<string, (typeof visibleLines)[number][number]>();
-    for (const line of visibleLines) {
-      for (const word of line) {
+    const map = new Map<string, MushafWord>();
+    for (const item of buildMushafPageItems(pageLayout)) {
+      if (item.type !== "line") continue;
+      for (const word of item.line.words) {
         map.set(word.location, word);
       }
     }
     return map;
-  }, [visibleLines]);
+  }, [pageLayout]);
 
   const {
     selection,
@@ -70,13 +58,12 @@ export function MushafViewer({
     handleListenWord,
     handleListenAyah,
     handleTafseer,
-    playback: playbackState,
   } = useMushafVerseInteractions({
     mushafRef,
     mushafData,
     wordsByLocation,
     highlightVerseKey,
-    resetKey: currentPage,
+    resetKey: pageLayout.page,
   });
 
   useEffect(() => {
@@ -86,10 +73,14 @@ export function MushafViewer({
       `[data-verse-key="${highlightVerseKey}"]`,
     );
     target?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [highlightVerseKey, currentPage]);
+  }, [highlightVerseKey, pageLayout.page]);
 
   useEffect(() => {
-    if (!practice.active || !practice.currentWordLocation || !mushafRef.current) {
+    if (
+      !practice.active ||
+      !practice.currentWordLocation ||
+      !mushafRef.current
+    ) {
       return;
     }
 
@@ -105,28 +96,17 @@ export function MushafViewer({
     practice.progressIndex,
   ]);
 
-  if (!pageLayout) {
-    return (
-      <p className="py-12 text-center text-muted-foreground">
-        لا توجد بيانات لهذه الصفحة.
-      </p>
-    );
-  }
-
   return (
     <div ref={mushafRef} className="flex w-full flex-col items-center">
       <MushafPageBlock
-        page={currentPage}
+        pageLayout={pageLayout}
         mushafData={mushafData}
-        wordLayout={wordLayout}
         tajweedColored={tajweedColored}
         theme={theme}
         highlightVerseKey={highlightVerseKey}
         selection={selection}
-        recitationVerseKey={
-          practice.active ? null : playbackState.activeVerseKey
-        }
-        recitationWordLocation={playbackState.activeWordLocation}
+        recitationVerseKey={practice.active ? null : playback.activeVerseKey}
+        recitationWordLocation={activeWordLocation}
         practiceMode={practice.active && !practice.completed}
         practiceHideAyat={practice.hideAyat}
         practiceRevealedLocations={practice.revealedLocations}

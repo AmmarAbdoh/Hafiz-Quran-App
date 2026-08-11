@@ -1,0 +1,69 @@
+@font-face {
+  font-family: "Reem Kufi";
+  src: url("../assets/fonts/ReemKufi-VariableFont_wght.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Uthmanic Hafs Local";
+  src: url("../assets/fonts/uthmanic_hafs_v20.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: #f7f1e5;
+  --foreground: #18211e;
+  --card: #fcf8ef;
+  --card-foreground: #18211e;
+  --popover: #fffaf0;
+  --popover-foreground: #18211e;
+  --primary: #0b6259;
+  --primary-foreground: #fffdf7;
+  --secondary: #e1eee8;
+  --secondary-foreground: #16473f;
+  --muted: #ebe3d5;
+  --muted-foreground: #62635f;
+  --accent: #b88b38;
+  --accent-foreground: #251f15;
+  --destructive: #a93232;
+  --border: #d8cdbb;
+  --input: #cfc3af;
+  --ring: #0b6259;
+  --editorial-brass: #7f5715;
+  --editorial-ink-soft: #44504b;
+  --editorial-paper-raised: #fffaf0;
+  --editorial-shadow: 0 18px 48px rgb(63 52 32 / 0.09);
+  --editorial-sidebar-width: 17rem;
+  --font-ui: "Reem Kufi", system-ui, sans-serif;
+  --font-quran: "Uthmanic Hafs Local", serif;
+}
+
+.dark {
+  --background: #111815;
+  --foreground: #f1eadc;
+  --card: #19231f;
+  --card-foreground: #f1eadc;
+  --popover: #1d2823;
+  --popover-foreground: #f1eadc;
+  --primary: #58b7a7;
+  --primary-foreground: #0d1915;
+  --secondary: #213a33;
+  --secondary-foreground: #dff5ee;
+  --muted: #26302c;
+  --muted-foreground: #b3b9b4;
+  --accent: #d3a958;
+  --accent-foreground: #16130d;
+  --destructive: #ed7777;
+  --border: #34423c;
+  --input: #43524b;
+  --ring: #6bc9b8;
+  --editorial-brass: #d3a958;
+  --editorial-ink-soft: #b6c0ba;
+  --editorial-paper-raised: #1d2823;
+  --editorial-shadow: 0 22px 54px rgb(0 0 0 / 0.28);
+}

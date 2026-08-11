@@ -1,0 +1,9 @@
+.agents
+coverage
+dist
+dist-practice
+node_modules
+playwright-report
+public/data/quran
+test-results
+package-lock.json

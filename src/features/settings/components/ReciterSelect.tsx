@@ -1,19 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown, Search, Volume2 } from "lucide-react";
-import { Input } from "@/shared/components/ui/input";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "@/app/i18n";
 import {
   DEMO_AYAH,
   DEMO_SURAH,
-} from "@/shared/constants/demoAyah";
-import { getAyahAudioUrl } from "@/shared/constants/audio";
-import {
+  RECITERS,
+  getAyahAudioUrl,
   getReciterById,
   getRecitersByCategory,
-  RECITERS,
+  supportsAyahWordHighlight,
+  type ReciterCategory,
   type ReciterOption,
-} from "@/shared/constants/reciters";
-import { supportsAyahWordHighlight } from "@/shared/constants/quranComReciters";
-import { usePreviewAudio } from "@/shared/hooks/use-preview-audio";
+  usePreviewAudio,
+} from "@/domain/quran";
+import { Input } from "@/shared/components/ui/input";
+import { normalizeArabicForMatch } from "@/shared/lib/arabic-normalize";
 import { cn } from "@/shared/lib/utils";
 
 interface ReciterSelectProps {
@@ -23,91 +25,108 @@ interface ReciterSelectProps {
   id?: string;
 }
 
-const WORD_HIGHLIGHT_LABEL = "تمييز كلمة بكلمة";
+const categoryKeys: Record<
+  ReciterCategory,
+  | "recitation.categories.hafs"
+  | "recitation.categories.warsh"
+  | "recitation.categories.translation"
+> = {
+  hafs: "recitation.categories.hafs",
+  warsh: "recitation.categories.warsh",
+  translation: "recitation.categories.translation",
+};
 
-function normalizeSearchText(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[أإآا]/g, "ا")
-    .replace(/[ىي]/g, "ي")
-    .replace(/ة/g, "ه")
-    .replace(/\s+/g, " ")
-    .trim();
+function reciterName(reciter: ReciterOption, locale: "ar" | "en"): string {
+  return locale === "ar" ? reciter.nameAr : reciter.nameEn;
 }
 
-function sortReciters(reciters: ReciterOption[]): ReciterOption[] {
-  return [...reciters].sort((a, b) => {
-    const aHighlight = supportsAyahWordHighlight(a.id) ? 0 : 1;
-    const bHighlight = supportsAyahWordHighlight(b.id) ? 0 : 1;
-    if (aHighlight !== bHighlight) return aHighlight - bHighlight;
-    return a.nameAr.localeCompare(b.nameAr, "ar");
+function sortReciters(
+  reciters: ReciterOption[],
+  locale: "ar" | "en",
+): ReciterOption[] {
+  return [...reciters].sort((first, second) => {
+    const firstHighlight = supportsAyahWordHighlight(first.id) ? 0 : 1;
+    const secondHighlight = supportsAyahWordHighlight(second.id) ? 0 : 1;
+    if (firstHighlight !== secondHighlight)
+      return firstHighlight - secondHighlight;
+    return reciterName(first, locale).localeCompare(
+      reciterName(second, locale),
+      locale,
+    );
   });
 }
 
-function matchesQuery(reciter: ReciterOption, normalizedQuery: string): boolean {
-  const haystack = normalizeSearchText(`${reciter.nameAr} ${reciter.nameEn}`);
-  return haystack.includes(normalizedQuery);
+function matchesQuery(reciter: ReciterOption, query: string): boolean {
+  return normalizeArabicForMatch(
+    `${reciter.nameAr} ${reciter.nameEn}`,
+  ).includes(query);
 }
 
-function ReciterOptionButton({
+function ReciterRow({
   reciter,
-  isSelected,
+  optionId,
+  selected,
+  active,
   showHighlightBadge,
   previewPlaying,
   onSelect,
   onPreview,
 }: {
   reciter: ReciterOption;
-  isSelected: boolean;
+  optionId: string;
+  selected: boolean;
+  active: boolean;
   showHighlightBadge: boolean;
   previewPlaying: boolean;
   onSelect: () => void;
   onPreview: () => void;
 }) {
+  const { locale } = useLocale();
+  const { t } = useTranslation("settings");
+  const name = reciterName(reciter, locale);
+
   return (
     <div
-      role="option"
-      aria-selected={isSelected}
-      dir="rtl"
+      role="none"
       className={cn(
-        "grid w-full grid-cols-[auto_1fr_auto] items-center gap-1 rounded-sm px-1 py-1 text-sm transition-colors",
-        isSelected && "bg-accent/70",
+        "grid grid-cols-[1fr_auto] items-center gap-1 rounded-lg p-1",
+        (selected || active) && "bg-muted",
       )}
     >
       <button
+        id={optionId}
         type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onPreview();
-        }}
-        className={cn(
-          "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
-          previewPlaying && "text-primary",
-        )}
-        aria-label={`استمع إلى ${reciter.nameAr}`}
-        title="استمع للتجربة"
-      >
-        <Volume2 className={cn("h-4 w-4", previewPlaying && "animate-pulse")} />
-      </button>
-
-      <button
-        type="button"
+        role="option"
+        aria-selected={selected}
         onClick={onSelect}
-        className="min-w-0 rounded-sm px-1 py-1 text-right transition-colors hover:bg-accent/60 hover:text-accent-foreground"
+        className="flex min-h-11 min-w-0 items-center gap-2 rounded-md px-2 text-start hover:bg-accent hover:text-accent-foreground"
       >
-        <span className="flex min-w-0 items-center justify-end gap-1.5">
-          <span className="truncate">{reciter.nameAr}</span>
-          {showHighlightBadge && supportsAyahWordHighlight(reciter.id) && (
-            <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-              {WORD_HIGHLIGHT_LABEL}
-            </span>
+        <span className="grid h-5 w-5 shrink-0 place-items-center">
+          {selected && (
+            <Check aria-hidden="true" className="h-4 w-4 text-primary" />
           )}
         </span>
+        <span className="min-w-0 flex-1 truncate">{name}</span>
+        {showHighlightBadge && supportsAyahWordHighlight(reciter.id) && (
+          <span className="hidden shrink-0 rounded-full bg-primary/10 px-2 py-1 text-[0.65rem] font-semibold text-primary sm:inline">
+            {t("recitation.wordHighlight")}
+          </span>
+        )}
       </button>
-
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center">
-        {isSelected && <Check className="h-4 w-4 text-primary" />}
-      </span>
+      <button
+        type="button"
+        onClick={onPreview}
+        className="inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        aria-label={t("recitation.previewReciter", { name })}
+      >
+        <Volume2
+          aria-hidden="true"
+          className={cn(
+            "h-4 w-4",
+            previewPlaying && "animate-pulse text-primary",
+          )}
+        />
+      </button>
     </div>
   );
 }
@@ -118,116 +137,146 @@ export function ReciterSelect({
   onWordHighlightGuideClick,
   id,
 }: ReciterSelectProps) {
+  const { locale } = useLocale();
+  const { t } = useTranslation("settings");
+  const { t: tA11y } = useTranslation("a11y");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const generatedId = useId();
+  const listboxId = `${generatedId}-listbox`;
   const { playUrl, playingUrl } = usePreviewAudio();
 
   const selected = getReciterById(value);
-  const groups = useMemo(() => getRecitersByCategory(), []);
-  const pinnedReciters = useMemo(
-    () =>
-      sortReciters(RECITERS.filter((reciter) =>
-        supportsAyahWordHighlight(reciter.id),
-      )),
-    [],
+  const groups = getRecitersByCategory();
+  const pinned = sortReciters(
+    RECITERS.filter((reciter) => supportsAyahWordHighlight(reciter.id)),
+    locale,
   );
-  const normalizedQuery = normalizeSearchText(query);
-
-  const filteredPinned = useMemo(() => {
-    if (!normalizedQuery) return pinnedReciters;
-    return pinnedReciters.filter((reciter) =>
-      matchesQuery(reciter, normalizedQuery),
-    );
-  }, [normalizedQuery, pinnedReciters]);
-
-  const pinnedInResults = useMemo(
-    () => new Set(filteredPinned.map((reciter) => reciter.id)),
-    [filteredPinned],
-  );
-
-  const filteredGroups = useMemo(() => {
-    return groups
-      .map((group) => ({
-        ...group,
-        reciters: sortReciters(
-          group.reciters.filter((reciter) => {
-            if (pinnedInResults.has(reciter.id)) return false;
-            return normalizedQuery
-              ? matchesQuery(reciter, normalizedQuery)
-              : true;
-          }),
+  const normalizedQuery = normalizeArabicForMatch(query);
+  const filteredPinned = normalizedQuery
+    ? pinned.filter((reciter) => matchesQuery(reciter, normalizedQuery))
+    : pinned;
+  const pinnedIds = new Set(filteredPinned.map((reciter) => reciter.id));
+  const filteredGroups = groups
+    .map((group) => ({
+      ...group,
+      reciters: sortReciters(
+        group.reciters.filter(
+          (reciter) =>
+            !pinnedIds.has(reciter.id) &&
+            (!normalizedQuery || matchesQuery(reciter, normalizedQuery)),
         ),
-      }))
-      .filter((group) => group.reciters.length > 0);
-  }, [groups, normalizedQuery, pinnedInResults]);
+        locale,
+      ),
+    }))
+    .filter((group) => group.reciters.length > 0);
+  const visibleReciters = [
+    ...filteredPinned,
+    ...filteredGroups.flatMap((group) => group.reciters),
+  ];
+  const activeReciter = visibleReciters[activeIndex];
 
   const previewReciter = (reciter: ReciterOption) => {
-    const url = getAyahAudioUrl(reciter, DEMO_SURAH, DEMO_AYAH);
-    void playUrl(url);
+    void playUrl(getAyahAudioUrl(reciter, DEMO_SURAH, DEMO_AYAH));
   };
-
-  const getPreviewUrl = (reciter: ReciterOption) =>
-    getAyahAudioUrl(reciter, DEMO_SURAH, DEMO_AYAH);
 
   const closeDropdown = () => {
     setOpen(false);
     setQuery("");
+    setActiveIndex(0);
   };
 
   const openDropdown = () => {
     setOpen(true);
     setQuery("");
+    setActiveIndex(0);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  const selectReciter = (reciter: ReciterOption) => {
+    onValueChange(reciter.id);
+    closeDropdown();
+    inputRef.current?.focus();
   };
 
   useEffect(() => {
     if (!open) return;
 
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
+    const closeOnOutsidePointer = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node))
         closeDropdown();
-      }
     };
 
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    document.addEventListener("mousedown", closeOnOutsidePointer);
+    return () =>
+      document.removeEventListener("mousedown", closeOnOutsidePointer);
   }, [open]);
 
-  const showPinnedSection = filteredPinned.length > 0;
-  const hasResults = showPinnedSection || filteredGroups.length > 0;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape" && open) {
+      event.preventDefault();
+      closeDropdown();
+      return;
+    }
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!open) {
+        openDropdown();
+        return;
+      }
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      setActiveIndex((current) => {
+        if (visibleReciters.length === 0) return 0;
+        return (
+          (current + direction + visibleReciters.length) %
+          visibleReciters.length
+        );
+      });
+      return;
+    }
+
+    if (event.key === "Enter" && open && activeReciter) {
+      event.preventDefault();
+      selectReciter(activeReciter);
+    }
+  };
 
   return (
-    <div ref={containerRef} dir="rtl" className="relative w-full text-right">
-      <div
-        className={cn(
-          "flex h-11 w-full items-center gap-1 rounded-md border border-input bg-background text-sm shadow-sm",
-          "focus-within:ring-2 focus-within:ring-ring",
-        )}
-      >
+    <div ref={containerRef} className="relative w-full text-start">
+      <div className="flex min-h-12 w-full items-center gap-1 rounded-xl border border-input bg-background text-sm shadow-sm focus-within:ring-2 focus-within:ring-ring">
         <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          />
           <Input
             id={id}
             ref={inputRef}
-            dir="rtl"
             role="combobox"
+            aria-autocomplete="list"
             aria-expanded={open}
-            aria-haspopup="listbox"
+            aria-controls={listboxId}
+            aria-activedescendant={
+              open && activeReciter
+                ? `${generatedId}-${activeReciter.id}`
+                : undefined
+            }
             readOnly={!open}
-            value={open ? query : selected.nameAr}
-            placeholder="ابحث عن قارئ..."
+            value={open ? query : reciterName(selected, locale)}
+            placeholder={t("recitation.searchPlaceholder")}
             onClick={() => {
               if (!open) openDropdown();
             }}
             onChange={(event) => {
-              if (!open) return;
               setQuery(event.target.value);
+              setActiveIndex(0);
             }}
-            className={cn(
-              "h-11 border-0 bg-transparent pe-3 ps-9 text-right font-medium shadow-none focus-visible:ring-0",
-              !open && "cursor-pointer",
-            )}
+            onKeyDown={handleKeyDown}
+            className="h-12 border-0 bg-transparent pe-3 ps-9 text-start font-medium shadow-none focus-visible:ring-0"
           />
         </div>
 
@@ -235,83 +284,88 @@ export function ReciterSelect({
           <button
             type="button"
             onClick={() => onWordHighlightGuideClick?.()}
-            className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary transition-colors hover:bg-primary/20"
-            title="شرح تمييز كلمة بكلمة"
+            className="hidden min-h-11 shrink-0 rounded-full px-2 text-[0.65rem] font-semibold text-primary hover:bg-primary/10 sm:inline-flex sm:items-center"
           >
-            {WORD_HIGHLIGHT_LABEL}
+            {t("recitation.wordHighlight")}
           </button>
         )}
 
         <button
           type="button"
-          aria-label="فتح قائمة القراء"
+          aria-label={tA11y("openReciterList")}
+          aria-expanded={open}
+          aria-controls={listboxId}
           onClick={() => (open ? closeDropdown() : openDropdown())}
-          className="inline-flex h-11 w-10 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-muted/30"
+          className="inline-flex h-12 w-11 shrink-0 items-center justify-center rounded-e-xl text-muted-foreground hover:bg-muted"
         >
           <ChevronDown
-            className={cn(
-              "h-4 w-4 transition-transform",
-              open && "rotate-180",
-            )}
+            aria-hidden="true"
+            className={cn("h-4 w-4 transition-transform", open && "rotate-180")}
           />
         </button>
       </div>
 
       {open && (
         <div
-          dir="rtl"
+          id={listboxId}
           role="listbox"
-          aria-label="قائمة القراء"
-          className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-border bg-popover text-right text-popover-foreground shadow-lg"
+          aria-label={tA11y("reciterList")}
+          className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl"
         >
-          <div className="app-main-scroll max-h-[min(18rem,50vh)] overflow-y-auto p-1">
-            {!hasResults ? (
-              <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                لا توجد نتائج
+          <div className="app-main-scroll max-h-[min(22rem,55vh)] overflow-y-auto p-1.5">
+            {visibleReciters.length === 0 ? (
+              <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+                {t("recitation.empty")}
               </p>
             ) : (
               <>
-                {showPinnedSection && (
-                  <div className="mb-1">
-                    <p className="px-2 py-1.5 text-right text-xs font-semibold text-primary">
-                      {WORD_HIGHLIGHT_LABEL}
+                {filteredPinned.length > 0 && (
+                  <div role="group" aria-label={t("recitation.wordHighlight")}>
+                    <p className="px-3 py-2 text-xs font-bold text-primary">
+                      {t("recitation.wordHighlight")}
                     </p>
                     {filteredPinned.map((reciter) => (
-                      <ReciterOptionButton
+                      <ReciterRow
                         key={reciter.id}
+                        optionId={`${generatedId}-${reciter.id}`}
                         reciter={reciter}
-                        isSelected={reciter.id === value}
+                        selected={reciter.id === value}
+                        active={activeReciter?.id === reciter.id}
                         showHighlightBadge={false}
-                        previewPlaying={playingUrl === getPreviewUrl(reciter)}
+                        previewPlaying={
+                          playingUrl ===
+                          getAyahAudioUrl(reciter, DEMO_SURAH, DEMO_AYAH)
+                        }
                         onPreview={() => previewReciter(reciter)}
-                        onSelect={() => {
-                          onValueChange(reciter.id);
-                          closeDropdown();
-                          inputRef.current?.blur();
-                        }}
+                        onSelect={() => selectReciter(reciter)}
                       />
                     ))}
                   </div>
                 )}
 
                 {filteredGroups.map((group) => (
-                  <div key={group.category} className="mb-1">
-                    <p className="px-2 py-1.5 text-right text-xs font-semibold text-primary">
-                      {group.label}
+                  <div
+                    key={group.category}
+                    role="group"
+                    aria-label={t(categoryKeys[group.category])}
+                  >
+                    <p className="px-3 py-2 text-xs font-bold text-primary">
+                      {t(categoryKeys[group.category])}
                     </p>
                     {group.reciters.map((reciter) => (
-                      <ReciterOptionButton
+                      <ReciterRow
                         key={reciter.id}
+                        optionId={`${generatedId}-${reciter.id}`}
                         reciter={reciter}
-                        isSelected={reciter.id === value}
+                        selected={reciter.id === value}
+                        active={activeReciter?.id === reciter.id}
                         showHighlightBadge
-                        previewPlaying={playingUrl === getPreviewUrl(reciter)}
+                        previewPlaying={
+                          playingUrl ===
+                          getAyahAudioUrl(reciter, DEMO_SURAH, DEMO_AYAH)
+                        }
                         onPreview={() => previewReciter(reciter)}
-                        onSelect={() => {
-                          onValueChange(reciter.id);
-                          closeDropdown();
-                          inputRef.current?.blur();
-                        }}
+                        onSelect={() => selectReciter(reciter)}
                       />
                     ))}
                   </div>

@@ -16,10 +16,9 @@ export function useAutoHideDock(options: UseAutoHideDockOptions = {}) {
   const focusWithinRef = useRef(false);
 
   const clearHideTimer = useCallback(() => {
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = null;
-    }
+    if (!hideTimerRef.current) return;
+    clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = null;
   }, []);
 
   const show = useCallback(() => {
@@ -32,41 +31,38 @@ export function useAutoHideDock(options: UseAutoHideDockOptions = {}) {
     if (!enabled || pinned) return;
     clearHideTimer();
     hideTimerRef.current = setTimeout(() => {
-      if (!focusWithinRef.current) {
-        setExpanded(false);
-      }
+      if (!focusWithinRef.current) setExpanded(false);
+      hideTimerRef.current = null;
     }, HIDE_DELAY_MS);
   }, [clearHideTimer, enabled, pinned]);
 
   useEffect(() => {
+    clearHideTimer();
     if (!enabled) {
-      clearHideTimer();
       setExpanded(false);
       return;
     }
-
     if (pinned) {
-      clearHideTimer();
       setExpanded(true);
       return;
     }
 
     setExpanded(true);
-    const timer = setTimeout(() => setExpanded(false), INITIAL_HIDE_DELAY_MS);
-    return () => clearTimeout(timer);
+    hideTimerRef.current = setTimeout(() => {
+      if (!focusWithinRef.current) setExpanded(false);
+      hideTimerRef.current = null;
+    }, INITIAL_HIDE_DELAY_MS);
+    return clearHideTimer;
   }, [clearHideTimer, enabled, pinned]);
 
-  useEffect(() => clearHideTimer, [clearHideTimer]);
-
-  const handleMouseEnter = show;
-  const handleMouseLeave = scheduleHide;
-
-  const handleFocusCapture = show;
+  const handleFocusCapture = () => {
+    focusWithinRef.current = true;
+    show();
+  };
 
   const handleBlurCapture = (event: React.FocusEvent<HTMLElement>) => {
     const next = event.relatedTarget as Node | null;
     if (next && event.currentTarget.contains(next)) return;
-
     focusWithinRef.current = false;
     scheduleHide();
   };
@@ -80,8 +76,8 @@ export function useAutoHideDock(options: UseAutoHideDockOptions = {}) {
     expanded: pinned ? true : expanded,
     show,
     scheduleHide,
-    handleMouseEnter,
-    handleMouseLeave,
+    handleMouseEnter: show,
+    handleMouseLeave: scheduleHide,
     handleFocusCapture,
     handleBlurCapture,
     handleFocus,

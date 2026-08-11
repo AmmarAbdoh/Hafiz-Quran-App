@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": "v1",
+  "generatedBy": "scripts/quran/import-legacy-data.mjs",
+  "invariants": {
+    "verses": 6236,
+    "surahs": 114,
+    "pages": 604,
+    "verseInfoRecords": 6236,
+    "tafsirs": 8,
+    "tafsirBundles": 912,
+    "tafsirRecords": 49888
+  },
+  "attribution": [
+    {
+      "id": "quran-text",
+      "source": "Legacy Quran datasets bundled with this repository",
+      "note": "Original provider metadata was not recorded; every text value is retained without normalization."
+    },
+    {
+      "id": "mushaf-layout",
+      "source": "https://api.quran.com/api/v4",
+      "note": "Quran.com API v4, mushaf 19"
+    },
+    {
+      "id": "arabic-tafsir",
+      "source": "Legacy Arabic tafseer collection bundled with this repository",
+      "names": {
+        "1": "التفسير الميسر",
+        "2": "تفسير الجلالين",
+        "3": "تفسير السعدي",
+        "4": "تفسير ابن كثير",
+        "5": "تفسير الوسيط لطنطاوي",
+        "6": "تفسير البغوي",
+        "7": "تفسير القرطبي",
+        "8": "تفسير الطبري"
+      },
+      "note": "Original provider metadata was not recorded; every tafsir text is retained without normalization."
+    }
+  ],
+  "fidelity": {
+    "quranTextSha256": "a4ffd6e2ff45fcd75919f58ca01dacb2e2d722e0fde36e979327815aba249c57",
+    "tafsirTextSha256": {
+      "1": "9b0ef755d3e38899b92a030428377fcfcb361c2158d31c4d2642282a6dd884ea",
+      "2": "a6b896aebe3b8105b4197018d4c13bde2f8c89d9b5ef55ccd6e7d482a038bcc5",
+      "3": "c6ec2cf0a5bceb3d9e4e1e55f4528623dc3ce4774c012c1113e889f2d1b08264",
+      "4": "666cbc265f5e19b0d453045df206f267e3139e143f7d6dc4209766c8abb6a898",
+      "5": "b41b246f7c860b5b2bab8a535ef92a6e3fd4a321d7779cb7f76f274503075a34",
+      "6": "1777e57d010169aebfe37715e1f62670c45195e6ff8a2c6bd71e993cd298e3e6",
+      "7": "e21a5222faa6dbe3d64cc21a03f3ee46271a0c99d240c906e77f7186f1ce9ab5",
+      "8": "fee67ddcf5e86c65caf8649bb94f34086a6332d1abafd0a90e83617c70b65502"
+    }
+  },
+  "legacyHashes": {
+    "hafsData_v2-0.json": "c3f6a913f5fd83d2d8458de8cfeb987b484255514902ae1d01e6837c5c4415b7",
+    "Quran_info.json": "49f5a331532f198f228be4675a55fb82e310d2c7e69e77b70241eda0f9717015",
+    "Quran_Uthmani.json": "c8a9ff430c2973ff1971976a959fca4cf5fbac2ac648b41df67f44237b12bf7a",
+    "Quran_Simple.json": "38aeabbc6408e7539991d4777868a0e75ca4f4e5dc3ab03a60dbc0ed87a71ef2",
+    "quran_verses_imlaei.json": "1eeafcdf5ee102900320bbb486657e3644bc752e0cf01c0d8069b3d95c8f1a44",
+    "quran_verses_imlaei_cleaned.json": "83339123088f8c6dce89c55bced872141288dee1beabf18039ae2d08e1c62e64",
+    "Chapters_Info": "d7dddd6d33b3b077d74a828f5c77e9d37586a7dc52bcf274cfa36556702ad98c",
+    "Chapters_Simple": "c28c8e6eb12ea2b454fcf768970616a1e5e5cfc531a60f6b1fbfd5f2574bbd66",
+    "Chapters_Uthmani": "5fead2e5052111efdb9137e6eddae15591dda71254f0caf5048fc2a9da9d6d4c",
+    "Juzs": "f2c86d506a88be5eb8c2529ed994a3ee4fe45b32f57524e2ef48ba4232627a54",
+    "mushaf_word_layout_v4.json": "612af7341b88f31c9442ea8534748abeb9e5d967e2b7a2f3f4500e14bdd8a131",
+    "mushaf_word_layout_page41_sample.json": "820b2c261845247d322147d91df1181e7a362a89b9d91bf55c208f71cf996379",
+    "quran_tafseer": {
+      "1": "109e34db45b38c1536e0606de201940b3331a145dd45ca0b7e152a4f4a938aaf",
+      "2": "3c1c8a6dd06c09a8729660de239157c0119b33bd34483e54f625ec8ebb4f0659",
+      "3": "bcd2959a744dd5867d3a5848773a73c0269b8852aae5dc69f5369445e7233b13",
+      "4": "ca4f9071a71b9a43e917cdc43c90a5741177e879d74a96be03b6d2332b128468",
+      "5": "6d964c197841b4a5f06c1b9d277f13ce8335dedbea8a80547321add4ac7ac8a6",
+      "6": "018ba09fd3d459f7b9eb3fcd8968a505372b914697e5837ce02ee3302024ab80",
+      "7": "e7b9e6b6334495817996af41fe34af3d7afbbaf08274d3fd061ffaf68cf81e7b",
+      "8": "987b46d65abfa1b2d389e3a85d561fa93b3b5905aa0c632362295c2119f59f31"
+    }
+  },
+  "packs": {
+    "core": {
+      "path": "core.json.gz",
+      "bytes": 2024085,
+      "uncompressedBytes": 10829793,
+      "sha256": "e31ae129f01b79d25c1d8ac34a7391500bf6738958f655bfe1fabd5b4754ebf8",
+      "contentSha256": "b0ec7a1921569497e67d4d9a03a308193b2ed7f852cd07e931e6aec0a7ca8008"
+    },
+    "layout": {
+      "path": "layout.json.gz",
+      "bytes": 999054,
+      "uncompressedBytes": 13409900,
+      "sha256": "636911b0d0f534886a4c44b0e27242bc082b3dd20fe1862afeee8c08a95a11ac",
+      "contentSha256": "e276d50c5633f0f7b2bc680577255e7e9577bc8487b332082ac4d889aab9ced6"
+    },
+    "tafsirs": {
+      "1": {
+        "path": "tafsir/1.json.gz",
+        "bytes": 600909,
+        "uncompressedBytes": 3219512,
+        "sha256": "4575c8cfb2a3a7f727f396feb408db84041ef8b3f207eeedd8f5b54a99ee43b4",
+        "contentSha256": "e736970c29621f03f8b2583dd8206ff2c5df421449e153249a303e0e411ecc5e"
+      },
+      "2": {
+        "path": "tafsir/2.json.gz",
+        "bytes": 605147,
+        "uncompressedBytes": 2627223,
+        "sha256": "6a5c46e6647752f288604b984bcb8a45092882755dbce0a437cd4e747a5097b7",
+        "contentSha256": "76b15eb215ff02664be1071b3f27c5c030091b672334c2b99054a18118b99dac"
+      },
+      "3": {
+        "path": "tafsir/3.json.gz",
+        "bytes": 1673449,
+        "uncompressedBytes": 6776926,
+        "sha256": "842c05aaf42489039e67edf4b1da18519a50e182d5d11a4b4cd1a0cf159a05cf",
+        "contentSha256": "a2ea7d08d3cb31a2d5c343c85ca37217c16618c20e1e1e0e30224bd12418cd10"
+      },
+      "4": {
+        "path": "tafsir/4.json.gz",
+        "bytes": 3577169,
+        "uncompressedBytes": 15952663,
+        "sha256": "7a3626b66014701b809dd51d6ad9e2c1bca2d790bad9bc67b23d06f164489673",
+        "contentSha256": "215bb0da14ce6c7a24818da36bcf4b696923b9fc4860b8d22050b99f500da18e"
+      },
+      "5": {
+        "path": "tafsir/5.json.gz",
+        "bytes": 4930705,
+        "uncompressedBytes": 19413643,
+        "sha256": "d2a58d206fc6508241acb6783517374a8732d04aaf7d5aec0b95d29fb16f2d86",
+        "contentSha256": "7c5c7bbc3186f79d8be850dd282749c3f85e4999f08bb378f418b67b7f9e6e91"
+      },
+      "6": {
+        "path": "tafsir/6.json.gz",
+        "bytes": 1998745,
+        "uncompressedBytes": 8305976,
+        "sha256": "9c308ab9125d4838388fb4e320d19473c741aa7aab1632a7304c31a055b174f8",
+        "contentSha256": "bfaf7281d503e813d18f53a9c31773f896168772ab76cff6ba9942b634786481"
+      },
+      "7": {
+        "path": "tafsir/7.json.gz",
+        "bytes": 5047842,
+        "uncompressedBytes": 20349458,
+        "sha256": "5cf512bf40685fcdb08cb4f21993b2c7655772f1c77168303faa83b6d46d5e89",
+        "contentSha256": "0da28ec8825ec802a9f46168972b3ec21031acf024abefc9c3c9e393a23795dc"
+      },
+      "8": {
+        "path": "tafsir/8.json.gz",
+        "bytes": 7748309,
+        "uncompressedBytes": 35296929,
+        "sha256": "9fca2c0ab0c36bc3b4081b0a6189877d21dcad592432c964fad6b21f30e14bcd",
+        "contentSha256": "85631a5b311fc2fd4b0f21a9b15b3b39c3a9330ba406f3f59b32bbd897d83dca"
+      }
+    }
+  }
+}

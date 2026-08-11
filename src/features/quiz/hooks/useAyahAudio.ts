@@ -1,64 +1,50 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { CancellableAudioPlayer } from "@/shared/media";
 
 export type AyahAudioStatus = "idle" | "loading" | "playing" | "error";
 
-/**
- * Single-ayah audio player for quiz questions.
- * Unlike usePreviewAudio, play() always restarts (no toggle), callbacks are
- * stable per URL, and autoplay blocking is handled gracefully.
- */
+function isAutoplayBlocked(error: unknown): boolean {
+  return (
+    error instanceof DOMException &&
+    (error.name === "NotAllowedError" || error.name === "AbortError")
+  );
+}
+
+async function startAudio(
+  player: CancellableAudioPlayer,
+  url: string,
+  setStatus: (status: AyahAudioStatus) => void,
+): Promise<void> {
+  setStatus("loading");
+  const result = await player.play(url, {
+    onPlaying: () => setStatus("playing"),
+    onEnded: () => setStatus("idle"),
+    onError: (error) => setStatus(isAutoplayBlocked(error) ? "idle" : "error"),
+  });
+  if (result.status === "error") {
+    setStatus(isAutoplayBlocked(result.error) ? "idle" : "error");
+  }
+}
+
 export function useAyahAudio(url: string) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<CancellableAudioPlayer | null>(null);
+  if (!playerRef.current) playerRef.current = new CancellableAudioPlayer();
+  const player = playerRef.current;
   const [status, setStatus] = useState<AyahAudioStatus>("idle");
 
-  const stop = useCallback(() => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.pause();
-      audio.removeAttribute("src");
-      audioRef.current = null;
-    }
-    setStatus("idle");
-  }, []);
-
-  const play = useCallback(() => {
-    const previous = audioRef.current;
-    if (previous) {
-      previous.pause();
-      previous.removeAttribute("src");
-    }
-
-    const audio = new Audio(url);
-    audioRef.current = audio;
-    setStatus("loading");
-
-    const isCurrent = () => audioRef.current === audio;
-
-    audio.addEventListener("playing", () => {
-      if (isCurrent()) setStatus("playing");
-    });
-    audio.addEventListener("ended", () => {
-      if (isCurrent()) setStatus("idle");
-    });
-    audio.addEventListener("error", () => {
-      if (isCurrent()) setStatus("error");
-    });
-
-    audio.play().catch((error: unknown) => {
-      if (!isCurrent()) return;
-      if (error instanceof DOMException && error.name === "NotAllowedError") {
-        // Autoplay blocked by the browser — wait for the user to press play.
-        setStatus("idle");
-      } else {
-        setStatus("error");
-      }
-    });
-  }, [url]);
-
   useEffect(() => {
-    play();
-    return stop;
-  }, [play, stop]);
+    void startAudio(player, url, setStatus);
+    return () => player.dispose();
+  }, [player, url]);
+
+  function play(): void {
+    void startAudio(player, url, setStatus);
+  }
+
+  function stop(): void {
+    player.stop();
+    setStatus("idle");
+  }
 
   return { status, play, stop };
 }

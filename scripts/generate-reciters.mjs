@@ -37,8 +37,8 @@ const AR_NAMES = {
   "Mahmoud Ali Al-Banna": "محمود علي البنا",
   "Khalid Abdullah al-Qahtanee": "خالد عبد الله القحطاني",
   "Yasser_Ad-Dussary": "ياسر الدوسري",
-  "Nasser_Alqatami": "ناصر القطامي",
-  "Ali_Hajjaj_AlSuesy": "علي حجاج السويسي",
+  Nasser_Alqatami: "ناصر القطامي",
+  Ali_Hajjaj_AlSuesy: "علي حجاج السويسي",
   Sahl_Yassin: "سهل ياسين",
   "Ahmed Ibn Ali Al Ajamy": "أحمد بن علي العجمي",
   "Aziz Alili": "عزيز عليلي",
@@ -57,8 +57,7 @@ const AR_NAMES = {
   "(English) Translated by Sahih International Recited by Ibrahim Walk":
     "إنجليزي: صحيح إنترناشيونال — إبراهيم ووك",
   "MultiLanguage/Basfar Walk": "متعدد اللغات: بصفر وووك",
-  "(Persian) Translated by Makarem Recited by Kabiri":
-    "فارسي: مکارم — کبیری",
+  "(Persian) Translated by Makarem Recited by Kabiri": "فارسي: مکارم — کبیری",
   "(Persian) Translated by Fooladvand Recited by Hedayatfar":
     "فارسي: فولادوند — هدایتفر",
   "(Urdu) Shamshad Ali Khan": "أردو: شمشاد علي خان",
@@ -114,7 +113,8 @@ function fetchJson(url) {
 }
 
 function categoryEveryAyah(subfolder, name) {
-  if (subfolder.startsWith("warsh/") || name.includes("(Warsh)")) return "warsh";
+  if (subfolder.startsWith("warsh/") || name.includes("(Warsh)"))
+    return "warsh";
   if (
     subfolder.startsWith("translations/") ||
     subfolder.startsWith("English/") ||
@@ -268,15 +268,13 @@ for (const entry of islamicOnlyCandidates) {
 }
 const islamicAyahReciters = [...islamicBestByName.values()];
 
-const reciters = [...everyAyahReciters, ...islamicAyahReciters].sort(
-  (a, b) => {
-    const order = { hafs: 0, warsh: 1, translation: 2 };
-    if (order[a.category] !== order[b.category]) {
-      return order[a.category] - order[b.category];
-    }
-    return a.nameAr.localeCompare(b.nameAr, "ar");
-  },
-);
+const reciters = [...everyAyahReciters, ...islamicAyahReciters].sort((a, b) => {
+  const order = { hafs: 0, warsh: 1, translation: 2 };
+  if (order[a.category] !== order[b.category]) {
+    return order[a.category] - order[b.category];
+  }
+  return a.nameAr.localeCompare(b.nameAr, "ar");
+});
 
 const legacy = {
   alafasy: "Alafasy_128kbps",

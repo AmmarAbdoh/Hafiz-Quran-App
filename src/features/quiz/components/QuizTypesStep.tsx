@@ -7,19 +7,17 @@ import {
   PenLine,
   Sparkles,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
-import {
-  QUESTION_TYPE_DESCRIPTIONS,
-  QUESTION_TYPE_LABELS,
-} from "@/shared/constants/quran";
+import { cn } from "@/shared/lib/utils";
+import type { QuestionType, QuizScope } from "../model/types";
+import { useQuizFormatters } from "../hooks/useQuizFormatters";
 import {
   ALL_QUESTION_TYPES,
   getDefaultQuestionTypes,
   isQuestionTypeDisabled,
-} from "@/features/quiz/lib/question-utils";
-import { cn } from "@/shared/lib/utils";
-import type { QuestionType, QuizScope } from "@/shared/types/quran";
+} from "../model/questionTypes";
 
 const TYPE_ICONS: Record<QuestionType, typeof BookOpen> = {
   fill_blank: PenLine,
@@ -47,79 +45,91 @@ export function QuizTypesStep({
   onBack,
   onNext,
 }: QuizTypesStepProps) {
-  const toggleType = (type: QuestionType) => {
+  const { t } = useTranslation("quiz");
+  const { formatNumber, formatQuestionType } = useQuizFormatters();
+
+  function toggleType(type: QuestionType): void {
     if (isQuestionTypeDisabled(type, scope)) return;
-
-    if (selectedTypes.includes(type)) {
-      onTypesChange(selectedTypes.filter((item) => item !== type));
-      return;
-    }
-
-    onTypesChange([...selectedTypes, type]);
-  };
+    onTypesChange(
+      selectedTypes.includes(type)
+        ? selectedTypes.filter((item) => item !== type)
+        : [...selectedTypes, type],
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">أنواع الأسئلة</h2>
+          <h2 className="text-xl font-semibold">{t("types.title")}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            اختر نوعاً واحداً أو أكثر. يمكنك تغيير الاختيار لاحقاً.
+            {t("types.description")}
           </p>
         </div>
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          className="min-h-11"
           onClick={() => onTypesChange(getDefaultQuestionTypes(scope))}
         >
-          تحديد الكل
+          {t("types.selectAll")}
         </Button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <fieldset className="grid gap-3 sm:grid-cols-2">
+        <legend className="sr-only">{t("types.title")}</legend>
         {ALL_QUESTION_TYPES.map((type) => {
           const Icon = TYPE_ICONS[type];
           const disabled = isQuestionTypeDisabled(type, scope);
           const checked = selectedTypes.includes(type);
-
           return (
             <label
               key={type}
+              htmlFor={`quiz-question-type-${type}`}
               className={cn(
-                "flex cursor-pointer gap-3 rounded-xl border p-4 transition-colors",
+                "flex min-h-11 cursor-pointer gap-3 rounded-xl border p-4 transition-colors",
                 checked && "border-primary bg-primary/5",
                 disabled && "cursor-not-allowed opacity-50",
                 !disabled && !checked && "hover:bg-muted/40",
               )}
             >
               <Checkbox
+                id={`quiz-question-type-${type}`}
                 checked={checked}
                 disabled={disabled}
                 onCheckedChange={() => toggleType(type)}
               />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <Icon className="h-4 w-4 shrink-0 text-primary" />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2">
+                  <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                   <span className="font-semibold">
-                    {QUESTION_TYPE_LABELS[type]}
+                    {formatQuestionType(type)}
                   </span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {QUESTION_TYPE_DESCRIPTIONS[type]}
-                </p>
-              </div>
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  {t(`types.descriptions.${type}`)}
+                </span>
+              </span>
             </label>
           );
         })}
-      </div>
+      </fieldset>
 
+      <p className="text-sm text-muted-foreground" aria-live="polite">
+        {t("types.selectedCount", {
+          count: formatNumber(selectedTypes.length),
+        })}
+      </p>
       <div className="flex flex-wrap gap-3">
-        <Button variant="outline" onClick={onBack}>
-          رجوع
+        <Button variant="outline" className="min-h-11" onClick={onBack}>
+          {t("actions.back")}
         </Button>
-        <Button disabled={selectedTypes.length === 0} onClick={onNext}>
-          متابعة ({selectedTypes.length})
+        <Button
+          className="min-h-11"
+          disabled={selectedTypes.length === 0}
+          onClick={onNext}
+        >
+          {t("types.continue")}
         </Button>
       </div>
     </div>

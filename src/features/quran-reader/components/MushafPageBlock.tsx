@@ -1,175 +1,92 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
-import { MushafFontLoadingState } from "@/features/quran-reader/components/MushafFontLoadingState";
-import { MushafLine } from "@/features/quran-reader/components/MushafLine";
-import { MushafSurahHeader } from "@/features/quran-reader/components/MushafSurahHeader";
-import { useQcfPageFont } from "@/features/quran-reader/hooks/useQcfPageFont";
-import type { VerseSelection } from "@/features/quran-reader/types/selection";
-import { isCenterAlignedPage } from "@/features/quran-reader/utils/pageUtils";
-import { measureLineOverflowFit } from "@/features/quran-reader/utils/pageFit";
-import { cn } from "@/shared/lib/utils";
-import type { Theme } from "@/shared/hooks/use-theme";
+import type { MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  buildMushafPageItems,
-  buildMushafPageItemsForSurah,
-  getSurahTashkeelName,
-  getWordLayoutForPage,
-} from "@/shared/services/quran-data";
-import type {
-  MushafVerse as MushafVerseType,
-  MushafWord as MushafWordType,
-  MushafWordLayoutData,
-} from "@/shared/types/quran";
+  MushafPageView,
+  type MushafPageLayout,
+  type MushafVerse,
+  type MushafWord,
+} from "@/domain/quran";
+import type { VerseSelection } from "@/features/quran-reader/model/selection";
+import type { Theme } from "@/shared/hooks/use-theme";
+
+const EMPTY_MUSHAF_DATA: MushafVerse[] = [];
+const EMPTY_LOCATIONS: string[] = [];
 
 interface MushafPageBlockProps {
-  page: number;
-  mushafData: MushafVerseType[];
-  wordLayout: MushafWordLayoutData;
+  pageLayout: MushafPageLayout;
+  mushafData?: MushafVerse[];
   tajweedColored: boolean;
   theme: Theme;
   loadFont?: boolean;
   highlightVerseKey?: string | null;
-  selection: VerseSelection | null;
-  recitationVerseKey: string | null;
-  recitationWordLocation: string | null;
-  practiceMode: boolean;
-  practiceHideAyat: boolean;
-  practiceRevealedLocations: string[];
-  practiceTargetWordLocation: string | null;
-  practiceWrongFlashLocation: string | null;
-  onWordActivate: (
-    word: MushafWordType,
-    event: React.MouseEvent<HTMLElement>,
+  selection?: VerseSelection | null;
+  recitationVerseKey?: string | null;
+  recitationWordLocation?: string | null;
+  practiceMode?: boolean;
+  practiceHideAyat?: boolean;
+  practiceRevealedLocations?: string[];
+  practiceTargetWordLocation?: string | null;
+  practiceWrongFlashLocation?: string | null;
+  onWordActivate?: (
+    word: MushafWord,
+    event: MouseEvent<HTMLButtonElement>,
   ) => void;
   className?: string;
   id?: string;
-  /** When set, only lines and headers for this surah are shown. */
   surahFilter?: number;
 }
 
 export function MushafPageBlock({
-  page,
-  mushafData,
-  wordLayout,
+  pageLayout,
+  mushafData = EMPTY_MUSHAF_DATA,
   tajweedColored,
   theme,
   loadFont = true,
   highlightVerseKey = null,
-  selection,
-  recitationVerseKey,
-  recitationWordLocation,
-  practiceMode,
-  practiceHideAyat,
-  practiceRevealedLocations,
-  practiceTargetWordLocation,
-  practiceWrongFlashLocation,
+  selection = null,
+  recitationVerseKey = null,
+  recitationWordLocation = null,
+  practiceMode = false,
+  practiceHideAyat = false,
+  practiceRevealedLocations = EMPTY_LOCATIONS,
+  practiceTargetWordLocation = null,
+  practiceWrongFlashLocation = null,
   onWordActivate,
   className,
   id,
   surahFilter,
 }: MushafPageBlockProps) {
-  const pageRef = useRef<HTMLDivElement>(null);
-  const { fontFamily, fontPalette, ready: fontReady, colored } =
-    useQcfPageFont(page, {
-      colored: tajweedColored,
-      theme,
-      enabled: loadFont,
-    });
-
-  const pageLayout = getWordLayoutForPage(wordLayout, page);
-  const pageItems = useMemo(() => {
-    if (!pageLayout) return [];
-    if (surahFilter !== undefined) {
-      return buildMushafPageItemsForSurah(pageLayout, surahFilter);
-    }
-    return buildMushafPageItems(pageLayout);
-  }, [pageLayout, surahFilter]);
-  const visibleLines = useMemo(
-    () =>
-      pageItems
-        .filter((item) => item.type === "line")
-        .map((item) => item.line),
-    [pageItems],
-  );
-
-  const isSparsePage = pageLayout ? isCenterAlignedPage(page) : false;
-  const useSpreadLayout = Boolean(pageLayout) && !isSparsePage;
-
-  useLayoutEffect(() => {
-    const pageEl = pageRef.current;
-    if (!pageEl || !useSpreadLayout || !fontReady) return;
-
-    const measurePageFit = () => {
-      pageEl.style.setProperty("--mushaf-page-fit", "1");
-
-      const verses = pageEl.querySelectorAll<HTMLElement>(".mushaf-line__verse");
-      let fit = measureLineOverflowFit(verses);
-
-      if (fit < 0.998) {
-        pageEl.style.setProperty("--mushaf-page-fit", String(fit));
-        pageEl.getBoundingClientRect();
-        fit = measureLineOverflowFit(verses);
-        pageEl.style.setProperty("--mushaf-page-fit", String(fit));
-      } else {
-        pageEl.style.removeProperty("--mushaf-page-fit");
-      }
-    };
-
-    measurePageFit();
-    const observer = new ResizeObserver(measurePageFit);
-    observer.observe(pageEl);
-    return () => observer.disconnect();
-  }, [page, fontReady, visibleLines, useSpreadLayout, fontFamily]);
-
-  if (!pageLayout || pageItems.length === 0) {
-    return null;
-  }
-
-  if (loadFont && !fontReady) {
-    return (
-      <div className={cn("mx-auto w-full max-w-3xl px-2", className)}>
-        <MushafFontLoadingState compact message="جاري تحميل الصفحة…" />
-      </div>
-    );
-  }
-
+  const { t } = useTranslation("reader");
   return (
-    <div className={cn("relative mx-auto w-fit max-w-full px-2", className)}>
-      <div
-        ref={pageRef}
-        id={id}
-        className={cn("mushaf-page", useSpreadLayout && "mushaf-page--full")}
-      >
-        {pageItems.map((item) =>
-          item.type === "surah-header" ? (
-            <MushafSurahHeader
-              key={item.key}
-              surahName={getSurahTashkeelName(mushafData, item.surahNumber)}
-              headerLines={item.headerLines}
-            />
-          ) : (
-            <MushafLine
-              key={item.key}
-              lineNumber={item.line.line}
-              words={item.line.words}
-              spreadLayout={useSpreadLayout}
-              fontFamily={fontFamily}
-              fontPalette={fontPalette}
-              fontReady={fontReady}
-              colored={colored}
-              selection={selection}
-              highlightVerseKey={highlightVerseKey}
-              recitationVerseKey={recitationVerseKey}
-              recitationWordLocation={recitationWordLocation}
-              practiceMode={practiceMode}
-              practiceHideAyat={practiceHideAyat}
-              practiceRevealedLocations={practiceRevealedLocations}
-              practiceTargetWordLocation={practiceTargetWordLocation}
-              practiceWrongFlashLocation={practiceWrongFlashLocation}
-              onWordActivate={onWordActivate}
-            />
-          ),
-        )}
-      </div>
-    </div>
+    <MushafPageView
+      pageLayout={pageLayout}
+      mushafData={mushafData}
+      tajweedColored={tajweedColored}
+      theme={theme}
+      loadingMessage={t("loading")}
+      loadFont={loadFont}
+      highlightVerseKey={highlightVerseKey}
+      selectedWordLocation={
+        selection?.mode === "word" ? selection.word.location : null
+      }
+      activeVerseKey={
+        selection?.mode === "ayah" ? selection.verseKey : recitationVerseKey
+      }
+      activeWordLocation={recitationWordLocation}
+      practiceMode={practiceMode}
+      hidePracticeWords={practiceHideAyat}
+      revealedWordLocations={practiceRevealedLocations}
+      practiceTargetWordLocation={practiceTargetWordLocation}
+      incorrectWordLocation={practiceWrongFlashLocation}
+      incorrectWordLabel={t("word.incorrect")}
+      getWordActivationLabel={(word) =>
+        t("word.activate", { word: word.location })
+      }
+      getSurahAccessibleLabel={(surahName) => `${t("surah")} ${surahName}`}
+      onWordActivate={onWordActivate}
+      className={className}
+      id={id}
+      surahFilter={surahFilter}
+    />
   );
 }

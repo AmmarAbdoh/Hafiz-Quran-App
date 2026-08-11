@@ -1,36 +1,45 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { ActiveQuiz } from "@/features/quiz/components/ActiveQuiz";
-import { QuizHistoryList } from "@/features/quiz/components/QuizHistoryList";
-import { QuizResults } from "@/features/quiz/components/QuizResults";
-import { QuizScopeStep } from "@/features/quiz/components/QuizScopeStep";
-import { QuizSessionStep } from "@/features/quiz/components/QuizSessionStep";
-import { QuizTypesStep } from "@/features/quiz/components/QuizTypesStep";
-import { useQuizEngine } from "@/features/quiz/hooks/useQuizEngine";
-import { loadQuizHistory } from "@/features/quiz/lib/quizStorage";
-import { getDefaultQuestionTypes } from "@/features/quiz/lib/question-utils";
-import { useQuranData } from "@/features/quran-reader/context/QuranDataContext";
+import { useQuranData } from "@/domain/quran";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { cn } from "@/shared/lib/utils";
+import { ActiveQuiz } from "./components/ActiveQuiz";
+import { QuizHistoryList } from "./components/QuizHistoryList";
+import { QuizResults } from "./components/QuizResults";
+import { QuizScopeStep } from "./components/QuizScopeStep";
+import { QuizSessionStep } from "./components/QuizSessionStep";
+import { QuizTypesStep } from "./components/QuizTypesStep";
+import { useQuizEngine } from "./hooks/useQuizEngine";
+import { useQuizFormatters } from "./hooks/useQuizFormatters";
+import { getDefaultQuestionTypes } from "./model/questionTypes";
 import type {
   QuestionType,
   QuizConfig,
   QuizScope,
   QuizSessionMode,
-} from "@/shared/types/quran";
-import { cn } from "@/shared/lib/utils";
+} from "./model/types";
+import { loadQuizHistory } from "./services/quizHistoryStorage";
+import "./quiz.css";
 
 type SetupStep = "scope" | "types" | "session";
-
-const SETUP_STEPS: SetupStep[] = ["scope", "types", "session"];
+const SETUP_STEPS: readonly SetupStep[] = ["scope", "types", "session"];
 
 export function QuizPage() {
+  const { t } = useTranslation("quiz");
+  const { formatNumber } = useQuizFormatters();
   const navigate = useNavigate();
-  const { mushafData, wordLayout, verseInfoRecords, loading, error } =
-    useQuranData();
+  const {
+    mushafData,
+    verseInfoRecords,
+    loading,
+    error,
+    errorRetryable,
+    retryCoreData,
+  } = useQuranData();
   const engine = useQuizEngine(mushafData, verseInfoRecords);
-
   const [setupStep, setSetupStep] = useState<SetupStep>("scope");
   const [scope, setScope] = useState<QuizScope>({
     mode: "surah",
@@ -41,126 +50,164 @@ export function QuizPage() {
   );
   const [sessionMode, setSessionMode] = useState<QuizSessionMode>("fixed");
   const [questionCount, setQuestionCount] = useState(10);
-  const [history, setHistory] = useState(() => loadQuizHistory());
-  const [startError, setStartError] = useState<string | null>(null);
-
-  const config = useMemo<QuizConfig>(
-    () => ({
-      scope,
-      questionTypes,
-      sessionMode,
-      questionCount: sessionMode === "fixed" ? questionCount : undefined,
-    }),
-    [scope, questionTypes, sessionMode, questionCount],
-  );
-
-  const handleStart = () => {
-    setStartError(null);
-    const started = engine.startQuiz(config);
-    if (!started) {
-      setStartError(engine.error ?? "تعذر بدء الاختبار.");
-    }
+  const [history, setHistory] = useState(loadQuizHistory);
+  const config: QuizConfig = {
+    scope,
+    questionTypes,
+    sessionMode,
+    questionCount: sessionMode === "fixed" ? questionCount : undefined,
   };
 
-  const handleRetry = () => {
-    setStartError(null);
+  function startQuiz(): void {
+    engine.startQuiz(config);
+  }
+
+  function retryQuiz(): void {
     engine.resetQuiz();
     engine.startQuiz(config);
-  };
+  }
 
-  const handleNewSetup = () => {
+  function openNewSetup(): void {
     engine.resetQuiz();
     setSetupStep("scope");
     setHistory(loadQuizHistory());
-  };
+  }
 
-  if (loading || !wordLayout) {
+  if (loading) {
     return (
-      <div className="space-y-4">
+      <div
+        className="space-y-4"
+        aria-busy="true"
+        aria-label={t("active.loading")}
+      >
         <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-xl border border-destructive/30 p-6 text-center text-destructive">
-        {error}
+      <div
+        className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center"
+        role="alert"
+      >
+        <p className="text-destructive">{error}</p>
+        {errorRetryable && (
+          <Button
+            className="mt-4 min-h-11"
+            variant="outline"
+            onClick={retryCoreData}
+          >
+            {t("actions.retry")}
+          </Button>
+        )}
       </div>
     );
   }
 
-  if (engine.phase === "active") {
+  if (engine.phase === "active" || engine.phase === "feedback") {
     return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">الاختبار</h1>
+      <section
+        aria-labelledby="active-quiz-title"
+        className="mx-auto w-full max-w-5xl space-y-5"
+      >
+        <h1 id="active-quiz-title" className="text-2xl font-bold">
+          {t("active.title")}
+        </h1>
         <ActiveQuiz
           engine={engine}
           mushafData={mushafData}
-          wordLayout={wordLayout}
           verseInfoRecords={verseInfoRecords}
           onFinish={engine.finishQuiz}
-          onExit={handleNewSetup}
+          onExit={openNewSetup}
         />
-      </div>
+      </section>
     );
   }
 
   if (engine.phase === "results" && engine.sessionSummary) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">اختبار مخصص</h1>
+      <section
+        aria-labelledby="quiz-results-title"
+        className="mx-auto w-full max-w-4xl space-y-5"
+      >
+        <h1 id="quiz-results-title" className="text-2xl font-bold">
+          {t("title")}
+        </h1>
         <QuizResults
           summary={engine.sessionSummary}
           answers={engine.answers}
           mushafData={mushafData}
-          wordLayout={wordLayout}
-          onRetry={handleRetry}
-          onNewSetup={handleNewSetup}
+          historySaveFailed={engine.historySaveFailed}
+          onRetry={retryQuiz}
+          onNewSetup={openNewSetup}
         />
-      </div>
+      </section>
     );
   }
 
+  const currentStepIndex = SETUP_STEPS.indexOf(setupStep);
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section
+      aria-labelledby="quiz-setup-title"
+      className="mx-auto w-full max-w-4xl space-y-6"
+    >
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">اختبار مخصص</h1>
-          <p className="text-sm text-muted-foreground">
-            اختبر حفظك بأسئلة تفاعلية من المصحف.
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+            {t("steps.label")}
+          </p>
+          <h1 id="quiz-setup-title" className="mt-2 text-3xl font-bold">
+            {t("title")}
+          </h1>
+          <p className="mt-2 max-w-2xl text-muted-foreground">
+            {t("description")}
           </p>
         </div>
-        <Button variant="outline" onClick={() => navigate("/")}>
-          العودة للرئيسية
+        <Button
+          variant="outline"
+          className="min-h-11"
+          onClick={() => navigate("/")}
+        >
+          {t("actions.home")}
         </Button>
-      </div>
+      </header>
 
-      <div className="flex items-center gap-2">
-        {SETUP_STEPS.map((step, index) => (
-          <div key={step} className="flex items-center gap-2">
-            <div
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold",
-                setupStep === step
-                  ? "bg-primary text-primary-foreground"
-                  : SETUP_STEPS.indexOf(setupStep) > index
-                    ? "bg-primary/20 text-primary"
-                    : "bg-muted text-muted-foreground",
-              )}
-            >
-              {index + 1}
-            </div>
-            {index < SETUP_STEPS.length - 1 && (
-              <div className="hidden h-px w-8 bg-border sm:block" />
-            )}
-          </div>
-        ))}
-      </div>
+      <nav aria-label={t("steps.label")}>
+        <ol className="grid grid-cols-3 gap-2">
+          {SETUP_STEPS.map((step, index) => {
+            const current = setupStep === step;
+            const completed = currentStepIndex > index;
+            return (
+              <li
+                key={step}
+                aria-current={current ? "step" : undefined}
+                className={cn(
+                  "rounded-xl border p-3 text-center text-sm",
+                  current && "border-primary bg-primary/10 text-primary",
+                  completed && "border-primary/30 bg-primary/5",
+                )}
+              >
+                <span className="block text-xs text-muted-foreground">
+                  {formatNumber(index + 1)}
+                  <span className="sr-only">
+                    {current
+                      ? `, ${t("steps.current")}`
+                      : completed
+                        ? `, ${t("steps.completed")}`
+                        : ""}
+                  </span>
+                </span>
+                <span className="font-semibold">{t(`steps.${step}`)}</span>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
 
-      <Card>
-        <CardContent className="pt-6">
+      <Card className="overflow-hidden rounded-2xl">
+        <CardContent className="p-6 sm:p-8">
           {setupStep === "scope" && (
             <QuizScopeStep
               mushafData={mushafData}
@@ -172,7 +219,6 @@ export function QuizPage() {
               onNext={() => setSetupStep("types")}
             />
           )}
-
           {setupStep === "types" && (
             <QuizTypesStep
               scope={scope}
@@ -182,33 +228,35 @@ export function QuizPage() {
               onNext={() => setSetupStep("session")}
             />
           )}
-
           {setupStep === "session" && (
-            <>
-              <QuizSessionStep
-                scope={scope}
-                questionTypes={questionTypes}
-                sessionMode={sessionMode}
-                questionCount={questionCount}
-                onSessionModeChange={setSessionMode}
-                onQuestionCountChange={setQuestionCount}
-                onBack={() => setSetupStep("types")}
-                onStart={handleStart}
-              />
-              {startError && (
-                <p className="mt-4 text-sm text-destructive">{startError}</p>
-              )}
-            </>
+            <QuizSessionStep
+              scope={scope}
+              questionTypes={questionTypes}
+              sessionMode={sessionMode}
+              questionCount={questionCount}
+              onSessionModeChange={setSessionMode}
+              onQuestionCountChange={setQuestionCount}
+              onBack={() => setSetupStep("types")}
+              onStart={startQuiz}
+            />
+          )}
+          {engine.error && (
+            <p
+              className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+              role="alert"
+            >
+              {t(`errors.${engine.error}`)}
+            </p>
           )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="space-y-3 pt-6">
-          <h2 className="text-lg font-semibold">الجلسات السابقة</h2>
+      <Card className="rounded-2xl">
+        <CardContent className="space-y-3 p-6">
+          <h2 className="text-lg font-semibold">{t("history.title")}</h2>
           <QuizHistoryList history={history} />
         </CardContent>
       </Card>
-    </div>
+    </section>
   );
 }

@@ -1,30 +1,17 @@
-import { QuizChoiceGrid } from "@/features/quiz/components/QuizChoiceGrid";
-import { QuizFeedback } from "@/features/quiz/components/QuizFeedback";
-import { QuizMushafPreview } from "@/features/quiz/components/QuizMushafPreview";
-import type { CompleteAyahQuizQuestion } from "@/features/quiz/lib/quiz-types";
-import type {
-  MushafVerse,
-  MushafWordLayoutData,
-  VerseInfoRecord,
-} from "@/shared/types/quran";
+import { useTranslation } from "react-i18next";
+import type { CompleteAyahQuizQuestion } from "../model/types";
+import { QuizChoiceGrid } from "./QuizChoiceGrid";
+import { QuizFeedback } from "./QuizFeedback";
+import { QuizMushafPreview } from "./QuizMushafPreview";
+import type { QuizQuestionViewProps } from "./questionViewTypes";
 
-interface CompleteAyahQuestionProps {
+interface CompleteAyahQuestionProps extends QuizQuestionViewProps {
   question: CompleteAyahQuizQuestion;
-  mushafData: MushafVerse[];
-  wordLayout: MushafWordLayoutData;
-  verseInfoRecords: VerseInfoRecord[];
-  answered: boolean;
-  isCorrect: boolean | null;
-  selectedChoiceId: string | null;
-  streak: number;
-  onSubmit: (choiceId: string) => void;
-  onNext: () => void;
 }
 
 export function CompleteAyahQuestion({
   question,
   mushafData,
-  wordLayout,
   verseInfoRecords,
   answered,
   isCorrect,
@@ -33,17 +20,23 @@ export function CompleteAyahQuestion({
   onSubmit,
   onNext,
 }: CompleteAyahQuestionProps) {
+  const { t } = useTranslation("quiz");
   return (
     <div className="space-y-6">
       <div className="space-y-3 text-center">
-        <p className="text-sm text-muted-foreground">أكمل الآية:</p>
+        <p className="text-sm text-muted-foreground">
+          {t("prompts.completeAyah")}
+        </p>
         <QuizMushafPreview
           page={question.verse.page}
           mushafData={mushafData}
-          wordLayout={wordLayout}
           highlightVerseKey={question.verseKey}
         />
-        <p className="quran-text font-mushaf text-lg leading-loose text-muted-foreground">
+        <p
+          className="quran-text font-mushaf text-lg leading-loose text-muted-foreground"
+          dir="rtl"
+          lang="ar"
+        >
           {question.promptText} …
         </p>
       </div>
@@ -62,7 +55,6 @@ export function CompleteAyahQuestion({
           verse={question.verse}
           verseInfoRecords={verseInfoRecords}
           mushafData={mushafData}
-          wordLayout={wordLayout}
           streak={streak}
           onNext={onNext}
         />

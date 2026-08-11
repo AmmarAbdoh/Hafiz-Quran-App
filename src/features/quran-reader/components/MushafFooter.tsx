@@ -1,7 +1,7 @@
 import { PageControls } from "@/features/quran-reader/components/PageControls";
 import { MushafFooterPinButton } from "@/features/quran-reader/components/MushafFooterPinButton";
-import { formatAyahCount } from "@/shared/lib/arabic-count";
-import { toArabicNumerals } from "@/shared/lib/arabic-numerals";
+import { useTranslation } from "react-i18next";
+import { formatNumber, useLocale } from "@/app/i18n";
 
 interface MushafFooterProps {
   currentPage: number;
@@ -26,6 +26,8 @@ export function MushafFooter({
   pinned = false,
   onPinnedChange,
 }: MushafFooterProps) {
+  const { t } = useTranslation("reader");
+  const { locale } = useLocale();
   const hasStartMeta = surahNames.length > 0 || surahAyahCount !== undefined;
   const hasEndMeta = juzNumber !== undefined || hizbNumber !== undefined;
   const showSingleSurahAyahCount =
@@ -34,7 +36,10 @@ export function MushafFooter({
   return (
     <footer className="mushaf-footer-bar mushaf-footer-bar--with-pin">
       {onPinnedChange && (
-        <MushafFooterPinButton pinned={pinned} onPinnedChange={onPinnedChange} />
+        <MushafFooterPinButton
+          pinned={pinned}
+          onPinnedChange={onPinnedChange}
+        />
       )}
 
       <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-1">
@@ -43,12 +48,23 @@ export function MushafFooter({
             <div className="min-w-0 text-right leading-snug">
               {surahNames.length > 0 && (
                 <p className="truncate text-xs font-semibold text-foreground sm:text-sm">
-                  {surahNames.map((name) => `سورة ${name}`).join("، ")}
+                  {surahNames.map((name, index) => (
+                    <span key={name}>
+                      {index > 0 ? (locale === "ar" ? "، " : ", ") : ""}
+                      {t("surah")}{" "}
+                      <bdi dir="rtl" lang="ar">
+                        {name}
+                      </bdi>
+                    </span>
+                  ))}
                 </p>
               )}
               {showSingleSurahAyahCount && (
                 <p className="text-[10px] text-muted-foreground sm:text-xs">
-                  {formatAyahCount(surahAyahCount)}
+                  {t("metadata.ayahCount", {
+                    count: surahAyahCount,
+                    formattedCount: formatNumber(surahAyahCount, locale),
+                  })}
                 </p>
               )}
             </div>
@@ -66,10 +82,24 @@ export function MushafFooter({
           {hasEndMeta && (
             <div className="text-left text-[10px] leading-snug text-muted-foreground sm:text-xs">
               {juzNumber !== undefined && (
-                <p>الجزء {toArabicNumerals(juzNumber)}</p>
+                <p>
+                  {t("metadata.juz", {
+                    number:
+                      typeof juzNumber === "number"
+                        ? formatNumber(juzNumber, locale)
+                        : juzNumber,
+                  })}
+                </p>
               )}
               {hizbNumber !== undefined && (
-                <p>الحزب {toArabicNumerals(hizbNumber)}</p>
+                <p>
+                  {t("metadata.hizb", {
+                    number:
+                      typeof hizbNumber === "number"
+                        ? formatNumber(hizbNumber, locale)
+                        : hizbNumber,
+                  })}
+                </p>
               )}
             </div>
           )}

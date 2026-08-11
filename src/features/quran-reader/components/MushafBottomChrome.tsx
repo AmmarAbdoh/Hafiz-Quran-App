@@ -41,7 +41,8 @@ export function MushafBottomChrome({
     const syncOffset = () => {
       const visibleOffset = expanded ? dock.offsetHeight : collapsePeekPx;
       const chromeHeight = chrome?.offsetHeight ?? dock.offsetHeight;
-      const reserve = Math.max(chromeHeight, MIN_DOCK_RESERVE_PX) + DOCK_SCROLL_EXTRA_PX;
+      const reserve =
+        Math.max(chromeHeight, MIN_DOCK_RESERVE_PX) + DOCK_SCROLL_EXTRA_PX;
 
       layout.style.setProperty("--mushaf-dock-offset", `${visibleOffset}px`);
       layout.style.setProperty("--mushaf-dock-reserve", `${reserve}px`);
@@ -81,7 +82,9 @@ export function MushafBottomChrome({
         onBlurCapture={handleBlurCapture}
         onFocus={handleFocus}
       >
-        <div ref={chromeRef} className="mushaf-bottom-chrome">{children}</div>
+        <div ref={chromeRef} className="mushaf-bottom-chrome">
+          {children}
+        </div>
         {!pinned && collapsePeekPx > 0 && peekCollapsed && (
           <div className="mushaf-bottom-dock__peek" aria-hidden />
         )}

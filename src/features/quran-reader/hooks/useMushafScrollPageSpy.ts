@@ -1,4 +1,9 @@
-import { useEffect, useRef, type MutableRefObject, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  type MutableRefObject,
+  type RefObject,
+} from "react";
 
 export function getAdjacentPageInSequence(
   pageSequence: number[],

@@ -1,59 +1,55 @@
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/shared/components/ui/badge";
-import type { QuizSessionSummary } from "@/features/quiz/lib/quiz-types";
+import { useQuizFormatters } from "../hooks/useQuizFormatters";
+import type { QuizSessionSummaryV2 } from "../model/types";
 
 interface QuizHistoryListProps {
-  history: QuizSessionSummary[];
-}
-
-function formatSessionDate(iso: string): string {
-  return new Intl.DateTimeFormat("ar-SA", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(iso));
-}
-
-interface QuizHistoryListProps {
-  history: QuizSessionSummary[];
+  history: QuizSessionSummaryV2[];
 }
 
 export function QuizHistoryList({ history }: QuizHistoryListProps) {
+  const { t } = useTranslation("quiz");
+  const { formatDate, formatNumber, formatScopeSnapshot } = useQuizFormatters();
+
   if (history.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        لا توجد جلسات سابقة بعد.
-      </p>
+      <p className="text-sm text-muted-foreground">{t("history.empty")}</p>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <ol className="space-y-3">
       {history.slice(0, 5).map((session) => {
         const percentage =
           session.questionCount === 0
             ? 0
-            : Math.round(
-                (session.correctCount / session.questionCount) * 100,
-              );
-
+            : Math.round((session.correctCount / session.questionCount) * 100);
         return (
-          <div
+          <li
             key={session.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"
           >
             <div>
-              <p className="font-medium">{session.scopeSummary}</p>
+              <p className="font-medium">
+                {formatScopeSnapshot(session.scope, session.legacyScopeSummary)}
+              </p>
               <p className="text-xs text-muted-foreground">
-                {formatSessionDate(session.completedAt)}
-                {" · "}
-                {session.sessionMode === "endless" ? "بدون حد" : "عدد محدد"}
+                {formatDate(session.completedAt)} ·{" "}
+                {session.sessionMode === "endless"
+                  ? t("history.endless")
+                  : t("history.fixed")}
               </p>
             </div>
             <Badge variant={percentage >= 70 ? "success" : "secondary"}>
-              {session.correctCount}/{session.questionCount} ({percentage}%)
+              {t("history.scoreLabel", {
+                correct: formatNumber(session.correctCount),
+                total: formatNumber(session.questionCount),
+              })}{" "}
+              ({t("results.percentage", { count: formatNumber(percentage) })})
             </Badge>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }

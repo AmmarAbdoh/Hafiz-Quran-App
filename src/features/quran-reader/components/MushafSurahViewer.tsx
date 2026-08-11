@@ -1,35 +1,40 @@
-import { useEffect, useMemo, useRef, useState, type MutableRefObject, type RefObject } from "react";
-import { MushafFontLoadingState } from "@/features/quran-reader/components/MushafFontLoadingState";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type RefObject,
+} from "react";
+import { useTranslation } from "react-i18next";
+import { formatNumber, useLocale } from "@/app/i18n";
 import { MushafPageBlock } from "@/features/quran-reader/components/MushafPageBlock";
 import { MushafSurahEndNav } from "@/features/quran-reader/components/MushafSurahEndNav";
 import { VerseActionsPopover } from "@/features/quran-reader/components/VerseActionsPopover";
 import { VerseDialog } from "@/features/quran-reader/components/VerseDialog";
-import { useQuranPlayback } from "@/features/quran-reader/context/QuranPlaybackContext";
-import { useRecitationPractice } from "@/features/quran-reader/context/RecitationPracticeContext";
+import {
+  useQuranPlaybackHighlight,
+  useQuranPlaybackState,
+} from "@/features/quran-reader/context/QuranPlaybackContext";
+import { useRecitationPractice } from "@practice/runtime";
 import { useMushafVerseInteractions } from "@/features/quran-reader/hooks/useMushafVerseInteractions";
 import {
   scrollMushafToPage,
   useMushafScrollPageSpy,
 } from "@/features/quran-reader/hooks/useMushafScrollPageSpy";
-import {
-  preloadQcfPageFont,
-} from "@/features/quran-reader/hooks/useQcfPageFont";
-import { toArabicNumerals } from "@/shared/lib/arabic-numerals";
 import { useTheme } from "@/shared/hooks/use-theme";
 import {
-  buildWordsByLocation,
+  MushafFontLoadingState,
   buildMushafPageItemsForSurah,
-  getSurahPages,
-  getWordLayoutForPage,
-} from "@/shared/services/quran-data";
-import type {
-  MushafVerse as MushafVerseType,
-  MushafWordLayoutData,
-} from "@/shared/types/quran";
+  preloadQcfPageFont,
+  type MushafPageLayout,
+  type MushafVerse as MushafVerseType,
+  type MushafWord,
+} from "@/domain/quran";
 
 interface MushafSurahViewerProps {
   mushafData: MushafVerseType[];
-  wordLayout: MushafWordLayoutData;
+  pageLayouts: MushafPageLayout[];
   surahNumber: number;
   tajweedColored: boolean;
   highlightVerseKey?: string | null;
@@ -42,7 +47,7 @@ interface MushafSurahViewerProps {
 
 export function MushafSurahViewer({
   mushafData,
-  wordLayout,
+  pageLayouts,
   surahNumber,
   tajweedColored,
   highlightVerseKey = null,
@@ -52,23 +57,38 @@ export function MushafSurahViewer({
   scrollLockRef,
   onSurahChange,
 }: MushafSurahViewerProps) {
+  const { t } = useTranslation("reader");
+  const { locale } = useLocale();
   const mushafRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
-  const playback = useQuranPlayback();
+  const playback = useQuranPlaybackState();
+  const { activeWordLocation } = useQuranPlaybackHighlight();
   const practice = useRecitationPractice();
 
-  const surahPages = useMemo(() => {
-    return getSurahPages(mushafData, surahNumber).filter((page) => {
-      const layout = getWordLayoutForPage(wordLayout, page);
-      if (!layout) return false;
-      return buildMushafPageItemsForSurah(layout, surahNumber).length > 0;
-    });
-  }, [mushafData, wordLayout, surahNumber]);
-
-  const wordsByLocation = useMemo(
-    () => buildWordsByLocation(wordLayout),
-    [wordLayout],
+  const surahPageLayouts = useMemo(
+    () =>
+      pageLayouts
+        .filter(
+          (layout) =>
+            buildMushafPageItemsForSurah(layout, surahNumber).length > 0,
+        )
+        .sort((left, right) => left.page - right.page),
+    [pageLayouts, surahNumber],
   );
+  const surahPages = useMemo(
+    () => surahPageLayouts.map((layout) => layout.page),
+    [surahPageLayouts],
+  );
+
+  const wordsByLocation = useMemo(() => {
+    const words = new Map<string, MushafWord>();
+    for (const layout of surahPageLayouts) {
+      for (const line of layout.lines) {
+        for (const word of line.words) words.set(word.location, word);
+      }
+    }
+    return words;
+  }, [surahPageLayouts]);
 
   const {
     selection,
@@ -82,7 +102,6 @@ export function MushafSurahViewer({
     handleListenWord,
     handleListenAyah,
     handleTafseer,
-    playback: playbackState,
   } = useMushafVerseInteractions({
     mushafRef,
     mushafData,
@@ -110,7 +129,9 @@ export function MushafSurahViewer({
 
     const pagesToLoad = surahPages.slice(0, Math.min(2, surahPages.length));
     void Promise.all(
-      pagesToLoad.map((page) => preloadQcfPageFont(page, theme, tajweedColored)),
+      pagesToLoad.map((page) =>
+        preloadQcfPageFont(page, theme, tajweedColored),
+      ),
     ).then(() => {
       if (!cancelled) {
         setSurahFontsLoading(false);
@@ -127,9 +148,7 @@ export function MushafSurahViewer({
     mushafRef,
     "[data-mushaf-page]",
     (page) => onVisiblePageChange?.(page),
-    Boolean(
-      scrollContainerRef && onVisiblePageChange && !surahFontsLoading,
-    ),
+    Boolean(scrollContainerRef && onVisiblePageChange && !surahFontsLoading),
     scrollLockRef,
     `${surahNumber}:${surahPages.join(",")}`,
   );
@@ -182,45 +201,46 @@ export function MushafSurahViewer({
   if (surahPages.length === 0) {
     return (
       <p className="py-12 text-center text-muted-foreground">
-        لا توجد بيانات لهذه السورة.
+        {t("emptySurah")}
       </p>
     );
   }
 
   if (surahFontsLoading) {
-    return <MushafFontLoadingState compact message="جاري تحميل السورة…" />;
+    return <MushafFontLoadingState compact message={t("loadingSurah")} />;
   }
 
   return (
     <div ref={mushafRef} className="flex w-full flex-col items-stretch">
-      {surahPages.map((page, index) => (
+      {surahPageLayouts.map((pageLayout, index) => (
         <section
-          key={page}
+          key={pageLayout.page}
           className="mushaf-surah-page"
-          data-mushaf-page={page}
-          aria-label={`صفحة ${page}`}
+          data-mushaf-page={pageLayout.page}
+          aria-label={t("pageLabel", {
+            page: formatNumber(pageLayout.page, locale),
+          })}
         >
           {index > 0 && (
             <div className="mushaf-surah-page__divider" aria-hidden>
               <span className="mushaf-surah-page__label">
-                {toArabicNumerals(page)}
+                {formatNumber(pageLayout.page, locale)}
               </span>
             </div>
           )}
 
           <MushafPageBlock
-            page={page}
+            pageLayout={pageLayout}
             mushafData={mushafData}
-            wordLayout={wordLayout}
             tajweedColored={tajweedColored}
             theme={theme}
             surahFilter={surahNumber}
             highlightVerseKey={highlightVerseKey}
             selection={selection}
             recitationVerseKey={
-              practice.active ? null : playbackState.activeVerseKey
+              practice.active ? null : playback.activeVerseKey
             }
-            recitationWordLocation={playbackState.activeWordLocation}
+            recitationWordLocation={activeWordLocation}
             practiceMode={practice.active && !practice.completed}
             practiceHideAyat={practice.hideAyat}
             practiceRevealedLocations={practice.revealedLocations}

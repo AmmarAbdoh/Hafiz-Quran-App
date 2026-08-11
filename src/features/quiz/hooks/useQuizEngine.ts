@@ -1,248 +1,166 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useReducer, useRef } from "react";
 import {
   checkQuizAnswer,
   generateQuizQuestion,
   getCorrectChoiceId,
-} from "@/features/quiz/lib/questionGen";
-import { pickRandomQuestionType } from "@/features/quiz/lib/question-utils";
-import { buildSessionSummary, saveQuizSession } from "@/features/quiz/lib/quizStorage";
+} from "../model/questionGenerator";
+import { pickRandomQuestionType } from "../model/questionTypes";
+import { quizReducer, initialQuizState } from "../model/quizReducer";
+import { buildSessionSummary } from "../model/quizSession";
 import type {
   QuizAnswerRecord,
-  QuizQuestion,
-  QuizSessionSummary,
-} from "@/features/quiz/lib/quiz-types";
-import {
-  buildVersePool,
-  shuffleArray,
-  summarizeQuizScope,
-} from "@/features/quiz/lib/versePool";
-import type {
-  MushafVerse,
   QuizConfig,
-  VerseInfoRecord,
-} from "@/shared/types/quran";
+  QuizEngineError,
+} from "../model/types";
+import { buildVersePool, shuffleArray } from "../model/versePool";
+import { saveQuizSession } from "../services/quizHistoryStorage";
+import type { MushafVerse, VerseInfoRecord } from "@/domain/quran";
 
-export type QuizPhase = "idle" | "active" | "results";
+export type QuizStartResult =
+  | { ok: true }
+  | { ok: false; error: QuizEngineError };
 
 export function useQuizEngine(
   mushafData: MushafVerse[],
   verseInfoRecords: VerseInfoRecord[],
 ) {
-  const [phase, setPhase] = useState<QuizPhase>("idle");
-  const [config, setConfig] = useState<QuizConfig | null>(null);
-  const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion | null>(
-    null,
-  );
-  const [answers, setAnswers] = useState<QuizAnswerRecord[]>([]);
-  const [streak, setStreak] = useState(0);
-  const [loadingQuestion, setLoadingQuestion] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sessionSummary, setSessionSummary] = useState<QuizSessionSummary | null>(
-    null,
-  );
-  const [answered, setAnswered] = useState(false);
-  const [lastSelectedChoiceId, setLastSelectedChoiceId] = useState<
-    string | null
-  >(null);
-  const [lastIsCorrect, setLastIsCorrect] = useState<boolean | null>(null);
-
-  const startedAtRef = useRef<number>(0);
-  const queueRef = useRef<MushafVerse[]>([]);
+  const [state, dispatch] = useReducer(quizReducer, initialQuizState);
   const poolRef = useRef<MushafVerse[]>([]);
+  const queueRef = useRef<MushafVerse[]>([]);
 
-  const refillQueue = useCallback(() => {
-    queueRef.current = shuffleArray(poolRef.current);
-  }, []);
-
-  const drawNextVerse = useCallback((): MushafVerse | null => {
+  function drawNextVerse(): MushafVerse | null {
     if (queueRef.current.length === 0) {
-      refillQueue();
+      queueRef.current = shuffleArray(poolRef.current);
     }
     return queueRef.current.shift() ?? null;
-  }, [refillQueue]);
+  }
 
-  const loadQuestion = useCallback(
-    (activeConfig: QuizConfig) => {
-      setLoadingQuestion(true);
-      setError(null);
-      setAnswered(false);
-      setLastSelectedChoiceId(null);
-      setLastIsCorrect(null);
+  function createQuestion(config: QuizConfig) {
+    const verse = drawNextVerse();
+    const questionType = pickRandomQuestionType(config.questionTypes);
+    if (!verse || !questionType) return null;
 
-      const verse = drawNextVerse();
-      const questionType = pickRandomQuestionType(activeConfig.questionTypes);
-
-      if (!verse || !questionType) {
-        setError("تعذر إنشاء سؤال من النطاق المحدد.");
-        setCurrentQuestion(null);
-        setLoadingQuestion(false);
-        return;
-      }
-
-      const question = generateQuizQuestion({
-        verse,
-        questionType,
-        pool: poolRef.current,
-        mushafData,
-        verseInfoRecords,
-      });
-
-      setCurrentQuestion(question);
-      setLoadingQuestion(false);
-    },
-    [drawNextVerse, mushafData, verseInfoRecords],
-  );
-
-  const startQuiz = useCallback(
-    (nextConfig: QuizConfig) => {
-      const pool = buildVersePool(mushafData, nextConfig.scope);
-      if (pool.length === 0) {
-        setError("النطاق المحدد لا يحتوي على آيات.");
-        return false;
-      }
-
-      if (nextConfig.questionTypes.length === 0) {
-        setError("اختر نوع سؤال واحد على الأقل.");
-        return false;
-      }
-
-      poolRef.current = pool;
-      refillQueue();
-      startedAtRef.current = Date.now();
-      setConfig(nextConfig);
-      setAnswers([]);
-      setStreak(0);
-      setSessionSummary(null);
-      setPhase("active");
-      loadQuestion(nextConfig);
-      return true;
-    },
-    [loadQuestion, mushafData, refillQueue],
-  );
-
-  const finishQuiz = useCallback(() => {
-    if (!config) return;
-
-    const summary = buildSessionSummary({
-      scopeSummary: summarizeQuizScope(config.scope),
-      sessionMode: config.sessionMode,
-      answers,
-      startedAt: startedAtRef.current,
+    return generateQuizQuestion({
+      verse,
+      questionType,
+      pool: poolRef.current,
+      mushafData,
+      verseInfoRecords,
     });
+  }
 
-    setSessionSummary(summary);
-    saveQuizSession(summary);
-    setPhase("results");
-  }, [answers, config]);
+  function startQuiz(config: QuizConfig): QuizStartResult {
+    const pool = buildVersePool(mushafData, config.scope);
+    if (pool.length === 0) {
+      dispatch({ type: "START_FAILED", error: "scopeEmpty" });
+      return { ok: false, error: "scopeEmpty" };
+    }
+    if (config.questionTypes.length === 0) {
+      dispatch({ type: "START_FAILED", error: "noTypes" });
+      return { ok: false, error: "noTypes" };
+    }
 
-  const submitAnswer = useCallback(
-    (selectedChoiceId: string) => {
-      if (!currentQuestion || answered) return;
+    poolRef.current = pool;
+    queueRef.current = shuffleArray(pool);
+    const question = createQuestion(config);
+    if (!question) {
+      dispatch({ type: "START_FAILED", error: "questionUnavailable" });
+      return { ok: false, error: "questionUnavailable" };
+    }
 
-      const isCorrect = checkQuizAnswer(
-        currentQuestion,
-        selectedChoiceId,
-        poolRef.current,
-      );
-      const record: QuizAnswerRecord = {
-        questionId: currentQuestion.id,
-        questionType: currentQuestion.type,
-        verseKey: currentQuestion.verseKey,
-        selectedChoiceId,
-        correctChoiceId: getCorrectChoiceId(currentQuestion),
-        isCorrect,
-      };
+    dispatch({
+      type: "START",
+      config,
+      question,
+      startedAt: Date.now(),
+    });
+    return { ok: true };
+  }
 
-      setAnswers((previous) => [...previous, record]);
-      setStreak((previous) => (isCorrect ? previous + 1 : 0));
-      setAnswered(true);
-      setLastSelectedChoiceId(selectedChoiceId);
-      setLastIsCorrect(isCorrect);
-    },
-    [answered, config, currentQuestion],
-  );
+  function submitAnswer(selectedChoiceId: string): void {
+    const question = state.currentQuestion;
+    if (!question || state.phase !== "active") return;
 
-  const goToNextQuestion = useCallback(() => {
-    if (!config) return;
+    const answer: QuizAnswerRecord = {
+      questionId: question.id,
+      questionType: question.type,
+      verseKey: question.verseKey,
+      selectedChoiceId,
+      correctChoiceId: getCorrectChoiceId(question),
+      isCorrect: checkQuizAnswer(question, selectedChoiceId, poolRef.current),
+    };
+    dispatch({ type: "ANSWER", answer });
+  }
 
+  function finishQuiz(): void {
+    if (!state.config || state.startedAt === null) return;
+    const summary = buildSessionSummary({
+      scope: state.config.scope,
+      sessionMode: state.config.sessionMode,
+      answers: state.answers,
+      startedAt: state.startedAt,
+    });
+    const { saved } = saveQuizSession(summary);
+    dispatch({
+      type: "FINISH",
+      summary,
+      historySaveFailed: !saved,
+    });
+  }
+
+  function goToNextQuestion(): void {
+    const config = state.config;
+    if (!config || state.phase !== "feedback") return;
     if (
       config.sessionMode === "fixed" &&
-      answers.length >= (config.questionCount ?? 0)
+      state.answers.length >= (config.questionCount ?? 0)
     ) {
       finishQuiz();
       return;
     }
 
-    loadQuestion(config);
-  }, [answers.length, config, finishQuiz, loadQuestion]);
+    const question = createQuestion(config);
+    dispatch(
+      question
+        ? { type: "NEXT_QUESTION", question }
+        : { type: "QUESTION_FAILED" },
+    );
+  }
 
-  const resetQuiz = useCallback(() => {
-    setPhase("idle");
-    setConfig(null);
-    setCurrentQuestion(null);
-    setAnswers([]);
-    setStreak(0);
-    setLoadingQuestion(false);
-    setError(null);
-    setSessionSummary(null);
-    setAnswered(false);
-    setLastSelectedChoiceId(null);
-    setLastIsCorrect(null);
-    queueRef.current = [];
+  function openSetup(): void {
     poolRef.current = [];
-  }, []);
+    queueRef.current = [];
+    dispatch({ type: "OPEN_SETUP" });
+  }
 
-  const progress = useMemo(() => {
-    if (!config) {
-      return { current: 0, total: 0, label: "" };
-    }
-
-    const current = answers.length + (answered ? 0 : 1);
-    if (config.sessionMode === "endless") {
-      return {
-        current,
-        total: 0,
-        label: `السؤال ${current}`,
-      };
-    }
-
-    return {
-      current,
-      total: config.questionCount ?? 0,
-      label: `السؤال ${current} / ${config.questionCount ?? 0}`,
-    };
-  }, [answers.length, answered, config]);
-
-  const score = useMemo(() => {
-    const correct = answers.filter((answer) => answer.isCorrect).length;
-    return {
-      correct,
-      total: answers.length,
-      percentage:
-        answers.length === 0
-          ? 0
-          : Math.round((correct / answers.length) * 100),
-    };
-  }, [answers]);
+  const correct = state.answers.filter((answer) => answer.isCorrect).length;
+  const score = {
+    correct,
+    total: state.answers.length,
+    percentage:
+      state.answers.length === 0
+        ? 0
+        : Math.round((correct / state.answers.length) * 100),
+  };
+  const progress = {
+    current: state.answers.length + (state.phase === "active" ? 1 : 0),
+    total:
+      state.config?.sessionMode === "fixed"
+        ? (state.config.questionCount ?? 0)
+        : 0,
+  };
 
   return {
-    phase,
-    config,
-    currentQuestion,
-    answers,
-    streak,
-    loadingQuestion,
-    error,
-    sessionSummary,
-    answered,
-    lastSelectedChoiceId,
-    lastIsCorrect,
+    ...state,
+    answered: state.phase === "feedback",
+    lastSelectedChoiceId: state.selectedChoiceId,
     progress,
     score,
     startQuiz,
     submitAnswer,
     goToNextQuestion,
     finishQuiz,
-    resetQuiz,
+    resetQuiz: openSetup,
+    openSetup,
   };
 }

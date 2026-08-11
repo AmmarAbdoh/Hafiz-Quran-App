@@ -5,16 +5,16 @@ import {
   useState,
   type RefObject,
 } from "react";
-import { useQuranPlayback } from "@/features/quran-reader/context/QuranPlaybackContext";
+import { useQuranPlaybackActions } from "@/features/quran-reader/context/QuranPlaybackContext";
 import { useQuranAudio } from "@/features/quran-reader/hooks/useQuranAudio";
-import type { VerseSelection } from "@/features/quran-reader/types/selection";
-import { resolveWordElementInLine } from "@/features/quran-reader/utils/mushafWordHitTest";
-import { getWordAudioUrl } from "@/shared/constants/audio";
-import { findMushafVerse } from "@/shared/services/quran-data";
+import type { VerseSelection } from "@/features/quran-reader/model/selection";
+import { resolveWordElementInLine } from "@/features/quran-reader/model/mushafWordHitTest";
+import { getWordAudioUrl } from "@/domain/quran";
+import { findMushafVerse } from "@/domain/quran";
 import type {
   MushafVerse as MushafVerseType,
   MushafWord as MushafWordType,
-} from "@/shared/types/quran";
+} from "@/domain/quran";
 
 interface UseMushafVerseInteractionsOptions {
   mushafRef: RefObject<HTMLElement | null>;
@@ -43,12 +43,22 @@ export function useMushafVerseInteractions({
   );
   const popoverRef = useRef<HTMLDivElement>(null);
   const selectedWordElementRef = useRef<HTMLElement | null>(null);
-  const playback = useQuranPlayback();
+  const playback = useQuranPlaybackActions();
   const { play, stop, playing } = useQuranAudio();
 
   const clearSelection = useCallback(() => {
+    const selectedWordElement = selectedWordElementRef.current;
+    const shouldRestoreFocus = Boolean(
+      popoverRef.current?.contains(document.activeElement),
+    );
+
     setSelection(null);
     setAnchorRect(null);
+    selectedWordElementRef.current = null;
+
+    if (shouldRestoreFocus && selectedWordElement?.isConnected) {
+      selectedWordElement.focus();
+    }
   }, []);
 
   const updateAnchor = useCallback(() => {
@@ -125,7 +135,9 @@ export function useMushafVerseInteractions({
       let element = event.currentTarget;
       let word = fallbackWord;
 
-      if (line) {
+      const pointerGenerated = event.detail > 0;
+
+      if (line && pointerGenerated) {
         const resolved = resolveWordElementInLine(
           line as HTMLElement,
           event.clientX,
@@ -133,8 +145,7 @@ export function useMushafVerseInteractions({
         );
         if (resolved?.dataset.location) {
           element = resolved;
-          word =
-            wordsByLocation.get(resolved.dataset.location) ?? fallbackWord;
+          word = wordsByLocation.get(resolved.dataset.location) ?? fallbackWord;
         }
       }
 
@@ -142,10 +153,11 @@ export function useMushafVerseInteractions({
 
       setSelection((prev) => {
         if (isEnd) {
-          selectedWordElementRef.current = null;
           if (prev?.mode === "ayah" && prev.verseKey === word.verse_key) {
+            selectedWordElementRef.current = null;
             return null;
           }
+          selectedWordElementRef.current = element;
           return { verseKey: word.verse_key, mode: "ayah", word };
         }
 
@@ -205,6 +217,5 @@ export function useMushafVerseInteractions({
     handleListenWord,
     handleListenAyah,
     handleTafseer,
-    playback,
   };
 }

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { formatNumber, useLocale } from "@/app/i18n";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 
@@ -44,6 +46,8 @@ export function PageControls({
   pageSequence,
   compact = false,
 }: PageControlsProps) {
+  const { t } = useTranslation("reader");
+  const { locale } = useLocale();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -64,9 +68,7 @@ export function PageControls({
   const commitPage = () => {
     const page = parseInt(draft, 10);
     const inSequence =
-      !pageSequence ||
-      pageSequence.length === 0 ||
-      pageSequence.includes(page);
+      !pageSequence || pageSequence.length === 0 || pageSequence.includes(page);
     if (!isNaN(page) && page >= minPage && page <= maxPage && inSequence) {
       onPageChange(page);
     }
@@ -88,8 +90,8 @@ export function PageControls({
     maxPage,
   );
 
-  const controlSize = compact ? "h-7 w-7" : "h-8 w-8 sm:h-9 sm:w-9";
-  const inputSize = compact ? "h-7 w-12 text-xs" : "h-8 w-14 text-sm sm:h-9";
+  const controlSize = "h-11 w-11";
+  const inputSize = compact ? "h-11 w-14 text-xs" : "h-11 w-16 text-sm";
   const labelSize = compact ? "text-xs" : "text-sm";
   const iconSize = compact ? "h-3.5 w-3.5" : "h-4 w-4";
   const pillPadding = compact ? "p-0.5" : "p-1";
@@ -101,6 +103,8 @@ export function PageControls({
         pillPadding,
         className,
       )}
+      role="group"
+      aria-label={t("navigation.goToPage")}
     >
       <Button
         variant="ghost"
@@ -108,9 +112,9 @@ export function PageControls({
         className={cn(controlSize, "shrink-0 rounded-full")}
         onClick={() => prevPage !== null && onPageChange(prevPage)}
         disabled={prevPage === null}
-        aria-label="الصفحة السابقة"
+        aria-label={t("navigation.previousPage")}
       >
-        <ChevronRight className={iconSize} />
+        <ChevronLeft className={cn(iconSize, "rtl:rotate-180")} aria-hidden />
       </Button>
 
       {editing ? (
@@ -131,7 +135,7 @@ export function PageControls({
             "rounded-full bg-background text-center font-semibold tabular-nums outline-none ring-2 ring-primary/30 selection:bg-primary/25",
             inputSize,
           )}
-          aria-label="رقم الصفحة"
+          aria-label={t("navigation.pageNumber")}
         />
       ) : (
         <button
@@ -142,12 +146,12 @@ export function PageControls({
           }}
           className={cn(
             "flex min-w-[2.5rem] items-center justify-center rounded-full px-2 transition-colors hover:bg-background/80 sm:min-w-[2.75rem]",
-            compact ? "h-7" : "h-8 sm:h-9",
+            "min-h-11",
           )}
-          aria-label="انتقل إلى صفحة"
+          aria-label={t("navigation.goToPage")}
         >
           <span className={cn("font-semibold tabular-nums", labelSize)}>
-            {currentPage}
+            {formatNumber(currentPage, locale)}
           </span>
         </button>
       )}
@@ -158,9 +162,9 @@ export function PageControls({
         className={cn(controlSize, "shrink-0 rounded-full")}
         onClick={() => nextPage !== null && onPageChange(nextPage)}
         disabled={nextPage === null}
-        aria-label="الصفحة التالية"
+        aria-label={t("navigation.nextPage")}
       >
-        <ChevronLeft className={iconSize} />
+        <ChevronRight className={cn(iconSize, "rtl:rotate-180")} aria-hidden />
       </Button>
     </div>
   );

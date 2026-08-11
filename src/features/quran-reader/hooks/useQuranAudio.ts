@@ -1,44 +1,34 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { CancellableAudioPlayer } from "@/shared/media";
+
+const AUDIO_ERROR = "تعذر تشغيل الصوت";
 
 export function useQuranAudio() {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<CancellableAudioPlayer | null>(null);
+  if (!playerRef.current) playerRef.current = new CancellableAudioPlayer();
+  const player = playerRef.current;
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const stop = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
+  const stop = () => {
+    player.stop();
     setPlaying(false);
-  }, []);
+  };
 
-  const play = useCallback(
-    async (url: string) => {
-      stop();
-      setError(null);
+  const play = async (url: string) => {
+    setError(null);
+    setPlaying(true);
 
-      const audio = new Audio(url);
-      audioRef.current = audio;
-
-      audio.onended = () => setPlaying(false);
-      audio.onerror = () => {
+    await player.play(url, {
+      onEnded: () => setPlaying(false),
+      onError: () => {
         setPlaying(false);
-        setError("تعذر تشغيل الصوت");
-      };
+        setError(AUDIO_ERROR);
+      },
+    });
+  };
 
-      try {
-        setPlaying(true);
-        await audio.play();
-      } catch {
-        setPlaying(false);
-        setError("تعذر تشغيل الصوت");
-      }
-    },
-    [stop],
-  );
-
-  useEffect(() => () => stop(), [stop]);
+  useEffect(() => () => player.dispose(), [player]);
 
   return { play, stop, playing, error };
 }

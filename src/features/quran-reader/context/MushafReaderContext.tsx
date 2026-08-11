@@ -5,9 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { MushafLayoutMode } from "@/features/quran-reader/lib/quranReaderRoutes";
-
-export type { MushafLayoutMode };
+import type { MushafLayoutMode } from "@/features/quran-reader/model/quranReaderRoutes";
 
 export interface MushafReaderHeaderState {
   tajweedColored: boolean;

@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { SearchableRtlSelect } from "@/shared/components/SearchableRtlSelect";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
@@ -9,20 +11,31 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
-import { SearchableRtlSelect } from "@/shared/components/SearchableRtlSelect";
 import {
   JUZ_NAMES,
   SURAH_NAMES,
   TOTAL_MUSHAF_PAGES,
-} from "@/shared/constants/quran";
-import { getSurahAyahCount } from "@/shared/services/quran-data";
-import type { MushafVerse, QuizScope, QuizScopeMode } from "@/shared/types/quran";
+  type MushafVerse,
+  getSurahAyahCount,
+} from "@/domain/quran";
+import { useQuizFormatters } from "../hooks/useQuizFormatters";
+import type { QuizScope, QuizScopeMode } from "../model/types";
 
 interface QuizScopeStepProps {
   mushafData: MushafVerse[];
   scope: QuizScope;
   onScopeChange: (scope: QuizScope) => void;
   onNext: () => void;
+}
+
+interface CheckboxGridProps {
+  count: number;
+  names: readonly string[];
+  selected: Set<number>;
+  onToggle: (index: number) => void;
+  onToggleAll: () => void;
+  searchPlaceholder: string;
+  groupLabel: string;
 }
 
 function CheckboxGrid({
@@ -32,54 +45,61 @@ function CheckboxGrid({
   onToggle,
   onToggleAll,
   searchPlaceholder,
-}: {
-  count: number;
-  names: readonly string[];
-  selected: Set<number>;
-  onToggle: (index: number) => void;
-  onToggleAll: () => void;
-  searchPlaceholder: string;
-}) {
+  groupLabel,
+}: CheckboxGridProps) {
+  const { t } = useTranslation("quiz");
+  const { formatNumber } = useQuizFormatters();
   const [search, setSearch] = useState("");
-
-  const filtered = useMemo(
-    () =>
-      names
-        .map((name, index) => ({ name, index: index + 1 }))
-        .filter(({ name }) => name.includes(search)),
-    [names, search],
-  );
-
+  const filtered = names
+    .map((name, index) => ({ name, index: index + 1 }))
+    .filter(({ name }) => name.includes(search));
   const allSelected = selected.size === count;
 
   return (
-    <div className="space-y-4">
-      <Button type="button" variant="outline" onClick={onToggleAll}>
-        {allSelected ? "إلغاء اختيار الكل" : "اختيار الكل"}
-      </Button>
-      <Input
-        placeholder={searchPlaceholder}
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-      />
+    <fieldset className="space-y-4">
+      <legend className="sr-only">{groupLabel}</legend>
+      <div className="flex flex-wrap gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          onClick={onToggleAll}
+        >
+          {allSelected ? t("actions.clearAll") : t("actions.selectAll")}
+        </Button>
+        <Input
+          className="min-h-11 min-w-56 flex-1"
+          aria-label={searchPlaceholder}
+          placeholder={searchPlaceholder}
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </div>
       <div className="grid max-h-80 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map(({ name, index }) => (
           <label
             key={index}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+            className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
           >
             <Checkbox
               checked={selected.has(index)}
               onCheckedChange={() => onToggle(index)}
             />
-            <span className="text-sm">
-              {index}: {name}
+            <span className="text-sm" dir="rtl" lang="ar">
+              {formatNumber(index)}. {name}
             </span>
           </label>
         ))}
       </div>
-    </div>
+    </fieldset>
   );
+}
+
+function toggleSelection(previous: Set<number>, index: number): Set<number> {
+  const next = new Set(previous);
+  if (next.has(index)) next.delete(index);
+  else next.add(index);
+  return next;
 }
 
 export function QuizScopeStep({
@@ -88,11 +108,13 @@ export function QuizScopeStep({
   onScopeChange,
   onNext,
 }: QuizScopeStepProps) {
+  const { t } = useTranslation("quiz");
+  const { formatNumber } = useQuizFormatters();
   const [mode, setMode] = useState<QuizScopeMode>(scope.mode);
-  const [surahSelected, setSurahSelected] = useState<Set<number>>(
+  const [surahSelected, setSurahSelected] = useState(
     () => new Set(scope.surahIndices ?? []),
   );
-  const [juzSelected, setJuzSelected] = useState<Set<number>>(
+  const [juzSelected, setJuzSelected] = useState(
     () => new Set(scope.juzIndices ?? []),
   );
   const [pageFrom, setPageFrom] = useState(String(scope.pageFrom ?? 1));
@@ -100,76 +122,41 @@ export function QuizScopeStep({
   const [ayahSurah, setAyahSurah] = useState(String(scope.ayahRangeSurah ?? 1));
   const [ayahFrom, setAyahFrom] = useState(String(scope.ayahFrom ?? 1));
   const [ayahTo, setAyahTo] = useState(String(scope.ayahTo ?? 7));
-
   const surahOptions = SURAH_NAMES.map((name, index) => ({
     value: String(index + 1),
-    label: `${index + 1}. ${name}`,
+    label: `${formatNumber(index + 1)}. ${name}`,
   }));
-
   const maxAyah = getSurahAyahCount(
     mushafData,
     Number.parseInt(ayahSurah, 10) || 1,
   );
 
-  const isValid = useMemo(() => {
-    switch (mode) {
-      case "surah":
-        return surahSelected.size > 0;
-      case "juz":
-        return juzSelected.size > 0;
-      case "page": {
-        const from = Number.parseInt(pageFrom, 10);
-        const to = Number.parseInt(pageTo, 10);
-        return (
-          Number.isFinite(from) &&
-          Number.isFinite(to) &&
-          from >= 1 &&
-          to <= TOTAL_MUSHAF_PAGES &&
-          from <= to
-        );
-      }
-      case "ayah_range": {
-        const surah = Number.parseInt(ayahSurah, 10);
-        const from = Number.parseInt(ayahFrom, 10);
-        const to = Number.parseInt(ayahTo, 10);
-        return (
-          Number.isFinite(surah) &&
-          Number.isFinite(from) &&
-          Number.isFinite(to) &&
-          from >= 1 &&
-          to <= maxAyah &&
-          from <= to
-        );
-      }
-      default:
-        return false;
+  function isValid(): boolean {
+    if (mode === "surah") return surahSelected.size > 0;
+    if (mode === "juz") return juzSelected.size > 0;
+    if (mode === "page") {
+      const from = Number.parseInt(pageFrom, 10);
+      const to = Number.parseInt(pageTo, 10);
+      return from >= 1 && to <= TOTAL_MUSHAF_PAGES && from <= to;
     }
-  }, [
-    ayahFrom,
-    ayahSurah,
-    ayahTo,
-    juzSelected.size,
-    maxAyah,
-    mode,
-    pageFrom,
-    pageTo,
-    surahSelected.size,
-  ]);
+    const from = Number.parseInt(ayahFrom, 10);
+    const to = Number.parseInt(ayahTo, 10);
+    return from >= 1 && to <= maxAyah && from <= to;
+  }
 
-  const handleConfirm = () => {
-    if (!isValid) return;
-
+  function confirmScope(): void {
+    if (!isValid()) return;
     switch (mode) {
       case "surah":
         onScopeChange({
           mode,
-          surahIndices: [...surahSelected].sort((a, b) => a - b),
+          surahIndices: [...surahSelected].sort((left, right) => left - right),
         });
         break;
       case "juz":
         onScopeChange({
           mode,
-          juzIndices: [...juzSelected].sort((a, b) => a - b),
+          juzIndices: [...juzSelected].sort((left, right) => left - right),
         });
         break;
       case "page":
@@ -189,26 +176,33 @@ export function QuizScopeStep({
         break;
     }
     onNext();
-  };
+  }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">اختر نطاق الاختبار</h2>
+        <h2 className="text-xl font-semibold">{t("scope.title")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          حدد السور أو الأجزاء أو الصفحات أو نطاق آيات محدد.
+          {t("scope.description")}
         </p>
       </div>
-
       <Tabs
         value={mode}
         onValueChange={(value) => setMode(value as QuizScopeMode)}
       >
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-          <TabsTrigger value="surah">السور</TabsTrigger>
-          <TabsTrigger value="juz">الأجزاء</TabsTrigger>
-          <TabsTrigger value="page">الصفحات</TabsTrigger>
-          <TabsTrigger value="ayah_range">نطاق آيات</TabsTrigger>
+        <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
+          <TabsTrigger className="min-h-11" value="surah">
+            {t("scope.tabs.surah")}
+          </TabsTrigger>
+          <TabsTrigger className="min-h-11" value="juz">
+            {t("scope.tabs.juz")}
+          </TabsTrigger>
+          <TabsTrigger className="min-h-11" value="page">
+            {t("scope.tabs.page")}
+          </TabsTrigger>
+          <TabsTrigger className="min-h-11" value="ayah_range">
+            {t("scope.tabs.ayahRange")}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="surah" className="mt-4">
@@ -216,110 +210,110 @@ export function QuizScopeStep({
             count={114}
             names={SURAH_NAMES}
             selected={surahSelected}
-            searchPlaceholder="ابحث عن سورة..."
-            onToggle={(index) => {
-              setSurahSelected((previous) => {
-                const next = new Set(previous);
-                if (next.has(index)) next.delete(index);
-                else next.add(index);
-                return next;
-              });
-            }}
-            onToggleAll={() => {
+            groupLabel={t("scope.tabs.surah")}
+            searchPlaceholder={t("scope.searchSurah")}
+            onToggle={(index) =>
+              setSurahSelected((previous) => toggleSelection(previous, index))
+            }
+            onToggleAll={() =>
               setSurahSelected((previous) =>
                 previous.size === 114
                   ? new Set()
-                  : new Set(Array.from({ length: 114 }, (_, index) => index + 1)),
-              );
-            }}
+                  : new Set(
+                      Array.from({ length: 114 }, (_, index) => index + 1),
+                    ),
+              )
+            }
           />
         </TabsContent>
-
         <TabsContent value="juz" className="mt-4">
           <CheckboxGrid
             count={30}
             names={JUZ_NAMES}
             selected={juzSelected}
-            searchPlaceholder="ابحث عن جزء..."
-            onToggle={(index) => {
-              setJuzSelected((previous) => {
-                const next = new Set(previous);
-                if (next.has(index)) next.delete(index);
-                else next.add(index);
-                return next;
-              });
-            }}
-            onToggleAll={() => {
+            groupLabel={t("scope.tabs.juz")}
+            searchPlaceholder={t("scope.searchJuz")}
+            onToggle={(index) =>
+              setJuzSelected((previous) => toggleSelection(previous, index))
+            }
+            onToggleAll={() =>
               setJuzSelected((previous) =>
                 previous.size === 30
                   ? new Set()
-                  : new Set(Array.from({ length: 30 }, (_, index) => index + 1)),
-              );
-            }}
+                  : new Set(
+                      Array.from({ length: 30 }, (_, index) => index + 1),
+                    ),
+              )
+            }
           />
         </TabsContent>
-
         <TabsContent value="page" className="mt-4 space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="page-from">من صفحة</Label>
+              <Label htmlFor="quiz-page-from">{t("scope.fromPage")}</Label>
               <Input
-                id="page-from"
-                inputMode="numeric"
+                id="quiz-page-from"
+                type="number"
+                min={1}
+                max={TOTAL_MUSHAF_PAGES}
                 value={pageFrom}
                 onChange={(event) => setPageFrom(event.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="page-to">إلى صفحة</Label>
+              <Label htmlFor="quiz-page-to">{t("scope.toPage")}</Label>
               <Input
-                id="page-to"
-                inputMode="numeric"
+                id="quiz-page-to"
+                type="number"
+                min={1}
+                max={TOTAL_MUSHAF_PAGES}
                 value={pageTo}
                 onChange={(event) => setPageTo(event.target.value)}
               />
             </div>
           </div>
         </TabsContent>
-
         <TabsContent value="ayah_range" className="mt-4 space-y-4">
           <div className="space-y-2">
-            <Label>السورة</Label>
+            <Label>{t("scope.surah")}</Label>
             <SearchableRtlSelect
               value={ayahSurah}
               options={surahOptions}
               onValueChange={setAyahSurah}
-              placeholder="اختر السورة"
+              placeholder={t("scope.surah")}
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="ayah-from">من آية</Label>
+              <Label htmlFor="quiz-ayah-from">{t("scope.fromAyah")}</Label>
               <Input
-                id="ayah-from"
-                inputMode="numeric"
+                id="quiz-ayah-from"
+                type="number"
+                min={1}
+                max={maxAyah}
                 value={ayahFrom}
                 onChange={(event) => setAyahFrom(event.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ayah-to">إلى آية</Label>
+              <Label htmlFor="quiz-ayah-to">{t("scope.toAyah")}</Label>
               <Input
-                id="ayah-to"
-                inputMode="numeric"
+                id="quiz-ayah-to"
+                type="number"
+                min={1}
+                max={maxAyah}
                 value={ayahTo}
                 onChange={(event) => setAyahTo(event.target.value)}
               />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            هذه السورة تحتوي على {maxAyah} آية.
+            {t("scope.ayahCount", { count: formatNumber(maxAyah) })}
           </p>
         </TabsContent>
       </Tabs>
-
-      <Button size="lg" disabled={!isValid} onClick={handleConfirm}>
-        متابعة
+      <Button size="lg" disabled={!isValid()} onClick={confirmScope}>
+        {t("scope.continue")}
       </Button>
     </div>
   );

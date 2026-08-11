@@ -1,5 +1,4 @@
-const DIACRITICS_RE =
-  /[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g;
+const DIACRITICS_RE = /[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g;
 
 /** Normalize Arabic for fuzzy speech-to-text matching against mushaf words. */
 export function normalizeArabicForMatch(text: string): string {
@@ -22,10 +21,7 @@ export function tokenizeArabicTranscript(text: string): string[] {
   return normalized.split(/\s+/).filter(Boolean);
 }
 
-export function arabicTokensSimilar(
-  spoken: string,
-  expected: string,
-): boolean {
+export function arabicTokensSimilar(spoken: string, expected: string): boolean {
   if (!spoken || !expected) return false;
   if (spoken === expected) return true;
   if (spoken.includes(expected) || expected.includes(spoken)) return true;

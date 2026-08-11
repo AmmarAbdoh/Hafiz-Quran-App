@@ -1,11 +1,10 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { summarizeQuizScope } from "@/features/quiz/lib/versePool";
-import {
-  QUESTION_TYPE_LABELS,
-} from "@/shared/constants/quran";
-import type { QuestionType, QuizScope, QuizSessionMode } from "@/shared/types/quran";
+import { cn } from "@/shared/lib/utils";
+import { useQuizFormatters } from "../hooks/useQuizFormatters";
+import type { QuestionType, QuizScope, QuizSessionMode } from "../model/types";
 
 interface QuizSessionStepProps {
   scope: QuizScope;
@@ -30,91 +29,114 @@ export function QuizSessionStep({
   onBack,
   onStart,
 }: QuizSessionStepProps) {
+  const { t } = useTranslation("quiz");
+  const { locale, formatNumber, formatQuestionType, formatScope } =
+    useQuizFormatters();
+  const questionTypeSummary = new Intl.ListFormat(locale, {
+    style: "long",
+    type: "conjunction",
+  }).format(questionTypes.map(formatQuestionType));
+
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">إعداد الجلسة</h2>
+        <h2 className="text-xl font-semibold">{t("session.title")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          اختر عدد الأسئلة أو استمر بدون حد.
+          {t("session.description")}
         </p>
       </div>
 
-      <div className="rounded-xl border bg-muted/20 p-4 text-sm">
-        <p>
-          <span className="font-semibold">النطاق:</span>{" "}
-          {summarizeQuizScope(scope)}
-        </p>
-        <p className="mt-2">
-          <span className="font-semibold">الأنواع:</span>{" "}
-          {questionTypes.map((type) => QUESTION_TYPE_LABELS[type]).join("، ")}
-        </p>
-      </div>
+      <dl className="grid gap-4 rounded-xl border bg-muted/20 p-4 text-sm sm:grid-cols-2">
+        <div>
+          <dt className="font-semibold">{t("session.scopeLabel")}</dt>
+          <dd className="mt-1 text-muted-foreground">{formatScope(scope)}</dd>
+        </div>
+        <div>
+          <dt className="font-semibold">{t("session.typesLabel")}</dt>
+          <dd className="mt-1 text-muted-foreground">{questionTypeSummary}</dd>
+        </div>
+      </dl>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <button
-          type="button"
-          className={`rounded-xl border p-4 text-start transition-colors ${
-            sessionMode === "fixed"
-              ? "border-primary bg-primary/5"
-              : "hover:bg-muted/40"
-          }`}
-          onClick={() => onSessionModeChange("fixed")}
-        >
-          <p className="font-semibold">عدد محدد</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            اختبار بـ 10 أو 20 أو 30 سؤالاً أو عدد مخصص.
-          </p>
-        </button>
-        <button
-          type="button"
-          className={`rounded-xl border p-4 text-start transition-colors ${
-            sessionMode === "endless"
-              ? "border-primary bg-primary/5"
-              : "hover:bg-muted/40"
-          }`}
-          onClick={() => onSessionModeChange("endless")}
-        >
-          <p className="font-semibold">بدون حد</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            استمر حتى تنهي الاختبار بنفسك.
-          </p>
-        </button>
-      </div>
+      <fieldset className="grid gap-3 sm:grid-cols-2">
+        <legend className="sr-only">{t("session.title")}</legend>
+        {(["fixed", "endless"] as const).map((mode) => {
+          const selected = sessionMode === mode;
+          return (
+            <label
+              key={mode}
+              className={cn(
+                "min-h-11 cursor-pointer rounded-xl border p-4 text-start transition-colors",
+                "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                selected ? "border-primary bg-primary/5" : "hover:bg-muted/40",
+              )}
+            >
+              <input
+                className="sr-only"
+                type="radio"
+                name="quiz-session-mode"
+                value={mode}
+                aria-label={
+                  mode === "fixed"
+                    ? t("session.fixedTitle")
+                    : t("session.endlessTitle")
+                }
+                checked={selected}
+                onChange={() => onSessionModeChange(mode)}
+              />
+              <span className="block font-semibold">
+                {mode === "fixed"
+                  ? t("session.fixedTitle")
+                  : t("session.endlessTitle")}
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {mode === "fixed"
+                  ? t("session.fixedDescription")
+                  : t("session.endlessDescription")}
+              </span>
+            </label>
+          );
+        })}
+      </fieldset>
 
       {sessionMode === "fixed" && (
         <div className="space-y-3">
-          <Label>عدد الأسئلة</Label>
+          <Label htmlFor="quiz-question-count">
+            {t("session.questionCount")}
+          </Label>
           <div className="flex flex-wrap gap-2">
             {PRESET_COUNTS.map((count) => (
               <Button
                 key={count}
                 type="button"
+                className="min-h-11 min-w-11"
                 variant={questionCount === count ? "default" : "outline"}
+                aria-pressed={questionCount === count}
                 onClick={() => onQuestionCountChange(count)}
               >
-                {count}
+                {formatNumber(count)}
               </Button>
             ))}
           </div>
           <Input
-            inputMode="numeric"
-            value={String(questionCount)}
+            id="quiz-question-count"
+            type="number"
+            min={1}
+            max={100}
+            value={questionCount}
             onChange={(event) => {
               const value = Number.parseInt(event.target.value, 10);
-              if (Number.isFinite(value) && value > 0) {
-                onQuestionCountChange(value);
-              }
+              if (value > 0) onQuestionCountChange(Math.min(value, 100));
             }}
           />
         </div>
       )}
 
       <div className="flex flex-wrap gap-3">
-        <Button variant="outline" onClick={onBack}>
-          رجوع
+        <Button variant="outline" className="min-h-11" onClick={onBack}>
+          {t("actions.back")}
         </Button>
         <Button size="lg" onClick={onStart}>
-          ابدأ الاختبار
+          {t("session.start")}
         </Button>
       </div>
     </div>

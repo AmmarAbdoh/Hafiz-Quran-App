@@ -8,7 +8,7 @@ type AyahNounForm = "singular" | "dual" | "plural";
  * - 3–10 → plural (آيات)
  * - otherwise → singular (آية), including 1 and 11+
  */
-export function getAyahNounForm(count: number): AyahNounForm {
+function getAyahNounForm(count: number): AyahNounForm {
   if (count === 2) return "dual";
   if (count >= 3 && count <= 10) return "plural";
   return "singular";

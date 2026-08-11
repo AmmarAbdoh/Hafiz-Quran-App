@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
-import { useTafseer } from "@/shared/hooks/use-tafseer";
+import { SURAH_NAMES, TAFSEER_OPTIONS, useTafseer } from "@/domain/quran";
 import { BookOpen, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { formatNumber, useLocale } from "@/app/i18n";
+import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,10 +13,8 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Label } from "@/shared/components/ui/label";
 import { SearchableRtlSelect } from "@/shared/components/SearchableRtlSelect";
-import { SURAH_NAMES, TAFSEER_OPTIONS } from "@/shared/constants/quran";
-import { toArabicNumerals } from "@/shared/lib/arabic-numerals";
-import { loadTafseer } from "@/shared/services/quran-data";
-import type { MushafVerse } from "@/shared/types/quran";
+import { loadTafseer } from "@/domain/quran";
+import type { MushafVerse } from "@/domain/quran";
 
 interface VerseDialogProps {
   verse: MushafVerse | null;
@@ -22,15 +23,22 @@ interface VerseDialogProps {
 }
 
 export function VerseDialog({ verse, open, onOpenChange }: VerseDialogProps) {
+  const { t } = useTranslation("reader");
+  const { t: tCommon } = useTranslation("common");
+  const { locale } = useLocale();
   const { tafseerId, setTafseerId } = useTafseer();
   const [tafseerText, setTafseerText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [requestVersion, setRequestVersion] = useState(0);
 
   useEffect(() => {
     if (!verse || !open) return;
 
     let cancelled = false;
     setLoading(true);
+    setLoadFailed(false);
+    setTafseerText("");
 
     loadTafseer(tafseerId, verse.sura_no, verse.aya_no)
       .then((text) => {
@@ -41,7 +49,7 @@ export function VerseDialog({ verse, open, onOpenChange }: VerseDialogProps) {
       })
       .catch(() => {
         if (!cancelled) {
-          setTafseerText("تعذر تحميل التفسير.");
+          setLoadFailed(true);
           setLoading(false);
         }
       });
@@ -49,7 +57,7 @@ export function VerseDialog({ verse, open, onOpenChange }: VerseDialogProps) {
     return () => {
       cancelled = true;
     };
-  }, [verse, open, tafseerId]);
+  }, [verse, open, tafseerId, requestVersion]);
 
   if (!verse) return null;
 
@@ -59,26 +67,33 @@ export function VerseDialog({ verse, open, onOpenChange }: VerseDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        dir="rtl"
+        closeLabel={tCommon("actions.close")}
         className="flex max-h-[min(92vh,56rem)] w-[min(96vw,56rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:rounded-xl"
-        onOpenAutoFocus={(event) => event.preventDefault()}
       >
         <div className="border-b border-primary/15 bg-primary/5 px-5 py-4 pe-14 sm:px-6">
-          <DialogHeader className="space-y-1 text-right">
+          <DialogHeader className="space-y-1 text-start">
             <DialogTitle className="flex items-center justify-start gap-2.5 text-xl sm:text-2xl">
               <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <BookOpen className="h-5 w-5 text-primary" />
+                <BookOpen className="h-5 w-5 text-primary" aria-hidden />
               </span>
-              تفسير الآية
+              {t("tafsirDialog.title")}
             </DialogTitle>
             <DialogDescription className="text-sm sm:text-base">
-              سورة {surahName} — الآية {toArabicNumerals(verse.aya_no)}
+              {t("surah")}{" "}
+              <bdi dir="rtl" lang="ar">
+                {surahName}
+              </bdi>{" "}
+              — {t("ayah")} {formatNumber(verse.aya_no, locale)}
             </DialogDescription>
           </DialogHeader>
         </div>
 
         <div className="border-b bg-muted/25 px-5 py-5 sm:px-6 sm:py-6">
-          <p className="quran-text font-mushaf text-center text-2xl leading-[2.2] sm:text-3xl sm:leading-[2.4]">
+          <p
+            className="quran-text font-mushaf text-center text-2xl leading-[2.2] sm:text-3xl sm:leading-[2.4]"
+            dir="rtl"
+            lang="ar"
+          >
             {verse.aya_text}
           </p>
         </div>
@@ -88,16 +103,16 @@ export function VerseDialog({ verse, open, onOpenChange }: VerseDialogProps) {
             htmlFor="tafseer-source"
             className="shrink-0 text-sm font-semibold text-foreground sm:text-base"
           >
-            مصدر التفسير
+            {t("tafsirDialog.source")}
           </Label>
           <div className="w-full sm:flex-1">
             <SearchableRtlSelect
               id="tafseer-source"
               value={tafseerId}
               onValueChange={setTafseerId}
-              placeholder="اختر التفسير"
-              searchPlaceholder="ابحث عن تفسير..."
-              emptyMessage="لا يوجد تفسير بهذا الاسم"
+              placeholder={t("tafsirDialog.choose")}
+              searchPlaceholder={t("tafsirDialog.search")}
+              emptyMessage={t("tafsirDialog.empty")}
               options={Object.entries(TAFSEER_OPTIONS).map(([id, name]) => ({
                 value: id,
                 label: name,
@@ -108,12 +123,36 @@ export function VerseDialog({ verse, open, onOpenChange }: VerseDialogProps) {
 
         <div className="app-main-scroll min-h-[min(50vh,28rem)] flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
           {loading ? (
-            <div className="flex min-h-[12rem] flex-col items-center justify-center gap-3 text-muted-foreground">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-base">جاري تحميل التفسير...</p>
+            <div
+              className="flex min-h-[12rem] flex-col items-center justify-center gap-3 text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              <Loader2
+                className="h-8 w-8 animate-spin text-primary"
+                aria-hidden
+              />
+              <p className="text-base">{t("tafsirDialog.loading")}</p>
+            </div>
+          ) : loadFailed ? (
+            <div className="flex flex-col items-center gap-4 py-12 text-center">
+              <p className="text-sm text-destructive" role="alert">
+                {t("tafsirDialog.error")}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setRequestVersion((version) => version + 1)}
+              >
+                {t("tafsirDialog.retry")}
+              </Button>
             </div>
           ) : (
-            <article className="rounded-xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
+            <article
+              className="rounded-xl border border-border/80 bg-card p-5 shadow-sm sm:p-6"
+              dir="rtl"
+              lang="ar"
+            >
               {tafseerName && (
                 <p className="mb-4 border-b border-border/60 pb-3 text-sm font-semibold text-primary sm:text-base">
                   {tafseerName}

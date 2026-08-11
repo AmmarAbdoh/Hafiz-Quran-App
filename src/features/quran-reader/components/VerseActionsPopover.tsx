@@ -1,5 +1,7 @@
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { BookOpen, Volume2, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 
@@ -52,27 +54,43 @@ export function VerseActionsPopover({
   onClose,
   popoverRef,
 }: VerseActionsPopoverProps) {
+  const { t } = useTranslation("reader");
   const { left, top, transform } = getPopoverPosition(anchor);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   return createPortal(
     <div
       ref={popoverRef}
       data-verse-actions
+      role="dialog"
+      aria-label={t("actions.verseLabel", { verseKey })}
       className="pointer-events-auto fixed z-50"
       style={{ left, top, transform }}
-      onClick={(event) => event.stopPropagation()}
     >
       <div className="flex max-w-[min(20rem,calc(100vw-1rem))] flex-col gap-1.5 rounded-xl border border-border bg-card px-2.5 py-2 shadow-xl">
         <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-1.5">
           <span className="text-xs font-semibold text-primary">
-            {mode === "ayah" ? `آية ${verseKey}` : (wordLocation ?? verseKey)}
+            {mode === "ayah"
+              ? t("actions.verseLabel", { verseKey })
+              : (wordLocation ?? verseKey)}
           </span>
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 shrink-0"
+            className="h-11 w-11 shrink-0"
             onClick={onClose}
-            aria-label="إغلاق"
+            aria-label={t("actions.close")}
+            ref={closeButtonRef}
           >
             <X className="h-3.5 w-3.5" />
           </Button>
@@ -83,7 +101,7 @@ export function VerseActionsPopover({
             <Button
               variant="secondary"
               size="sm"
-              className="h-8 gap-1.5 text-xs"
+              className="min-h-11 gap-1.5 text-xs"
               onClick={onListenWord}
             >
               <Volume2
@@ -92,14 +110,14 @@ export function VerseActionsPopover({
                   playingTarget === "word" && "animate-pulse",
                 )}
               />
-              الكلمة
+              {t("actions.word")}
             </Button>
           )}
 
           <Button
             variant="secondary"
             size="sm"
-            className="h-8 gap-1.5 text-xs"
+            className="min-h-11 gap-1.5 text-xs"
             onClick={onListenAyah}
           >
             <Volume2
@@ -108,17 +126,17 @@ export function VerseActionsPopover({
                 playingTarget === "ayah" && "animate-pulse",
               )}
             />
-            استماع
+            {t("actions.listen")}
           </Button>
 
           <Button
             variant="secondary"
             size="sm"
-            className="h-8 gap-1.5 text-xs"
+            className="min-h-11 gap-1.5 text-xs"
             onClick={onTafseer}
           >
             <BookOpen className="h-3.5 w-3.5" />
-            تفسير
+            {t("actions.tafsir")}
           </Button>
         </div>
       </div>

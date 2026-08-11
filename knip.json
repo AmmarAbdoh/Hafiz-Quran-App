@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "scripts/**/*.mjs",
+    "src/features/recitation-practice/runtime.disabled.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx,css}",
+    "*.config.ts",
+    "scripts/**/*.mjs",
+    "e2e/**/*.ts"
+  ]
+}

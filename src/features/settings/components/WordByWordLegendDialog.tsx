@@ -1,5 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Pause, Play } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "@/app/i18n";
+import {
+  DEMO_AYAH_LABEL,
+  DEMO_VERSE_KEY,
+  DEFAULT_RECITER_ID,
+  fetchVerseAudioData,
+  findActiveWordLocation,
+  getQuranComRecitationId,
+  getReciterById,
+  supportsAyahWordHighlight,
+  type WordSegment,
+} from "@/domain/quran";
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
@@ -8,21 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import {
-  DEMO_AYAH_LABEL,
-  DEMO_VERSE_KEY,
-} from "@/shared/constants/demoAyah";
-import { DEFAULT_RECITER_ID, getReciterById } from "@/shared/constants/reciters";
-import {
-  getQuranComRecitationId,
-  supportsAyahWordHighlight,
-} from "@/shared/constants/quranComReciters";
-import {
-  fetchVerseAudioData,
-  findActiveWordLocation,
-  type WordSegment,
-} from "@/shared/services/quran-com-audio";
 import { cn } from "@/shared/lib/utils";
+import { CancellableAudioPlayer } from "@/shared/media";
 
 interface DemoWord {
   location: string;
@@ -38,9 +38,13 @@ interface WordByWordLegendDialogProps {
 
 const QURAN_COM_API = "https://api.quran.com/api/v4";
 
-async function fetchDemoWords(verseKey: string): Promise<DemoWord[]> {
+async function fetchDemoWords(
+  verseKey: string,
+  signal: AbortSignal,
+): Promise<DemoWord[]> {
   const response = await fetch(
     `${QURAN_COM_API}/verses/by_key/${encodeURIComponent(verseKey)}?words=true&word_fields=text_uthmani,location,position,char_type_name`,
+    { signal },
   );
 
   if (!response.ok) return [];
@@ -71,6 +75,10 @@ export function WordByWordLegendDialog({
   onOpenChange,
   reciterId,
 }: WordByWordLegendDialogProps) {
+  const { locale } = useLocale();
+  const { t } = useTranslation("settings");
+  const { t: tErrors } = useTranslation("errors");
+  const { t: tCommon } = useTranslation("common");
   const [words, setWords] = useState<DemoWord[]>([]);
   const [loadingWords, setLoadingWords] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -78,9 +86,15 @@ export function WordByWordLegendDialog({
   const [activeLocation, setActiveLocation] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioPlayerRef = useRef<CancellableAudioPlayer | null>(null);
+  if (!audioPlayerRef.current) {
+    audioPlayerRef.current = new CancellableAudioPlayer();
+  }
+  const audioPlayer = audioPlayerRef.current;
   const segmentsRef = useRef<WordSegment[]>([]);
   const syncFrameRef = useRef<number | null>(null);
+  const operationIdRef = useRef(0);
+  const playbackFetchRef = useRef<AbortController | null>(null);
 
   const selectedSupports = supportsAyahWordHighlight(reciterId);
   const demoReciterId = selectedSupports ? reciterId : DEFAULT_RECITER_ID;
@@ -88,18 +102,19 @@ export function WordByWordLegendDialog({
   const recitationId = getQuranComRecitationId(demoReciterId);
 
   const stopPlayback = useCallback(() => {
+    operationIdRef.current += 1;
+    playbackFetchRef.current?.abort();
+    playbackFetchRef.current = null;
     if (syncFrameRef.current !== null) {
       cancelAnimationFrame(syncFrameRef.current);
       syncFrameRef.current = null;
     }
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-      audioRef.current = null;
-    }
+    audioPlayer.stop();
+    segmentsRef.current = [];
     setPlaying(false);
+    setLoadingAudio(false);
     setActiveLocation(null);
-  }, []);
+  }, [audioPlayer]);
 
   useEffect(() => {
     if (!open) {
@@ -107,32 +122,36 @@ export function WordByWordLegendDialog({
       return;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
+    const operationId = ++operationIdRef.current;
     setLoadingWords(true);
     setError(null);
 
-    fetchDemoWords(DEMO_VERSE_KEY)
+    fetchDemoWords(DEMO_VERSE_KEY, controller.signal)
       .then((loaded) => {
-        if (!cancelled) {
+        if (operationIdRef.current === operationId) {
           setWords(loaded);
           setLoadingWords(false);
         }
       })
-      .catch(() => {
-        if (!cancelled) {
+      .catch((cause: unknown) => {
+        if (
+          operationIdRef.current === operationId &&
+          !(cause instanceof DOMException && cause.name === "AbortError")
+        ) {
           setLoadingWords(false);
-          setError("تعذر تحميل نص الآية.");
+          setError(tErrors("wordTextLoad"));
         }
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
       stopPlayback();
     };
-  }, [open, stopPlayback]);
+  }, [open, stopPlayback, tErrors]);
 
   const syncHighlight = useCallback(() => {
-    const audio = audioRef.current;
+    const audio = audioPlayer.currentAudio;
     if (!audio || audio.paused) return;
 
     const location = findActiveWordLocation(
@@ -141,78 +160,118 @@ export function WordByWordLegendDialog({
     );
     setActiveLocation(location);
     syncFrameRef.current = requestAnimationFrame(syncHighlight);
-  }, []);
+  }, [audioPlayer]);
 
-  const handlePlay = useCallback(async () => {
+  const handlePlay = async () => {
     if (playing) {
       stopPlayback();
       return;
     }
 
     if (!recitationId) {
-      setError("لا تتوفر بيانات التمييز لهذا القارئ.");
+      setError(tErrors("highlightUnavailable"));
       return;
     }
 
+    const operationId = ++operationIdRef.current;
+    const controller = new AbortController();
+    playbackFetchRef.current?.abort();
+    playbackFetchRef.current = controller;
     setLoadingAudio(true);
     setError(null);
 
     try {
-      const verseAudio = await fetchVerseAudioData(DEMO_VERSE_KEY, recitationId);
+      const verseAudio = await fetchVerseAudioData(
+        DEMO_VERSE_KEY,
+        recitationId,
+        controller.signal,
+      );
+      if (operationIdRef.current !== operationId || controller.signal.aborted) {
+        return;
+      }
       if (!verseAudio?.audioUrl || verseAudio.segments.length === 0) {
-        setError("تعذر تحميل التسجيل التجريبي.");
+        setError(tErrors("audioLoad"));
         return;
       }
 
       segmentsRef.current = verseAudio.segments;
-      const audio = new Audio(verseAudio.audioUrl);
-      audioRef.current = audio;
-
-      audio.addEventListener("ended", stopPlayback);
-      audio.addEventListener("error", stopPlayback);
-
-      await audio.play();
-      setPlaying(true);
-      syncFrameRef.current = requestAnimationFrame(syncHighlight);
-    } catch {
-      setError("تعذر تشغيل التسجيل.");
-      stopPlayback();
+      await audioPlayer.play(verseAudio.audioUrl, {
+        signal: controller.signal,
+        onPlaying: () => {
+          if (operationIdRef.current !== operationId) return;
+          setPlaying(true);
+          syncFrameRef.current = requestAnimationFrame(syncHighlight);
+        },
+        onEnded: () => {
+          if (operationIdRef.current !== operationId) return;
+          if (syncFrameRef.current !== null) {
+            cancelAnimationFrame(syncFrameRef.current);
+            syncFrameRef.current = null;
+          }
+          setPlaying(false);
+          setActiveLocation(null);
+        },
+        onError: () => {
+          if (operationIdRef.current !== operationId) return;
+          if (syncFrameRef.current !== null) {
+            cancelAnimationFrame(syncFrameRef.current);
+            syncFrameRef.current = null;
+          }
+          setPlaying(false);
+          setActiveLocation(null);
+          setError(tErrors("audioPlay"));
+        },
+      });
+    } catch (cause: unknown) {
+      if (
+        operationIdRef.current === operationId &&
+        !(cause instanceof DOMException && cause.name === "AbortError")
+      ) {
+        setError(tErrors("audioPlay"));
+        setPlaying(false);
+      }
     } finally {
-      setLoadingAudio(false);
+      if (operationIdRef.current === operationId) {
+        playbackFetchRef.current = null;
+        setLoadingAudio(false);
+      }
     }
-  }, [playing, recitationId, stopPlayback, syncHighlight]);
+  };
+
+  const demoReciterName =
+    locale === "ar" ? demoReciter.nameAr : demoReciter.nameEn;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-md overflow-y-auto" dir="rtl">
+      <DialogContent
+        closeLabel={tCommon("actions.close")}
+        className="max-h-[85vh] max-w-md overflow-y-auto"
+      >
         <DialogHeader>
-          <DialogTitle>تمييز كلمة بكلمة</DialogTitle>
+          <DialogTitle>{t("recitation.guide.title")}</DialogTitle>
           <DialogDescription>
-            أثناء تلاوة الآية يُميَّز كلُّ كلمة عند نطقها — كما في المصحف أثناء
-            الاستماع.
+            {t("recitation.guide.description")}
           </DialogDescription>
         </DialogHeader>
 
         <ul className="grid gap-3 text-sm">
           <li className="rounded-lg border bg-muted/40 p-3">
-            <p className="font-medium">كيف يعمل؟</p>
+            <p className="font-medium">{t("recitation.guide.howTitle")}</p>
             <p className="mt-1 text-muted-foreground">
-              عند تشغيل الآية تُبرَز الكلمة الجارية واحدةً تلو الأخرى أثناء
-              نطقها — كما في المثال أدناه.
+              {t("recitation.guide.howDescription")}
             </p>
           </li>
           <li className="rounded-lg border bg-muted/40 p-3">
-            <p className="font-medium">من يدعم هذه الميزة؟</p>
+            <p className="font-medium">{t("recitation.guide.supportTitle")}</p>
             <p className="mt-1 text-muted-foreground">
-              القراء الموسومون بـ «تمييز كلمة بكلمة» في قائمة القراء. باقي القراء
-              يشغّلون الآية كاملة دون تمييز الكلمات.
+              {t("recitation.guide.supportDescription")}
             </p>
           </li>
         </ul>
 
         <div className="rounded-xl border bg-background p-4">
           <p className="mb-3 text-center text-xs text-muted-foreground">
-            مثال: {DEMO_AYAH_LABEL}
+            {t("recitation.guide.example")}: {DEMO_AYAH_LABEL}
           </p>
 
           {loadingWords ? (
@@ -260,12 +319,16 @@ export function WordByWordLegendDialog({
               ) : (
                 <Play className="h-4 w-4" />
               )}
-              {playing ? "إيقاف المثال" : "شغّل المثال"}
+              {playing
+                ? t("recitation.guide.stop")
+                : t("recitation.guide.play")}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
               {selectedSupports
-                ? `التجربة بصوت ${demoReciter.nameAr}`
-                : `القارئ المختار لا يدعم التمييز — المثال بصوت ${demoReciter.nameAr}`}
+                ? t("recitation.guide.selectedVoice", { name: demoReciterName })
+                : t("recitation.guide.fallbackVoice", {
+                    name: demoReciterName,
+                  })}
             </p>
           </div>
 

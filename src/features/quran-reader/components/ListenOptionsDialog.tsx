@@ -1,17 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Infinity, Volume2 } from "lucide-react";
-import { useQuranPlayback } from "@/features/quran-reader/context/QuranPlaybackContext";
+import { useTranslation } from "react-i18next";
+import { formatNumber, useLocale } from "@/app/i18n";
+import { useQuranPlaybackActions } from "@/features/quran-reader/context/QuranPlaybackContext";
 import type {
   ListenPlan,
   ListenPreset,
   ListenScopeType,
   RepeatMode,
-} from "@/features/quran-reader/types/listenPlan";
+  ListenPlanValidationError,
+} from "@/features/quran-reader/model/listenPlanTypes";
 import {
   buildListenSession,
   defaultPlanFromPreset,
   validateListenPlan,
-} from "@/features/quran-reader/utils/listenPlanUtils";
+} from "@/features/quran-reader/model/listenPlan";
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
@@ -23,15 +26,16 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
-import { JUZ_NAMES, SURAH_NAMES } from "@/shared/constants/quran";
-import { cn } from "@/shared/lib/utils";
-import { toArabicNumerals } from "@/shared/lib/arabic-numerals";
-import { formatAyahCount } from "@/shared/lib/arabic-count";
 import {
-  getSurahAyahCount,
-} from "@/shared/services/quran-data";
-import type { MushafVerse } from "@/shared/types/quran";
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/shared/components/ui/tabs";
+import { JUZ_NAMES, SURAH_NAMES } from "@/domain/quran";
+import { cn } from "@/shared/lib/utils";
+import { getSurahAyahCount } from "@/domain/quran";
+import type { MushafVerse } from "@/domain/quran";
 
 interface ListenOptionsDialogProps {
   open: boolean;
@@ -57,13 +61,20 @@ export function ListenOptionsDialog({
   totalPages,
   preset,
 }: ListenOptionsDialogProps) {
-  const playback = useQuranPlayback();
+  const { t } = useTranslation("reader");
+  const { t: tCommon } = useTranslation("common");
+  const { locale } = useLocale();
+  const { startListening } = useQuranPlaybackActions();
   const [tab, setTab] = useState("surah");
-  const [plan, setPlan] = useState<ListenPlan>(() => defaultPlanFromPreset(preset));
+  const [plan, setPlan] = useState<ListenPlan>(() =>
+    defaultPlanFromPreset(preset),
+  );
   const [ayahRangeMode, setAyahRangeMode] = useState(false);
   const [pageRangeMode, setPageRangeMode] = useState(false);
   const [surahSearch, setSurahSearch] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<
+    ListenPlanValidationError | "buildFailed" | "startFailed" | null
+  >(null);
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
@@ -74,20 +85,17 @@ export function ListenOptionsDialog({
     setAyahRangeMode(next.scope === "ayah-range");
     setPageRangeMode(next.scope === "page-range");
     setSurahSearch("");
-    setError("");
+    setError(null);
   }, [open, preset]);
 
-  const filteredSurahs = useMemo(
-    () =>
-      SURAH_NAMES.map((name, index) => ({ name, number: index + 1 })).filter(
-        ({ name }) => name.includes(surahSearch),
-      ),
-    [surahSearch],
-  );
+  const filteredSurahs = SURAH_NAMES.map((name, index) => ({
+    name,
+    number: index + 1,
+  })).filter(({ name }) => name.includes(surahSearch));
 
   const setRepeat = (repeatMode: RepeatMode, repeatCount = 1) => {
     setPlan((prev) => ({ ...prev, repeatMode, repeatCount }));
-    setError("");
+    setError(null);
   };
 
   const handleStart = async () => {
@@ -111,7 +119,11 @@ export function ListenOptionsDialog({
       finalPlan.juz = finalPlan.juz ?? 1;
     }
 
-    const validationError = validateListenPlan(finalPlan, mushafData, totalPages);
+    const validationError = validateListenPlan(
+      finalPlan,
+      mushafData,
+      totalPages,
+    );
     if (validationError) {
       setError(validationError);
       return;
@@ -119,14 +131,16 @@ export function ListenOptionsDialog({
 
     const session = buildListenSession(finalPlan, mushafData);
     if (!session) {
-      setError("تعذر تجهيز قائمة الاستماع");
+      setError("buildFailed");
       return;
     }
 
     setStarting(true);
     try {
-      await playback.startListening(session);
+      await startListening(session);
       onOpenChange(false);
+    } catch {
+      setError("startFailed");
     } finally {
       setStarting(false);
     }
@@ -134,47 +148,61 @@ export function ListenOptionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(90vh,720px)] max-w-md flex-col gap-0 overflow-hidden p-0">
+      <DialogContent
+        closeLabel={tCommon("actions.close")}
+        className="flex max-h-[min(90vh,720px)] max-w-md flex-col gap-0 overflow-hidden p-0"
+      >
         <DialogHeader className="border-b px-4 py-4 text-start">
           <DialogTitle className="flex items-center gap-2">
-            <Volume2 className="h-5 w-5 text-primary" />
-            خيارات الاستماع
+            <Volume2 className="h-5 w-5 text-primary" aria-hidden />
+            {t("listenDialog.title")}
           </DialogTitle>
-          <DialogDescription>
-            اختر ما تريد سماعه وعدد مرات التكرار
-          </DialogDescription>
+          <DialogDescription>{t("listenDialog.description")}</DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-4 py-4">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="mb-4 grid h-auto w-full grid-cols-4 gap-1 p-1">
-              <TabsTrigger value="surah" className="text-xs sm:text-sm">
-                سورة
+              <TabsTrigger
+                value="surah"
+                className="min-h-11 text-xs sm:text-sm"
+              >
+                {t("listenDialog.tabs.surah")}
               </TabsTrigger>
-              <TabsTrigger value="juz" className="text-xs sm:text-sm">
-                جزء
+              <TabsTrigger value="juz" className="min-h-11 text-xs sm:text-sm">
+                {t("listenDialog.tabs.juz")}
               </TabsTrigger>
-              <TabsTrigger value="page" className="text-xs sm:text-sm">
-                صفحة
+              <TabsTrigger value="page" className="min-h-11 text-xs sm:text-sm">
+                {t("listenDialog.tabs.page")}
               </TabsTrigger>
-              <TabsTrigger value="ayah" className="text-xs sm:text-sm">
-                آية
+              <TabsTrigger value="ayah" className="min-h-11 text-xs sm:text-sm">
+                {t("listenDialog.tabs.ayah")}
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="surah" className="mt-0 space-y-3">
               <Input
-                placeholder="ابحث عن السورة..."
+                dir="auto"
+                aria-label={t("listenDialog.searchSurah")}
+                placeholder={t("listenDialog.searchSurah")}
                 value={surahSearch}
                 onChange={(e) => setSurahSearch(e.target.value)}
               />
               <div className="max-h-44 overflow-y-auto rounded-lg border border-border">
+                {filteredSurahs.length === 0 && (
+                  <p
+                    className="px-3 py-6 text-center text-sm text-muted-foreground"
+                    role="status"
+                  >
+                    {t("navigation.noSurahs")}
+                  </p>
+                )}
                 {filteredSurahs.map(({ name, number }) => (
                   <button
                     key={number}
                     type="button"
                     className={cn(
-                      "flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-muted",
+                      "flex min-h-11 w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-muted",
                       plan.surah === number && "bg-primary/10 text-primary",
                     )}
                     onClick={() =>
@@ -185,23 +213,30 @@ export function ListenOptionsDialog({
                       }))
                     }
                   >
-                    <span>
-                      {toArabicNumerals(number)}. {name}
+                    <span dir="rtl" lang="ar">
+                      <bdi>{formatNumber(number, locale)}</bdi>. {name}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {formatAyahCount(getSurahAyahCount(mushafData, number), {
-                        arabicNumerals: false,
+                      {t("metadata.ayahCount", {
+                        count: getSurahAyahCount(mushafData, number),
+                        formattedCount: formatNumber(
+                          getSurahAyahCount(mushafData, number),
+                          locale,
+                        ),
                       })}
                     </span>
                   </button>
                 ))}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="surah-start-ayah">من الآية (اختياري)</Label>
+                <Label htmlFor="surah-start-ayah">
+                  {t("listenDialog.startAyah")}
+                </Label>
                 <Input
                   id="surah-start-ayah"
                   inputMode="numeric"
-                  placeholder="١ = من البداية"
+                  className="min-h-11"
+                  placeholder={t("listenDialog.startAyahHint")}
                   value={plan.ayah && plan.ayah > 1 ? String(plan.ayah) : ""}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, "");
@@ -223,16 +258,20 @@ export function ListenOptionsDialog({
                       key={juz}
                       type="button"
                       className={cn(
-                        "rounded-lg border px-2 py-2 text-start text-xs transition-colors hover:bg-muted",
+                        "min-h-11 rounded-lg border px-2 py-2 text-start text-xs transition-colors hover:bg-muted",
                         plan.juz === juz &&
                           "border-primary bg-primary/10 text-primary",
                       )}
                       onClick={() => setPlan((prev) => ({ ...prev, juz }))}
                     >
                       <span className="block font-semibold">
-                        {toArabicNumerals(juz)}
+                        {formatNumber(juz, locale)}
                       </span>
-                      <span className="line-clamp-2 text-muted-foreground">
+                      <span
+                        className="line-clamp-2 text-muted-foreground"
+                        dir="rtl"
+                        lang="ar"
+                      >
                         {name}
                       </span>
                     </button>
@@ -247,24 +286,32 @@ export function ListenOptionsDialog({
                   type="button"
                   size="sm"
                   variant={!pageRangeMode ? "default" : "outline"}
+                  className="min-h-11"
                   onClick={() => setPageRangeMode(false)}
                 >
-                  صفحة واحدة
+                  {t("listenDialog.onePage")}
                 </Button>
                 <Button
                   type="button"
                   size="sm"
                   variant={pageRangeMode ? "default" : "outline"}
+                  className="min-h-11"
                   onClick={() => setPageRangeMode(true)}
                 >
-                  نطاق صفحات
+                  {t("listenDialog.pageRange")}
                 </Button>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>{pageRangeMode ? "من صفحة" : "رقم الصفحة"}</Label>
+                  <Label htmlFor="listen-start-page">
+                    {pageRangeMode
+                      ? t("listenDialog.fromPage")
+                      : t("listenDialog.pageNumber")}
+                  </Label>
                   <Input
+                    id="listen-start-page"
                     inputMode="numeric"
+                    className="min-h-11"
                     value={plan.page ? String(plan.page) : ""}
                     onChange={(e) => {
                       const page = Number.parseInt(
@@ -280,9 +327,13 @@ export function ListenOptionsDialog({
                 </div>
                 {pageRangeMode && (
                   <div className="space-y-2">
-                    <Label>إلى صفحة</Label>
+                    <Label htmlFor="listen-end-page">
+                      {t("listenDialog.toPage")}
+                    </Label>
                     <Input
+                      id="listen-end-page"
                       inputMode="numeric"
+                      className="min-h-11"
                       value={plan.endPage ? String(plan.endPage) : ""}
                       onChange={(e) => {
                         const endPage = Number.parseInt(
@@ -291,7 +342,9 @@ export function ListenOptionsDialog({
                         );
                         setPlan((prev) => ({
                           ...prev,
-                          endPage: Number.isFinite(endPage) ? endPage : undefined,
+                          endPage: Number.isFinite(endPage)
+                            ? endPage
+                            : undefined,
                         }));
                       }}
                     />
@@ -299,7 +352,10 @@ export function ListenOptionsDialog({
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                المجموع {toArabicNumerals(totalPages)} صفحة في المصحف
+                {t("listenDialog.totalPages", {
+                  count: totalPages,
+                  formattedCount: formatNumber(totalPages, locale),
+                })}
               </p>
             </TabsContent>
 
@@ -309,24 +365,30 @@ export function ListenOptionsDialog({
                   type="button"
                   size="sm"
                   variant={!ayahRangeMode ? "default" : "outline"}
+                  className="min-h-11"
                   onClick={() => setAyahRangeMode(false)}
                 >
-                  آية واحدة
+                  {t("listenDialog.oneAyah")}
                 </Button>
                 <Button
                   type="button"
                   size="sm"
                   variant={ayahRangeMode ? "default" : "outline"}
+                  className="min-h-11"
                   onClick={() => setAyahRangeMode(true)}
                 >
-                  نطاق آيات
+                  {t("listenDialog.ayahRange")}
                 </Button>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>سورة</Label>
+                  <Label htmlFor="listen-start-surah">
+                    {t("listenDialog.surah")}
+                  </Label>
                   <Input
+                    id="listen-start-surah"
                     inputMode="numeric"
+                    className="min-h-11"
                     value={plan.surah ? String(plan.surah) : ""}
                     onChange={(e) => {
                       const surah = Number.parseInt(
@@ -341,9 +403,15 @@ export function ListenOptionsDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>{ayahRangeMode ? "من آية" : "آية"}</Label>
+                  <Label htmlFor="listen-start-ayah">
+                    {ayahRangeMode
+                      ? t("listenDialog.fromAyah")
+                      : t("listenDialog.ayah")}
+                  </Label>
                   <Input
+                    id="listen-start-ayah"
                     inputMode="numeric"
+                    className="min-h-11"
                     value={plan.ayah ? String(plan.ayah) : ""}
                     onChange={(e) => {
                       const ayah = Number.parseInt(
@@ -361,9 +429,13 @@ export function ListenOptionsDialog({
               {ayahRangeMode && (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label>إلى سورة</Label>
+                    <Label htmlFor="listen-end-surah">
+                      {t("listenDialog.toSurah")}
+                    </Label>
                     <Input
+                      id="listen-end-surah"
                       inputMode="numeric"
+                      className="min-h-11"
                       value={plan.endSurah ? String(plan.endSurah) : ""}
                       onChange={(e) => {
                         const endSurah = Number.parseInt(
@@ -380,9 +452,13 @@ export function ListenOptionsDialog({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>إلى آية</Label>
+                    <Label htmlFor="listen-end-ayah">
+                      {t("listenDialog.toAyah")}
+                    </Label>
                     <Input
+                      id="listen-end-ayah"
                       inputMode="numeric"
+                      className="min-h-11"
                       value={plan.endAyah ? String(plan.endAyah) : ""}
                       onChange={(e) => {
                         const endAyah = Number.parseInt(
@@ -391,7 +467,9 @@ export function ListenOptionsDialog({
                         );
                         setPlan((prev) => ({
                           ...prev,
-                          endAyah: Number.isFinite(endAyah) ? endAyah : undefined,
+                          endAyah: Number.isFinite(endAyah)
+                            ? endAyah
+                            : undefined,
                         }));
                       }}
                     />
@@ -402,15 +480,16 @@ export function ListenOptionsDialog({
           </Tabs>
 
           <div className="mt-5 space-y-2 border-t border-border pt-4">
-            <Label>التكرار</Label>
+            <Label>{t("listenDialog.repeat")}</Label>
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 size="sm"
                 variant={plan.repeatMode === "none" ? "default" : "outline"}
+                className="min-h-11"
                 onClick={() => setRepeat("none", 1)}
               >
-                بدون
+                {t("listenDialog.noRepeat")}
               </Button>
               {REPEAT_PRESETS.map((count) => (
                 <Button
@@ -422,45 +501,48 @@ export function ListenOptionsDialog({
                       ? "default"
                       : "outline"
                   }
+                  className="min-h-11"
                   onClick={() => setRepeat("count", count)}
                 >
-                  {toArabicNumerals(count)}×
+                  {formatNumber(count, locale)}×
                 </Button>
               ))}
               <Button
                 type="button"
                 size="sm"
-                variant={
-                  plan.repeatMode === "infinite" ? "default" : "outline"
-                }
+                variant={plan.repeatMode === "infinite" ? "default" : "outline"}
                 onClick={() => setRepeat("infinite", 1)}
-                className="gap-1"
+                className="min-h-11 min-w-11 gap-1"
+                aria-label={t("listenDialog.infiniteRepeat")}
+                title={t("listenDialog.infiniteRepeat")}
               >
-                <Infinity className="h-4 w-4" />
+                <Infinity className="h-4 w-4" aria-hidden />
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
               {tab === "ayah" && !ayahRangeMode
-                ? "يُكرّر الآية المحددة"
-                : "يُكرّر النطاق كاملاً ثم يعيد من البداية"}
+                ? t("listenDialog.repeatAyah")
+                : t("listenDialog.repeatRange")}
             </p>
           </div>
 
           {error && (
             <p className="mt-3 text-sm text-destructive" role="alert">
-              {error}
+              {t(`listenDialog.errors.${error}`)}
             </p>
           )}
         </div>
 
         <DialogFooter className="border-t px-4 py-3">
           <Button
-            className="w-full gap-2 sm:w-auto"
+            className="min-h-11 w-full gap-2 sm:w-auto"
             onClick={() => void handleStart()}
             disabled={starting}
           >
-            <Volume2 className="h-4 w-4" />
-            {starting ? "جاري التشغيل…" : "ابدأ الاستماع"}
+            <Volume2 className="h-4 w-4" aria-hidden />
+            <span aria-live="polite">
+              {starting ? t("listenDialog.starting") : t("listenDialog.start")}
+            </span>
           </Button>
         </DialogFooter>
       </DialogContent>

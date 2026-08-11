@@ -4,49 +4,43 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
   type ReactNode,
 } from "react";
-import type { BuiltListenSession } from "@/features/quran-reader/types/listenPlan";
-import { SURAH_NAMES } from "@/shared/constants/quran";
-import { SURAH_AYAH_COUNTS } from "@/shared/constants/reciters";
-import { getQuranComRecitationId } from "@/shared/constants/quranComReciters";
-import { getAyahAudioUrl } from "@/shared/constants/audio";
-import { useReciter } from "@/shared/hooks/use-reciter";
 import {
+  SURAH_AYAH_COUNTS,
+  SURAH_NAMES,
   fetchSurahAudioMeta,
   fetchVerseAudioData,
   findActiveWordLocation,
+  getAyahAudioUrl,
+  getQuranComRecitationId,
   mergeWordSegments,
+  useReciter,
   type SurahTimestamp,
   type WordSegment,
-} from "@/shared/services/quran-com-audio";
+} from "@/domain/quran";
+import type { BuiltListenSession } from "@/features/quran-reader/model/listenPlanTypes";
+import {
+  MediaOperationController,
+  type MediaOperation,
+} from "@/features/quran-reader/services/mediaOperationController";
+import {
+  initialQuranPlaybackState,
+  quranPlaybackReducer,
+  type QuranPlaybackState,
+} from "@/features/quran-reader/model/playbackState";
+import { CancellableAudioPlayer } from "@/shared/media";
 
-export interface QuranPlaybackState {
-  active: boolean;
-  playing: boolean;
-  surah: number;
-  surahName: string;
-  startAyah: number;
-  currentAyah: number;
-  ayahCount: number;
-  reciterName: string;
-  supportsWordHighlight: boolean;
-  activeVerseKey: string | null;
+export type { QuranPlaybackState } from "@/features/quran-reader/model/playbackState";
+
+export interface QuranPlaybackHighlightState {
   activeWordLocation: string | null;
-  surahDurationMs: number;
-  elapsedMs: number;
-  error: string | null;
-  activeVerseInView: boolean;
-  autoFollowPages: boolean;
-  scopeLabel: string;
-  playlistIndex: number;
-  playlistTotal: number;
-  repeatLabel: string | null;
 }
 
-interface QuranPlaybackContextValue extends QuranPlaybackState {
+export interface QuranPlaybackActions {
   startListening: (session: BuiltListenSession) => Promise<void>;
   startAyahPlayback: (surah: number, ayah: number) => Promise<void>;
   pause: () => void;
@@ -60,34 +54,7 @@ interface QuranPlaybackContextValue extends QuranPlaybackState {
   setAutoFollowPages: (follow: boolean) => void;
 }
 
-const initialState: QuranPlaybackState = {
-  active: false,
-  playing: false,
-  surah: 0,
-  surahName: "",
-  startAyah: 0,
-  currentAyah: 0,
-  ayahCount: 0,
-  reciterName: "",
-  supportsWordHighlight: false,
-  activeVerseKey: null,
-  activeWordLocation: null,
-  surahDurationMs: 0,
-  elapsedMs: 0,
-  error: null,
-  activeVerseInView: false,
-  autoFollowPages: true,
-  scopeLabel: "",
-  playlistIndex: 0,
-  playlistTotal: 0,
-  repeatLabel: null,
-};
-
-const QuranPlaybackContext = createContext<QuranPlaybackContextValue | null>(
-  null,
-);
-
-interface ListenSessionRef {
+interface ListenSession {
   playlist: Array<{ surah: number; ayah: number }>;
   index: number;
   repeatMode: BuiltListenSession["repeatMode"];
@@ -95,14 +62,13 @@ interface ListenSessionRef {
   repeatEachAyah: boolean;
   blockRepeatDone: number;
   unitRepeatLeft: number;
-  scopeLabel: string;
+  scopePlan: BuiltListenSession["plan"];
   quranComId: number | null;
   supportsWordHighlight: boolean;
-  completedAyahDurationMs: number;
   surahTimestampsCache: Map<number, SurahTimestamp[]>;
 }
 
-function emptySessionRef(): ListenSessionRef {
+function createEmptySession(): ListenSession {
   return {
     playlist: [],
     index: 0,
@@ -111,154 +77,135 @@ function emptySessionRef(): ListenSessionRef {
     repeatEachAyah: false,
     blockRepeatDone: 0,
     unitRepeatLeft: 0,
-    scopeLabel: "",
+    scopePlan: {
+      scope: "surah",
+      surah: 1,
+      ayah: 1,
+      repeatMode: "none",
+      repeatCount: 1,
+    },
     quranComId: null,
     supportsWordHighlight: false,
-    completedAyahDurationMs: 0,
     surahTimestampsCache: new Map(),
   };
 }
 
-function formatRepeatLabel(session: ListenSessionRef): string | null {
-  if (session.repeatMode === "infinite") return "تكرار ∞";
-  if (session.repeatMode === "count" && session.repeatCount > 1) {
-    if (session.repeatEachAyah) {
-      return `تكرار ${session.repeatCount}× لكل آية`;
-    }
-    return `تكرار ${session.blockRepeatDone + 1}/${session.repeatCount}`;
+function getRepeatIteration(session: ListenSession): number {
+  if (session.repeatMode !== "count") return 1;
+  if (session.repeatEachAyah) {
+    return Math.max(1, session.repeatCount - session.unitRepeatLeft + 1);
   }
-  return null;
+  return session.blockRepeatDone + 1;
 }
+
+const QuranPlaybackStateContext = createContext<QuranPlaybackState | null>(
+  null,
+);
+const QuranPlaybackHighlightContext =
+  createContext<QuranPlaybackHighlightState | null>(null);
+const QuranPlaybackActionsContext = createContext<QuranPlaybackActions | null>(
+  null,
+);
 
 export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   const { reciter } = useReciter();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [state, dispatch] = useReducer(
+    quranPlaybackReducer,
+    initialQuranPlaybackState,
+  );
+  const [activeWordLocation, setActiveWordLocation] = useState<string | null>(
+    null,
+  );
+
+  const audioPlayerRef = useRef<CancellableAudioPlayer | null>(null);
+  if (!audioPlayerRef.current) {
+    audioPlayerRef.current = new CancellableAudioPlayer();
+  }
+  const audioPlayer = audioPlayerRef.current;
   const syncFrameRef = useRef<number | null>(null);
   const pageNavigatorRef = useRef<((verseKey: string) => void) | null>(null);
   const pendingVerseKeyRef = useRef<string | null>(null);
   const segmentsRef = useRef<WordSegment[]>([]);
-  const ayahTimestampsRef = useRef<SurahTimestamp[]>([]);
-  const sessionRef = useRef<ListenSessionRef>(emptySessionRef());
-
-  const [state, setState] = useState<QuranPlaybackState>(initialState);
+  const publishedWordRef = useRef<string | null>(null);
+  const sessionRef = useRef<ListenSession>(createEmptySession());
+  const operationControllerRef = useRef<MediaOperationController | null>(null);
+  if (!operationControllerRef.current) {
+    operationControllerRef.current = new MediaOperationController();
+  }
 
   const stopSyncLoop = useCallback(() => {
-    if (syncFrameRef.current !== null) {
-      cancelAnimationFrame(syncFrameRef.current);
-      syncFrameRef.current = null;
-    }
+    if (syncFrameRef.current === null) return;
+    cancelAnimationFrame(syncFrameRef.current);
+    syncFrameRef.current = null;
+  }, []);
+
+  const publishActiveWord = useCallback((location: string | null) => {
+    if (publishedWordRef.current === location) return;
+    publishedWordRef.current = location;
+    setActiveWordLocation(location);
   }, []);
 
   const cleanupAudio = useCallback(() => {
     stopSyncLoop();
-    if (!audioRef.current) return;
-    audioRef.current.pause();
-    audioRef.current.src = "";
-    audioRef.current.onended = null;
-    audioRef.current.onpause = null;
-    audioRef.current.onerror = null;
-    audioRef.current = null;
-  }, [stopSyncLoop]);
+    audioPlayer.stop(false);
+  }, [audioPlayer, stopSyncLoop]);
 
-  const stop = useCallback(() => {
+  const cancelCurrentSession = useCallback(() => {
+    operationControllerRef.current?.cancel();
     cleanupAudio();
     segmentsRef.current = [];
-    ayahTimestampsRef.current = [];
-    sessionRef.current = emptySessionRef();
-    setState(initialState);
-  }, [cleanupAudio]);
+    sessionRef.current = createEmptySession();
+    publishActiveWord(null);
+  }, [cleanupAudio, publishActiveWord]);
 
-  const getElapsedInSurahMs = useCallback(
-    (currentAyah: number, currentAyahTimeMs: number) => {
-      const entry = ayahTimestampsRef.current.find(
-        (timestamp) => timestamp.ayah === currentAyah,
-      );
-      if (entry) {
-        return entry.startMs + currentAyahTimeMs;
+  const stop = useCallback(() => {
+    cancelCurrentSession();
+    dispatch({ type: "reset" });
+  }, [cancelCurrentSession]);
+
+  const startWordSync = useCallback(
+    (
+      audio: HTMLAudioElement,
+      operation: MediaOperation,
+      supportsWordHighlight: boolean,
+    ) => {
+      stopSyncLoop();
+      if (!supportsWordHighlight) {
+        publishActiveWord(null);
+        return;
       }
 
-      return sessionRef.current.completedAyahDurationMs + currentAyahTimeMs;
-    },
-    [],
-  );
+      const sync = () => {
+        const controller = operationControllerRef.current;
+        if (
+          !controller?.isCurrent(operation) ||
+          audioPlayer.currentAudio !== audio
+        ) {
+          return;
+        }
 
-  const syncPlaybackState = useCallback(() => {
-    if (!audioRef.current) return;
+        publishActiveWord(
+          findActiveWordLocation(segmentsRef.current, audio.currentTime * 1000),
+        );
 
-    const session = sessionRef.current;
-    const current = session.playlist[session.index];
-    if (!current) return;
-
-    const currentAyahTimeMs = audioRef.current.currentTime * 1000;
-    const elapsedMs = getElapsedInSurahMs(current.ayah, currentAyahTimeMs);
-    const activeWordLocation = session.supportsWordHighlight
-      ? findActiveWordLocation(segmentsRef.current, currentAyahTimeMs)
-      : null;
-
-    setState((prev) => {
-      if (
-        prev.elapsedMs === elapsedMs &&
-        prev.activeWordLocation === activeWordLocation
-      ) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        elapsedMs,
-        activeWordLocation,
+        if (!audio.paused && !audio.ended) {
+          syncFrameRef.current = requestAnimationFrame(sync);
+        }
       };
-    });
 
-    if (!audioRef.current.paused && !audioRef.current.ended) {
-      syncFrameRef.current = requestAnimationFrame(syncPlaybackState);
-    }
-  }, [getElapsedInSurahMs]);
-
-  const startSyncLoop = useCallback(() => {
-    stopSyncLoop();
-    syncFrameRef.current = requestAnimationFrame(syncPlaybackState);
-  }, [stopSyncLoop, syncPlaybackState]);
-
-  const updateUiForCurrentItem = useCallback(
-    (playing: boolean, error: string | null = null) => {
-      const session = sessionRef.current;
-      const current = session.playlist[session.index];
-      if (!current) return;
-
-      setState((prev) => ({
-        ...prev,
-        active: true,
-        playing,
-        surah: current.surah,
-        surahName: SURAH_NAMES[current.surah - 1] ?? "",
-        startAyah: session.playlist[0]?.ayah ?? current.ayah,
-        currentAyah: current.ayah,
-        ayahCount: current.ayah,
-        reciterName: reciter.nameAr,
-        supportsWordHighlight: session.supportsWordHighlight,
-        activeVerseKey: `${current.surah}:${current.ayah}`,
-        activeWordLocation: null,
-        scopeLabel: session.scopeLabel,
-        playlistIndex: session.index + 1,
-        playlistTotal: session.playlist.length,
-        repeatLabel: formatRepeatLabel(session),
-        error,
-      }));
+      syncFrameRef.current = requestAnimationFrame(sync);
     },
-    [reciter.nameAr],
+    [audioPlayer, publishActiveWord, stopSyncLoop],
   );
 
-  const playAtIndexRef = useRef<(index: number) => Promise<void>>(
-    async () => {},
+  const playAtIndexRef = useRef<(index: number) => Promise<void>>(() =>
+    Promise.resolve(),
   );
+  const advanceAfterAyahRef = useRef<() => void>(() => undefined);
 
-  const advanceAfterAyah = useRef<() => void>(() => {});
-
-  advanceAfterAyah.current = () => {
+  advanceAfterAyahRef.current = () => {
     const session = sessionRef.current;
-    const current = session.playlist[session.index];
-    if (!current) {
+    if (!session.playlist[session.index]) {
       stop();
       return;
     }
@@ -281,6 +228,11 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
         session.unitRepeatLeft = session.repeatCount;
       }
       void playAtIndexRef.current(session.index);
+      return;
+    }
+
+    if (session.repeatEachAyah) {
+      stop();
       return;
     }
 
@@ -307,37 +259,30 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     stop();
   };
 
-  const attachAudioHandlers = useCallback(
-    (audio: HTMLAudioElement, item: { surah: number; ayah: number }) => {
-      audio.onpause = () => {
-        stopSyncLoop();
-        syncPlaybackState();
-      };
+  const presentCurrentItem = useCallback(() => {
+    const session = sessionRef.current;
+    const item = session.playlist[session.index];
+    if (!item) return;
 
-      audio.onended = () => {
-        const ayahTimestamp = ayahTimestampsRef.current.find(
-          (entry) => entry.ayah === item.ayah,
-        );
-        const playedDurationMs =
-          ayahTimestamp?.durationMs ??
-          Math.round(
-            (Number.isFinite(audio.duration) ? audio.duration : 0) * 1000,
-          );
-        sessionRef.current.completedAyahDurationMs += playedDurationMs;
-
-        advanceAfterAyah.current();
-      };
-
-      audio.onerror = () => {
-        setState((prev) => ({
-          ...prev,
-          playing: false,
-          error: "تعذر تشغيل التلاوة",
-        }));
-      };
-    },
-    [stopSyncLoop, syncPlaybackState],
-  );
+    publishActiveWord(null);
+    dispatch({
+      type: "item-ready",
+      item: {
+        surah: item.surah,
+        surahName: SURAH_NAMES[item.surah - 1] ?? "",
+        ayah: item.ayah,
+        reciterName: reciter.nameAr,
+        supportsWordHighlight: session.supportsWordHighlight,
+        scopePlan: session.scopePlan,
+        playlistIndex: session.index + 1,
+        playlistTotal: session.playlist.length,
+        repeatMode: session.repeatMode,
+        repeatCount: session.repeatCount,
+        repeatEachAyah: session.repeatEachAyah,
+        repeatIteration: getRepeatIteration(session),
+      },
+    });
+  }, [publishActiveWord, reciter.nameAr]);
 
   playAtIndexRef.current = async (index: number) => {
     const session = sessionRef.current;
@@ -348,68 +293,92 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     }
 
     session.index = index;
-    const verseKey = `${item.surah}:${item.ayah}`;
-    const quranComId = session.quranComId;
-
+    const controller = operationControllerRef.current!;
+    const operation = controller.begin();
     cleanupAudio();
     segmentsRef.current = [];
+    presentCurrentItem();
 
-    if (quranComId) {
-      let timestamps = session.surahTimestampsCache.get(item.surah);
-      if (!timestamps) {
-        const meta = await fetchSurahAudioMeta(item.surah, quranComId);
-        timestamps = meta?.ayahTimestamps ?? [];
-        session.surahTimestampsCache.set(item.surah, timestamps);
-      }
-      ayahTimestampsRef.current = timestamps;
-
-      const verseAudio = await fetchVerseAudioData(verseKey, quranComId);
-      if (verseAudio) {
-        const chapterEntry = timestamps.find((entry) => entry.ayah === item.ayah);
-        segmentsRef.current = chapterEntry
-          ? mergeWordSegments(
-              verseAudio.segments,
-              chapterEntry.chapterSegments,
-              verseAudio.wordsByPosition,
-            )
-          : verseAudio.segments;
-
-        const audio = new Audio(verseAudio.audioUrl);
-        audioRef.current = audio;
-        attachAudioHandlers(audio, item);
-        try {
-          await audio.play();
-          updateUiForCurrentItem(true);
-          startSyncLoop();
-        } catch {
-          updateUiForCurrentItem(false, "تعذر تشغيل التلاوة");
+    let audioUrl: string | null = null;
+    if (session.quranComId) {
+      try {
+        let timestamps = session.surahTimestampsCache.get(item.surah);
+        if (!timestamps) {
+          const metadata = await fetchSurahAudioMeta(
+            item.surah,
+            session.quranComId,
+            operation.signal,
+          );
+          if (!controller.isCurrent(operation)) return;
+          timestamps = metadata?.ayahTimestamps ?? [];
+          session.surahTimestampsCache.set(item.surah, timestamps);
         }
-        return;
+
+        const verseAudio = await fetchVerseAudioData(
+          `${item.surah}:${item.ayah}`,
+          session.quranComId,
+          operation.signal,
+        );
+        if (!controller.isCurrent(operation)) return;
+
+        if (verseAudio) {
+          const chapterEntry = timestamps.find(
+            (entry) => entry.ayah === item.ayah,
+          );
+          segmentsRef.current = chapterEntry
+            ? mergeWordSegments(
+                verseAudio.segments,
+                chapterEntry.chapterSegments,
+                verseAudio.wordsByPosition,
+              )
+            : verseAudio.segments;
+          audioUrl = verseAudio.audioUrl;
+        }
+      } catch {
+        if (!controller.isCurrent(operation)) return;
       }
     }
 
-    ayahTimestampsRef.current =
-      session.surahTimestampsCache.get(item.surah) ?? [];
-    const audio = new Audio(getAyahAudioUrl(reciter, item.surah, item.ayah));
-    audioRef.current = audio;
-    attachAudioHandlers(audio, item);
-
-    try {
-      await audio.play();
-      updateUiForCurrentItem(true);
-      startSyncLoop();
-    } catch {
-      updateUiForCurrentItem(false, "تعذر تشغيل التلاوة");
+    if (!audioUrl) {
+      audioUrl = getAyahAudioUrl(reciter, item.surah, item.ayah);
     }
+    if (!controller.isCurrent(operation)) return;
+
+    await audioPlayer.play(audioUrl, {
+      signal: operation.signal,
+      onPlaying: ({ audio }) => {
+        if (!controller.isCurrent(operation)) return;
+        dispatch({ type: "playback-changed", playing: true, error: null });
+        startWordSync(audio, operation, session.supportsWordHighlight);
+      },
+      onPause: () => {
+        if (controller.isCurrent(operation)) stopSyncLoop();
+      },
+      onEnded: () => {
+        if (!controller.isCurrent(operation)) return;
+        stopSyncLoop();
+        publishActiveWord(null);
+        advanceAfterAyahRef.current();
+      },
+      onError: () => {
+        if (!controller.isCurrent(operation)) return;
+        stopSyncLoop();
+        dispatch({
+          type: "playback-changed",
+          playing: false,
+          error: "audioPlay",
+        });
+      },
+    });
   };
 
   const startListening = useCallback(
     async (built: BuiltListenSession) => {
       stop();
+      const first = built.playlist[0];
+      if (!first) return;
 
       const quranComId = getQuranComRecitationId(reciter.id);
-      const first = built.playlist[0]!;
-
       sessionRef.current = {
         playlist: built.playlist,
         index: 0,
@@ -421,106 +390,80 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
           built.repeatEachAyah && built.repeatMode === "count"
             ? built.repeatCount
             : 0,
-        scopeLabel: built.label,
+        scopePlan: built.plan,
         quranComId,
         supportsWordHighlight: Boolean(quranComId),
-        completedAyahDurationMs: 0,
         surahTimestampsCache: new Map(),
       };
 
-      setState({
-        ...initialState,
-        active: true,
-        playing: false,
-        surah: first.surah,
-        surahName: SURAH_NAMES[first.surah - 1] ?? "",
-        startAyah: first.ayah,
-        currentAyah: first.ayah,
-        ayahCount: first.ayah,
-        reciterName: reciter.nameAr,
-        supportsWordHighlight: Boolean(quranComId),
-        activeVerseKey: `${first.surah}:${first.ayah}`,
-        scopeLabel: built.label,
-        playlistIndex: 1,
-        playlistTotal: built.playlist.length,
-        repeatLabel: formatRepeatLabel(sessionRef.current),
-        autoFollowPages: true,
-      });
-
       await playAtIndexRef.current(0);
     },
-    [stop, reciter, attachAudioHandlers, cleanupAudio, startSyncLoop, updateUiForCurrentItem],
+    [reciter.id, stop],
   );
 
   const startAyahPlayback = useCallback(
     async (surah: number, ayah: number) => {
-      const ayahCount = SURAH_AYAH_COUNTS[surah - 1] ?? 0;
-      const playlist = Array.from({ length: ayahCount - ayah + 1 }, (_, index) => ({
-        surah,
-        ayah: ayah + index,
-      }));
+      const surahAyahCount = SURAH_AYAH_COUNTS[surah - 1] ?? 0;
+      const playlist = Array.from(
+        { length: Math.max(0, surahAyahCount - ayah + 1) },
+        (_, index) => ({ surah, ayah: ayah + index }),
+      );
 
       await startListening({
         playlist,
         repeatMode: "none",
         repeatCount: 1,
         repeatEachAyah: false,
-        label: `سورة ${SURAH_NAMES[surah - 1] ?? surah} — من ${surah}:${ayah}`,
+        plan: {
+          scope: "surah",
+          surah,
+          ayah,
+          repeatMode: "none",
+          repeatCount: 1,
+        },
       });
     },
     [startListening],
   );
 
   const pause = useCallback(() => {
-    audioRef.current?.pause();
-    setState((prev) => ({ ...prev, playing: false }));
-  }, []);
+    audioPlayer.pause();
+    dispatch({ type: "playback-changed", playing: false, error: null });
+  }, [audioPlayer]);
 
   const resume = useCallback(() => {
-    if (!audioRef.current) return;
-    void audioRef.current.play();
-    setState((prev) => ({ ...prev, playing: true, error: null }));
-    startSyncLoop();
-  }, [startSyncLoop]);
+    void audioPlayer.resume();
+  }, [audioPlayer]);
 
   const goToVerse = useCallback((verseKey: string) => {
     pendingVerseKeyRef.current = verseKey;
-    if (pageNavigatorRef.current) {
-      pageNavigatorRef.current(verseKey);
-      pendingVerseKeyRef.current = null;
-    }
-  }, []);
-
-  const setActiveVerseInView = useCallback((inView: boolean) => {
-    setState((prev) =>
-      prev.activeVerseInView === inView
-        ? prev
-        : { ...prev, activeVerseInView: inView },
-    );
-  }, []);
-
-  const setAutoFollowPages = useCallback((follow: boolean) => {
-    setState((prev) =>
-      prev.autoFollowPages === follow ? prev : { ...prev, autoFollowPages: follow },
-    );
+    if (!pageNavigatorRef.current) return;
+    pageNavigatorRef.current(verseKey);
+    pendingVerseKeyRef.current = null;
   }, []);
 
   const registerPageNavigator = useCallback(
     (navigator: ((verseKey: string) => void) | null) => {
       pageNavigatorRef.current = navigator;
-      if (navigator && pendingVerseKeyRef.current) {
-        navigator(pendingVerseKeyRef.current);
-        pendingVerseKeyRef.current = null;
-      }
+      if (!navigator || !pendingVerseKeyRef.current) return;
+      navigator(pendingVerseKeyRef.current);
+      pendingVerseKeyRef.current = null;
     },
     [],
   );
 
-  useEffect(() => () => stop(), [stop]);
+  const setActiveVerseInView = useCallback((inView: boolean) => {
+    dispatch({ type: "verse-visibility-changed", inView });
+  }, []);
 
-  const value = useMemo(
+  const setAutoFollowPages = useCallback((follow: boolean) => {
+    dispatch({ type: "auto-follow-changed", follow });
+  }, []);
+
+  useEffect(() => cancelCurrentSession, [cancelCurrentSession]);
+
+  const actions = useMemo<QuranPlaybackActions>(
     () => ({
-      ...state,
       startListening,
       startAyahPlayback,
       pause,
@@ -532,7 +475,6 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
       setAutoFollowPages,
     }),
     [
-      state,
       startListening,
       startAyahPlayback,
       pause,
@@ -544,18 +486,48 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
       setAutoFollowPages,
     ],
   );
+  const highlight = useMemo<QuranPlaybackHighlightState>(
+    () => ({ activeWordLocation }),
+    [activeWordLocation],
+  );
 
   return (
-    <QuranPlaybackContext.Provider value={value}>
-      {children}
-    </QuranPlaybackContext.Provider>
+    <QuranPlaybackActionsContext.Provider value={actions}>
+      <QuranPlaybackStateContext.Provider value={state}>
+        <QuranPlaybackHighlightContext.Provider value={highlight}>
+          {children}
+        </QuranPlaybackHighlightContext.Provider>
+      </QuranPlaybackStateContext.Provider>
+    </QuranPlaybackActionsContext.Provider>
   );
 }
 
-export function useQuranPlayback() {
-  const context = useContext(QuranPlaybackContext);
+export function useQuranPlaybackState(): QuranPlaybackState {
+  const context = useContext(QuranPlaybackStateContext);
   if (!context) {
-    throw new Error("useQuranPlayback must be used within QuranPlaybackProvider");
+    throw new Error(
+      "useQuranPlaybackState must be used within QuranPlaybackProvider",
+    );
+  }
+  return context;
+}
+
+export function useQuranPlaybackHighlight(): QuranPlaybackHighlightState {
+  const context = useContext(QuranPlaybackHighlightContext);
+  if (!context) {
+    throw new Error(
+      "useQuranPlaybackHighlight must be used within QuranPlaybackProvider",
+    );
+  }
+  return context;
+}
+
+export function useQuranPlaybackActions(): QuranPlaybackActions {
+  const context = useContext(QuranPlaybackActionsContext);
+  if (!context) {
+    throw new Error(
+      "useQuranPlaybackActions must be used within QuranPlaybackProvider",
+    );
   }
   return context;
 }

@@ -1,0 +1,24 @@
+@layer utilities {
+  .quiz-mushaf-preview {
+    direction: rtl;
+    width: 100%;
+    max-width: min(100%, 42rem);
+    margin-inline: auto;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  .quiz-mushaf-preview .mushaf-page--full {
+    --mushaf-line-width: min(100%, 36rem);
+    --mushaf-font-size: clamp(0.95rem, 1.4vw + 0.55rem, 1.4rem);
+    --mushaf-line-height: clamp(2rem, 2.8vw + 1.2rem, 2.75rem);
+  }
+
+  @media (min-width: 640px) {
+    .quiz-mushaf-preview .mushaf-page--full {
+      --mushaf-line-width: min(100%, 38rem);
+      --mushaf-font-size: clamp(1rem, 0.9vw + 0.75rem, 1.45rem);
+      --mushaf-line-height: clamp(2.1rem, 1.6vw + 1.6rem, 2.85rem);
+    }
+  }
+}

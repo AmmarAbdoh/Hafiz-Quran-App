@@ -1,0 +1,340 @@
+import { describe, it, expect } from "vitest";
+import {
+  buildFullWordLines,
+  getPageLines,
+  getPageSurahHeaders,
+  getPageSurahNumbers,
+  getPrevAndNextVerse,
+  getSurahHeaderLines,
+  getSurahTashkeelName,
+  getVerseInfo,
+  type MushafPageLayout,
+  type MushafVerse,
+  type UthmaniVerse,
+  type VerseInfoRecord,
+} from "@/domain/quran";
+
+const mockRecords: VerseInfoRecord[] = [
+  {
+    id: 1,
+    verse_number: 1,
+    verse_key: "1:1",
+    hizb_number: 1,
+    rub_el_hizb_number: 1,
+    ruku_number: 1,
+    manzil_number: 1,
+    sajdah_number: null,
+    page_number: 1,
+    juz_number: 1,
+  },
+];
+
+const mockVerses: UthmaniVerse[] = [
+  { id: 1, verse_key: "1:1", text_uthmani: "آية 1" },
+  { id: 2, verse_key: "1:2", text_uthmani: "آية 2" },
+  { id: 3, verse_key: "2:1", text_uthmani: "آية 3" },
+];
+
+describe("getVerseInfo", () => {
+  it("returns formatted verse metadata", () => {
+    const info = getVerseInfo(1, mockRecords);
+    expect(info).toHaveLength(5);
+    expect(info[0]).toEqual({ key: "surah", value: "1" });
+    expect(info[1]?.value).toBe(1);
+  });
+
+  it("returns empty array for unknown verse", () => {
+    expect(getVerseInfo(999, mockRecords)).toEqual([]);
+  });
+});
+
+describe("getPrevAndNextVerse", () => {
+  it("returns prev and next within same surah", () => {
+    const [prev, next] = getPrevAndNextVerse(mockVerses[1]!, mockVerses);
+    expect(prev?.id).toBe(1);
+    expect(next).toBeNull();
+  });
+
+  it("returns null prev for first verse in surah", () => {
+    const [prev, next] = getPrevAndNextVerse(mockVerses[0]!, mockVerses);
+    expect(prev).toBeNull();
+    expect(next?.id).toBe(2);
+  });
+});
+
+describe("getPageLines", () => {
+  const sampleVerses: MushafVerse[] = [
+    {
+      id: 1,
+      jozz: 1,
+      page: 1,
+      sura_no: 1,
+      sura_name_en: "Al-Fatiha",
+      sura_name_ar: "الفاتحة",
+      line_start: 2,
+      line_end: 2,
+      aya_no: 1,
+      aya_text: "بسم الله",
+      aya_text_emlaey: "بسم الله",
+    },
+    {
+      id: 2,
+      jozz: 1,
+      page: 1,
+      sura_no: 1,
+      sura_name_en: "Al-Fatiha",
+      sura_name_ar: "الفاتحة",
+      line_start: 3,
+      line_end: 3,
+      aya_no: 2,
+      aya_text: "الحمد لله",
+      aya_text_emlaey: "الحمد لله",
+    },
+    {
+      id: 3,
+      jozz: 1,
+      page: 1,
+      sura_no: 1,
+      sura_name_en: "Al-Fatiha",
+      sura_name_ar: "الفاتحة",
+      line_start: 4,
+      line_end: 4,
+      aya_no: 3,
+      aya_text: "الرحمن",
+      aya_text_emlaey: "الرحمن",
+    },
+    {
+      id: 4,
+      jozz: 1,
+      page: 1,
+      sura_no: 1,
+      sura_name_en: "Al-Fatiha",
+      sura_name_ar: "الفاتحة",
+      line_start: 4,
+      line_end: 4,
+      aya_no: 4,
+      aya_text: "مالك",
+      aya_text_emlaey: "مالك",
+    },
+  ];
+
+  it("groups verses by line_start", () => {
+    const lines = getPageLines(sampleVerses);
+    expect(lines).toHaveLength(15);
+    expect(lines[1]?.verses).toHaveLength(1);
+    expect(lines[3]?.verses).toHaveLength(2);
+  });
+
+  it("calculates surah header lines", () => {
+    expect(getSurahHeaderLines(sampleVerses)).toBe(1);
+  });
+});
+
+describe("buildFullWordLines", () => {
+  const pageLayout: MushafPageLayout = {
+    page: 41,
+    lines: [
+      {
+        line: 8,
+        words: [
+          {
+            verse_key: "2:249",
+            sura: 2,
+            aya: 249,
+            word: 60,
+            location: "2:249:60",
+            line: 8,
+            page: 41,
+            code_v2: "ﱻ",
+            char_type: "word",
+          },
+          {
+            verse_key: "2:249",
+            sura: 2,
+            aya: 249,
+            word: 61,
+            location: "2:249:61",
+            line: 8,
+            page: 41,
+            code_v2: "ﱼ",
+            char_type: "end",
+          },
+          {
+            verse_key: "2:250",
+            sura: 2,
+            aya: 250,
+            word: 1,
+            location: "2:250:1",
+            line: 8,
+            page: 41,
+            code_v2: "ﱽ",
+            char_type: "word",
+          },
+        ],
+      },
+    ],
+  };
+
+  it("fills sparse lines into a 15-line mushaf page", () => {
+    const lines = buildFullWordLines(pageLayout);
+    expect(lines).toHaveLength(15);
+    expect(lines[7]?.words).toHaveLength(3);
+    expect(lines[0]?.words).toHaveLength(0);
+  });
+
+  it("detects surah header lines at page start", () => {
+    const headerPage: MushafPageLayout = {
+      page: 2,
+      lines: [
+        {
+          line: 3,
+          words: [
+            {
+              verse_key: "2:1",
+              sura: 2,
+              aya: 1,
+              word: 1,
+              location: "2:1:1",
+              line: 3,
+              page: 2,
+              code_v2: "ﱁ",
+              char_type: "word",
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(getPageSurahHeaders(headerPage)).toEqual([
+      { surahNumber: 2, beforeLine: 3, headerLines: 2 },
+    ]);
+  });
+
+  it("detects multiple surah headers on one page", () => {
+    const multiSurahPage: MushafPageLayout = {
+      page: 599,
+      lines: [
+        {
+          line: 2,
+          words: [
+            {
+              verse_key: "100:1",
+              sura: 100,
+              aya: 1,
+              word: 1,
+              location: "100:1:1",
+              line: 2,
+              page: 599,
+              code_v2: "ﱁ",
+              char_type: "word",
+            },
+          ],
+        },
+        {
+          line: 8,
+          words: [
+            {
+              verse_key: "101:1",
+              sura: 101,
+              aya: 1,
+              word: 1,
+              location: "101:1:1",
+              line: 8,
+              page: 599,
+              code_v2: "ﱂ",
+              char_type: "word",
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(getPageSurahHeaders(multiSurahPage)).toEqual([
+      { surahNumber: 100, beforeLine: 2, headerLines: 1 },
+      { surahNumber: 101, beforeLine: 8, headerLines: 5 },
+    ]);
+  });
+
+  it("ignores duplicate ayah-1 markers for the same surah", () => {
+    const duplicateBismillahPage: MushafPageLayout = {
+      page: 77,
+      lines: [
+        {
+          line: 2,
+          words: [
+            {
+              verse_key: "4:1",
+              sura: 4,
+              aya: 1,
+              word: 1,
+              location: "4:1:1",
+              line: 2,
+              page: 77,
+              code_v2: "ﱁ",
+              char_type: "word",
+            },
+          ],
+        },
+        {
+          line: 3,
+          words: [
+            {
+              verse_key: "4:1",
+              sura: 4,
+              aya: 1,
+              word: 2,
+              location: "4:1:2",
+              line: 3,
+              page: 77,
+              code_v2: "ﱂ",
+              char_type: "word",
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(getPageSurahHeaders(duplicateBismillahPage)).toEqual([
+      { surahNumber: 4, beforeLine: 2, headerLines: 1 },
+    ]);
+  });
+});
+
+describe("page surah metadata", () => {
+  const mushafVerses: MushafVerse[] = [
+    {
+      id: 1,
+      jozz: 1,
+      page: 599,
+      sura_no: 99,
+      sura_name_en: "Az-Zalzalah",
+      sura_name_ar: "الزَّلزَلة",
+      line_start: 1,
+      line_end: 2,
+      aya_no: 1,
+      aya_text: "test",
+      aya_text_emlaey: "test",
+    },
+    {
+      id: 2,
+      jozz: 30,
+      page: 599,
+      sura_no: 100,
+      sura_name_en: "Al-Adiyat",
+      sura_name_ar: "العَادِيات",
+      line_start: 8,
+      line_end: 8,
+      aya_no: 1,
+      aya_text: "test",
+      aya_text_emlaey: "test",
+    },
+  ];
+
+  it("lists every surah on a page", () => {
+    expect(getPageSurahNumbers(mushafVerses, 599)).toEqual([99, 100]);
+  });
+
+  it("returns tashkeel surah names from mushaf metadata", () => {
+    expect(getSurahTashkeelName(mushafVerses, 100)).toBe("العَادِيات");
+  });
+});

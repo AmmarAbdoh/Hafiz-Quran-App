@@ -1,30 +1,42 @@
-import { useEffect, useMemo, useState } from "react";
-import { MushafFontLoadingState } from "@/features/quran-reader/components/MushafFontLoadingState";
-import { MushafPageBlock } from "@/features/quran-reader/components/MushafPageBlock";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  preloadQcfPageFont,
-  useMushafPagesFontReady,
-} from "@/features/quran-reader/hooks/useQcfPageFont";
-import { getWordLayoutForPage } from "@/shared/services/quran-data";
+  MushafFontLoadingState,
+  MushafPageView,
+  useQuranData,
+  type MushafPageLayout,
+  type MushafVerse,
+} from "@/domain/quran";
 import { useTheme } from "@/shared/hooks/use-theme";
-import type {
-  MushafVerse,
-  MushafWord,
-  MushafWordLayoutData,
-} from "@/shared/types/quran";
+import { safeStorage } from "@/shared/storage";
 
 const TAJWEED_STORAGE_KEY = "mushaf-tajweed-colored";
 
 function readTajweedColored(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.localStorage.getItem(TAJWEED_STORAGE_KEY) === "true";
+  return safeStorage.getItem(TAJWEED_STORAGE_KEY) === "true";
+}
+
+function getRevealedLocations(
+  pageLayout: MushafPageLayout | null,
+  page: number,
+  hiddenVerseKey: string | null,
+): string[] {
+  if (!pageLayout || !hiddenVerseKey) return [];
+
+  return pageLayout.lines.flatMap((line) =>
+    line.words
+      .filter(
+        (word) =>
+          word.page === page &&
+          (word.verse_key !== hiddenVerseKey || word.char_type === "end"),
+      )
+      .map((word) => word.location),
+  );
 }
 
 interface QuizMushafPreviewProps {
   page: number;
   mushafData: MushafVerse[];
-  wordLayout: MushafWordLayoutData;
-  /** When false, shows the full mushaf page (better for fill-blank context). */
   surahFilter?: number;
   highlightVerseKey?: string | null;
   hiddenVerseKey?: string | null;
@@ -32,62 +44,42 @@ interface QuizMushafPreviewProps {
   className?: string;
 }
 
-function collectRevealedWordLocations(
-  wordLayout: MushafWordLayoutData,
-  page: number,
-  hiddenVerseKey: string,
-): string[] {
-  const pageLayout = getWordLayoutForPage(wordLayout, page);
-  if (!pageLayout) return [];
-
-  const locations: string[] = [];
-  for (const line of pageLayout.lines) {
-    for (const word of line.words) {
-      if (word.page !== page) continue;
-      if (word.verse_key === hiddenVerseKey && word.char_type !== "end") {
-        continue;
-      }
-      locations.push(word.location);
-    }
-  }
-  return locations;
-}
-
 export function QuizMushafPreview({
   page,
   mushafData,
-  wordLayout,
   surahFilter,
   highlightVerseKey = null,
   hiddenVerseKey = null,
   tajweedColored: tajweedColoredProp,
   className,
 }: QuizMushafPreviewProps) {
+  const { t } = useTranslation("quiz");
   const { theme } = useTheme();
-  const [tajweedColored] = useState(() =>
-    tajweedColoredProp ?? readTajweedColored(),
+  const { loadPageLayout } = useQuranData();
+  const [pageLayout, setPageLayout] = useState<MushafPageLayout | null>(null);
+  const [tajweedColored] = useState(
+    () => tajweedColoredProp ?? readTajweedColored(),
   );
-  const resolvedTajweed =
-    tajweedColoredProp !== undefined ? tajweedColoredProp : tajweedColored;
+  const resolvedTajweed = tajweedColoredProp ?? tajweedColored;
 
   useEffect(() => {
-    void preloadQcfPageFont(page, theme, resolvedTajweed);
-  }, [page, theme, resolvedTajweed]);
+    let cancelled = false;
+    setPageLayout(null);
+    void loadPageLayout(page)
+      .then((layout) => {
+        if (!cancelled) setPageLayout(layout);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [loadPageLayout, page]);
 
-  const fontsReady = useMushafPagesFontReady([page], theme, resolvedTajweed, {
-    requiredCount: 1,
-    enabled: true,
-  });
-
-  const revealedLocations = useMemo(() => {
-    if (!hiddenVerseKey) return [];
-    return collectRevealedWordLocations(wordLayout, page, hiddenVerseKey);
-  }, [wordLayout, page, hiddenVerseKey]);
-
-  const handleWordActivate = (
-    _word: MushafWord,
-    _event: React.MouseEvent<HTMLElement>,
-  ) => {};
+  const revealedLocations = getRevealedLocations(
+    pageLayout,
+    page,
+    hiddenVerseKey,
+  );
 
   return (
     <div
@@ -96,26 +88,21 @@ export function QuizMushafPreview({
         "quiz-mushaf-preview mx-auto w-full rounded-xl border bg-background p-2 shadow-sm"
       }
       dir="rtl"
+      lang="ar"
     >
-      {!fontsReady ? (
-        <MushafFontLoadingState compact message="جاري تحميل خط المصحف…" />
+      {!pageLayout ? (
+        <MushafFontLoadingState compact message={t("active.loading")} />
       ) : (
-        <MushafPageBlock
-          page={page}
+        <MushafPageView
+          pageLayout={pageLayout}
           mushafData={mushafData}
-          wordLayout={wordLayout}
           tajweedColored={resolvedTajweed}
           theme={theme}
+          loadingMessage={t("active.loading")}
           highlightVerseKey={highlightVerseKey}
-          selection={null}
-          recitationVerseKey={null}
-          recitationWordLocation={null}
           practiceMode={Boolean(hiddenVerseKey)}
-          practiceHideAyat={Boolean(hiddenVerseKey)}
-          practiceRevealedLocations={revealedLocations}
-          practiceTargetWordLocation={null}
-          practiceWrongFlashLocation={null}
-          onWordActivate={handleWordActivate}
+          hidePracticeWords={Boolean(hiddenVerseKey)}
+          revealedWordLocations={revealedLocations}
           surahFilter={surahFilter}
         />
       )}

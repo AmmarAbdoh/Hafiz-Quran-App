@@ -1,5 +1,6 @@
 import { Info, Palette } from "lucide-react";
-import { TAJWEED_LEGEND } from "@/shared/constants/tajweed";
+import { useTranslation } from "react-i18next";
+import { TAJWEED_LEGEND } from "@/domain/quran";
 import { cn } from "@/shared/lib/utils";
 
 interface TajweedColorDrawerProps {
@@ -15,7 +16,20 @@ export function TajweedColorDrawer({
   onOpenChange,
   onOpenLegendGuide,
 }: TajweedColorDrawerProps) {
+  const { t } = useTranslation("reader");
+
   if (!visible) return null;
+
+  const ruleLabels: Record<string, string> = {
+    sakin: t("tajweed.rules.sakin.label"),
+    "madd-2": t("tajweed.rules.madd2.label"),
+    "madd-munfasil": t("tajweed.rules.maddMunfasil.label"),
+    "madd-muttasil": t("tajweed.rules.maddMuttasil.label"),
+    "madd-lazim": t("tajweed.rules.maddLazim.label"),
+    ghunnah: t("tajweed.rules.ghunnah.label"),
+    qalqalah: t("tajweed.rules.qalqalah.label"),
+    tafkheem: t("tajweed.rules.tafkheem.label"),
+  };
 
   return (
     <div
@@ -41,7 +55,9 @@ export function TajweedColorDrawer({
                     style={{ backgroundColor: rule.color }}
                     aria-hidden
                   />
-                  <span className="text-foreground/90">{rule.label}</span>
+                  <span className="text-foreground/90">
+                    {ruleLabels[rule.id] ?? rule.label}
+                  </span>
                 </span>
               ))}
             </div>
@@ -49,9 +65,10 @@ export function TajweedColorDrawer({
             <button
               type="button"
               onClick={onOpenLegendGuide}
-              className="mushaf-tajweed-dock__info"
-              aria-label="شرح تفصيلي لألوان التجويد"
-              title="شرح تفصيلي"
+              className="mushaf-tajweed-dock__info min-h-11 min-w-11"
+              aria-label={t("tajweed.details")}
+              title={t("tajweed.detailsShort")}
+              tabIndex={open ? 0 : -1}
             >
               <Info className="h-3.5 w-3.5" />
             </button>
@@ -62,17 +79,17 @@ export function TajweedColorDrawer({
       <button
         type="button"
         className={cn(
-          "mushaf-tajweed-dock__toggle",
+          "mushaf-tajweed-dock__toggle min-h-11 min-w-11",
           open && "mushaf-tajweed-dock__toggle--active",
         )}
         onClick={() => onOpenChange(!open)}
         aria-expanded={open}
-        aria-label={open ? "إخفاء معنى الألوان" : "عرض معنى الألوان"}
-        title={open ? "إخفاء معنى الألوان" : "معنى الألوان"}
+        aria-label={open ? t("tajweed.hideMeaning") : t("tajweed.showMeaning")}
+        title={open ? t("tajweed.hideMeaning") : t("tajweed.meaning")}
       >
         <Palette className="h-3.5 w-3.5 text-primary" aria-hidden />
         <span className="text-[10px] font-medium sm:text-[11px]">
-          معنى الألوان
+          {t("tajweed.meaning")}
         </span>
       </button>
     </div>

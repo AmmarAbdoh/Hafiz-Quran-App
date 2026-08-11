@@ -1,103 +1,107 @@
-import { Heart } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/card";
+import { ExternalLink, Heart, Landmark } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
-const DATA_SOURCES = [
+const dataSources = [
   {
-    name: "Quran.com / Quran Foundation",
-    use: "تخطيط المصحف كلمة بكلمة، خطوط QCF، وتسجيلات الكلمات",
+    nameKey: "about.sourceDetails.quranFoundationName",
     url: "https://quran.com",
-    license: "محتوى مرخّص بشروط Quran Foundation — للاستخدام في تطبيقات قرآنية",
+    useKey: "about.sourceDetails.quranFoundationUse",
+    licenseKey: "about.sourceDetails.quranFoundationLicense",
   },
   {
-    name: "مجمع الملك فهد لطباعة المصحف (KFGQPC)",
-    use: "خطوط المصحف العثماني (QCF)",
+    nameKey: "about.sourceDetails.kfgqpcName",
     url: "https://fonts.qurancomplex.gov.sa",
-    license: "مجاني للاستخدام مع نسبة المصدر — لا يجوز تعديل الخط أو بيعه",
+    useKey: "about.sourceDetails.kfgqpcUse",
+    licenseKey: "about.sourceDetails.kfgqpcLicense",
   },
   {
-    name: "EveryAyah.com",
-    use: "أغلب تسجيلات تلاوة الآيات (آية بآية)",
+    nameKey: "about.sourceDetails.everyAyahName",
     url: "https://everyayah.com",
-    license: "تسجيلات طرف ثالث — للاستماع داخل التطبيق مع ذكر المصدر",
+    useKey: "about.sourceDetails.everyAyahUse",
+    licenseKey: "about.sourceDetails.everyAyahLicense",
   },
   {
-    name: "islamic.app",
-    use: "قارئون إضافيون وتلاوات بلغات أخرى (آية بآية)",
+    nameKey: "about.sourceDetails.islamicAppName",
     url: "https://islamic.app",
-    license: "CDN مجاني للاستماع — مع نسبة المصدر",
+    useKey: "about.sourceDetails.islamicAppUse",
+    licenseKey: "about.sourceDetails.islamicAppLicense",
   },
   {
-    name: "Tanzil Project",
-    use: "نص القرآن (حيث ينطبق على البيانات المستخدمة)",
+    nameKey: "about.sourceDetails.tanzilName",
     url: "https://tanzil.net",
-    license: "Creative Commons Attribution 3.0 — نسخ حرفي دون تعديل النص",
+    useKey: "about.sourceDetails.tanzilUse",
+    licenseKey: "about.sourceDetails.tanzilLicense",
   },
   {
-    name: "مشاريع التفسير (Tafseer API وغيرها)",
-    use: "نصوص التفاسير المعروضة في التطبيق",
+    nameKey: "about.sourceDetails.tafsirName",
     url: "https://github.com/spa5k/tafsir_api",
-    license: "نصوص التفسير محمية بحقوق مؤلفيها — للعرض داخل التطبيق فقط",
+    useKey: "about.sourceDetails.tafsirUse",
+    licenseKey: "about.sourceDetails.tafsirLicense",
   },
 ] as const;
 
 export function AboutPage() {
+  const { t } = useTranslation("settings");
+  const { t: tA11y } = useTranslation("a11y");
+
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold">عن حافظ القرآن</h1>
-        <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
-          تطبيق مجاني غير تجاري لخدمة من يريد قراءة القرآن وحفظه ومراجعته.
-          لا نبيع المحتوى ولا نعرض إعلانات على صفحات المصحف.
+    <div className="mx-auto max-w-3xl space-y-7">
+      <header className="text-center">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+          <Landmark aria-hidden="true" className="h-7 w-7" />
+        </span>
+        <h1 className="mt-5 text-3xl font-bold">{t("about.title")}</h1>
+        <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+          {t("about.description")}
         </p>
-      </div>
+      </header>
 
-      <Card className="border-primary/20 bg-primary/5">
-        <CardContent className="flex items-start gap-3 pt-6">
-          <Heart className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-          <p className="text-sm leading-relaxed">
-            جزى الله خيراً كل من ساهم في إتاحة هذه الموارد لنشر كتاب الله.
-            هذا التطبيق يجمعها في واجهة واحدة لمساعدة الحفاظ والقراء.
-          </p>
-        </CardContent>
-      </Card>
+      <section className="editorial-panel flex items-start gap-4 p-5 sm:p-6">
+        <Heart
+          aria-hidden="true"
+          className="mt-0.5 h-5 w-5 shrink-0 text-primary"
+        />
+        <p className="text-sm leading-7">{t("about.gratitude")}</p>
+      </section>
 
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">المصادر والشكر</h2>
-        {DATA_SOURCES.map((source) => (
-          <Card key={source.name}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">
+      <section aria-labelledby="source-list-title">
+        <h2 id="source-list-title" className="text-xl font-bold">
+          {t("about.sourcesTitle")}
+        </h2>
+        <div className="mt-4 grid gap-4">
+          {dataSources.map((source) => (
+            <article key={source.url} className="editorial-panel p-5 sm:p-6">
+              <h3 className="text-base font-bold">
                 <a
                   href={source.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary hover:underline"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-md text-primary underline-offset-4 hover:underline"
                 >
-                  {source.name}
+                  <span>{t(source.nameKey)}</span>
+                  <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                  <span className="sr-only">({tA11y("externalLink")})</span>
                 </a>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>
-                <span className="font-medium text-foreground">الاستخدام: </span>
-                {source.use}
-              </p>
-              <p>
-                <span className="font-medium text-foreground">الترخيص: </span>
-                {source.license}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </h3>
+              <dl className="mt-3 grid gap-3 text-sm leading-6 sm:grid-cols-[7rem_1fr]">
+                <dt className="font-semibold text-foreground">
+                  {t("about.useLabel")}
+                </dt>
+                <dd className="text-muted-foreground">{t(source.useKey)}</dd>
+                <dt className="font-semibold text-foreground">
+                  {t("about.licenseLabel")}
+                </dt>
+                <dd className="text-muted-foreground">
+                  {t(source.licenseKey)}
+                </dd>
+              </dl>
+            </article>
+          ))}
+        </div>
+      </section>
 
-      <p className="text-center text-xs text-muted-foreground">
-        إن وجدت خطأً في النص أو التلاوة، نرجو إبلاغنا — والله المستعان.
+      <p className="rounded-xl border border-border bg-muted/45 px-4 py-3 text-center text-xs leading-6 text-muted-foreground">
+        {t("about.report")}
       </p>
     </div>
   );

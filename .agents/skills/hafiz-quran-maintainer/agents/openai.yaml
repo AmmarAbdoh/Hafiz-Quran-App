@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hafiz Quran Maintainer"
+  short_description: "Keep Hafiz Quran code clean and consistent"
+  default_prompt: "Use $hafiz-quran-maintainer to implement this change cleanly and verify it."

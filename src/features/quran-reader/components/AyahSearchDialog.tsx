@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
@@ -13,10 +14,10 @@ import { Label } from "@/shared/components/ui/label";
 import {
   buildAyahSearchIndex,
   searchAyahsByText,
-} from "@/features/quran-reader/lib/ayahTextSearch";
+} from "@/features/quran-reader/model/ayahTextSearch";
 import { toArabicNumerals } from "@/shared/lib/arabic-numerals";
 import { cn } from "@/shared/lib/utils";
-import type { MushafVerse } from "@/shared/types/quran";
+import type { MushafVerse } from "@/domain/quran";
 
 interface AyahSearchDialogProps {
   open: boolean;
@@ -31,8 +32,11 @@ export function AyahSearchDialog({
   mushafData,
   onAyahSelect,
 }: AyahSearchDialogProps) {
+  const { t } = useTranslation("reader");
+  const { t: tCommon } = useTranslation("common");
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const searchIndex = useMemo(
     () => buildAyahSearchIndex(mushafData),
@@ -45,6 +49,11 @@ export function AyahSearchDialog({
   );
 
   useEffect(() => {
+    if (open) {
+      const frame = requestAnimationFrame(() => inputRef.current?.focus());
+      return () => cancelAnimationFrame(frame);
+    }
+
     if (!open) {
       setQuery("");
       setActiveIndex(0);
@@ -55,12 +64,40 @@ export function AyahSearchDialog({
     setActiveIndex(0);
   }, [query]);
 
+  useEffect(() => {
+    const activeResult = results[activeIndex];
+    if (!activeResult) return;
+    document
+      .getElementById(
+        `ayah-search-result-${activeResult.surah}-${activeResult.ayah}`,
+      )
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex, results]);
+
   const selectResult = (surah: number, ayah: number) => {
     onAyahSelect(surah, ayah);
     onOpenChange(false);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onOpenChange(false);
+      return;
+    }
+
+    if (event.key === "Home" && results.length > 0) {
+      event.preventDefault();
+      setActiveIndex(0);
+      return;
+    }
+
+    if (event.key === "End" && results.length > 0) {
+      event.preventDefault();
+      setActiveIndex(results.length - 1);
+      return;
+    }
+
     if (event.key === "ArrowDown") {
       event.preventDefault();
       if (results.length === 0) return;
@@ -89,59 +126,71 @@ export function AyahSearchDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent closeLabel={tCommon("actions.close")} className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>البحث عن آية</DialogTitle>
-          <DialogDescription>
-            ابحث بنص الآية (إملائي) للانتقال إليها مع تمييزها لفترة قصيرة
-          </DialogDescription>
+          <DialogTitle>{t("search.title")}</DialogTitle>
+          <DialogDescription>{t("search.description")}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-1">
           <div className="space-y-2">
-            <Label htmlFor="ayah-text-search">نص الآية</Label>
+            <Label htmlFor="ayah-text-search">{t("search.label")}</Label>
             <div className="relative">
               <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="ayah-text-search"
+                ref={inputRef}
                 dir="rtl"
-                placeholder="مثال: الحمد لله رب العالمين"
+                lang="ar"
+                placeholder={t("search.placeholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="ps-9 text-right"
                 autoComplete="off"
-                autoFocus
+                role="combobox"
+                aria-autocomplete="list"
+                aria-controls="ayah-search-results"
+                aria-expanded={open}
+                aria-activedescendant={
+                  results[activeIndex]
+                    ? `ayah-search-result-${results[activeIndex].surah}-${results[activeIndex].ayah}`
+                    : undefined
+                }
               />
             </div>
           </div>
 
           <div
+            id="ayah-search-results"
             role="listbox"
-            aria-label="نتائج البحث"
+            aria-label={t("search.results")}
             className="app-main-scroll max-h-[min(18rem,45vh)] overflow-y-auto rounded-md border border-border"
           >
             {showMinLengthHint && (
               <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                اكتب حرفين على الأقل للبحث
+                {t("search.minimum")}
               </p>
             )}
 
-            {!showMinLengthHint && trimmedQuery.length >= 2 && results.length === 0 && (
-              <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                لا توجد آيات مطابقة
-              </p>
-            )}
+            {!showMinLengthHint &&
+              trimmedQuery.length >= 2 &&
+              results.length === 0 && (
+                <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                  {t("search.empty")}
+                </p>
+              )}
 
             {!showMinLengthHint && trimmedQuery.length === 0 && (
               <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                ابدأ بكتابة جزء من نص الآية
+                {t("search.start")}
               </p>
             )}
 
             {results.map((result, index) => (
               <button
                 key={`${result.surah}:${result.ayah}`}
+                id={`ayah-search-result-${result.surah}-${result.ayah}`}
                 type="button"
                 role="option"
                 aria-selected={index === activeIndex}
@@ -153,24 +202,36 @@ export function AyahSearchDialog({
                   index === activeIndex && "bg-accent/70",
                 )}
               >
-                <p className="line-clamp-2 text-sm leading-relaxed">{result.text}</p>
+                <p className="line-clamp-2 text-sm leading-relaxed">
+                  {result.text}
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {result.surahName} · آية {toArabicNumerals(result.ayah)}
+                  {t("search.resultMeta", {
+                    surahName: result.surahName,
+                    ayah: toArabicNumerals(result.ayah),
+                  })}
                 </p>
               </button>
             ))}
           </div>
         </div>
 
+        <p className="sr-only" aria-live="polite">
+          {t("search.resultCount", { count: results.length })}
+        </p>
+
         {results.length > 0 && (
           <Button
             type="button"
             className="w-full sm:w-auto"
             onClick={() =>
-              selectResult(results[activeIndex]!.surah, results[activeIndex]!.ayah)
+              selectResult(
+                results[activeIndex]!.surah,
+                results[activeIndex]!.ayah,
+              )
             }
           >
-            انتقل إلى الآية
+            {t("search.go")}
           </Button>
         )}
       </DialogContent>
