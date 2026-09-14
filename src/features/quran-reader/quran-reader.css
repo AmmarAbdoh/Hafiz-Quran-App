@@ -35,7 +35,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    z-index: 35;
+    z-index: var(--z-dock);
     display: flex;
     flex-direction: column;
     padding-bottom: max(0px, env(safe-area-inset-bottom));
@@ -60,7 +60,7 @@
      bar above the footer, so the reading area never loses two rows at once. */
   .mushaf-playback-bar {
     position: relative;
-    z-index: 20;
+    z-index: var(--z-sticky);
     flex-shrink: 0;
     background: color-mix(in srgb, var(--primary) 6%, transparent);
   }
@@ -124,7 +124,7 @@
 
   .mushaf-footer-bar {
     position: relative;
-    z-index: 20;
+    z-index: var(--z-sticky);
     flex-shrink: 0;
     padding: 0.625rem 0.75rem;
     background: transparent;

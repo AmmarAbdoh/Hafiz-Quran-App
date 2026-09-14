@@ -157,7 +157,7 @@ function ToggleGrid({
                     {ayahCountFor && (
                       <span
                         className={cn(
-                          "shrink-0 text-caption",
+                          "shrink-0 text-label",
                           isSelected ? "font-normal" : "text-muted-foreground",
                         )}
                       >
@@ -174,7 +174,7 @@ function ToggleGrid({
           </ul>
         )}
       </div>
-      <p className="text-caption text-muted-foreground">
+      <p className="text-label text-muted-foreground">
         {t("scope.listHint", {
           count: total,
           formattedCount: formatNumber(total),
@@ -238,7 +238,7 @@ export function QuizScopeStep({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-caption font-semibold text-muted-foreground">
+        <span className="text-label font-semibold text-muted-foreground">
           {t("scope.presetsLabel")}
         </span>
         {SCOPE_PRESETS.map((preset) => (
@@ -423,7 +423,7 @@ export function QuizScopeStep({
               />
             </div>
           </div>
-          <p className="text-caption text-muted-foreground">
+          <p className="text-label text-muted-foreground">
             {t("scope.ayahCount", { count: formatNumber(maxAyah) })}
           </p>
         </TabsContent>

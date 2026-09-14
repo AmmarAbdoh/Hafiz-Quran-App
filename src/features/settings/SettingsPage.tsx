@@ -228,7 +228,7 @@ export function SettingsPage() {
             {t("recitation.previewError")}
           </p>
         ) : null}
-        <p className="text-caption text-muted-foreground">
+        <p className="text-label text-muted-foreground">
           {t("recitation.count", {
             count: formatNumber(RECITERS.length, locale),
           })}

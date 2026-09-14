@@ -58,13 +58,13 @@ export function QuizSessionStep({
 
       <dl className="grid gap-3 rounded-xl border border-border bg-muted/20 p-3 text-sm sm:grid-cols-3">
         <div>
-          <dt className="text-caption font-semibold text-muted-foreground">
+          <dt className="text-label font-semibold text-muted-foreground">
             {t("session.scopeLabel")}
           </dt>
           <dd className="mt-0.5">{formatScope(scope)}</dd>
         </div>
         <div>
-          <dt className="text-caption font-semibold text-muted-foreground">
+          <dt className="text-label font-semibold text-muted-foreground">
             {t("summary.label")}
           </dt>
           <dd className="mt-0.5">
@@ -75,7 +75,7 @@ export function QuizSessionStep({
           </dd>
         </div>
         <div>
-          <dt className="text-caption font-semibold text-muted-foreground">
+          <dt className="text-label font-semibold text-muted-foreground">
             {t("session.typesLabel")}
           </dt>
           <dd className="mt-0.5">{questionTypeSummary}</dd>

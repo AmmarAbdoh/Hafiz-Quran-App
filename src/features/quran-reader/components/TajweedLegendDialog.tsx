@@ -84,7 +84,7 @@ export function TajweedLegendDialog({
                   <p className="text-body font-medium leading-snug">
                     {translatedRule?.label ?? rule.label}
                   </p>
-                  <p className="mt-1 text-caption text-muted-foreground">
+                  <p className="mt-1 text-label text-muted-foreground">
                     {translatedRule?.description ?? rule.description}
                   </p>
                 </div>

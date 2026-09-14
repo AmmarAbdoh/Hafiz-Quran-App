@@ -29,7 +29,7 @@ export function MushafPageProgress({
   ].filter((part): part is string => part !== null);
 
   return (
-    <p className="mx-auto flex min-h-9 w-full max-w-6xl items-center justify-between gap-3 px-4 text-caption text-muted-foreground sm:px-6">
+    <p className="mx-auto flex min-h-9 w-full max-w-6xl items-center justify-between gap-3 px-4 text-label text-muted-foreground sm:px-6">
       <span className="flex min-w-0 items-center gap-1.5">
         {location.map((part, index) => (
           <span key={part} className="flex items-center gap-1.5 truncate">

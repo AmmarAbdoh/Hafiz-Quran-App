@@ -84,7 +84,7 @@ export function QuizSetupSummary({
           >
             <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="block text-caption text-muted-foreground">
+              <span className="block text-label text-muted-foreground">
                 {label}
               </span>
               <span className="block truncate text-sm font-semibold">
@@ -92,7 +92,7 @@ export function QuizSetupSummary({
               </span>
             </span>
             {hint && (
-              <span className="shrink-0 text-caption text-muted-foreground">
+              <span className="shrink-0 text-label text-muted-foreground">
                 {hint}
               </span>
             )}

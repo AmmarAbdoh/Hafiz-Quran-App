@@ -63,7 +63,7 @@ export function MushafReaderHeader({
 
         {/* Names the reading; the juz, hizb and progress sit in the folio line
             at the foot of the page so neither line is crowded. */}
-        <p className="flex min-w-0 items-center justify-center gap-1.5 text-caption text-muted-foreground">
+        <p className="flex min-w-0 items-center justify-center gap-1.5 text-label text-muted-foreground">
           {surahLabel ? (
             <>
               <bdi

@@ -75,7 +75,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
   position: fixed;
   inset-block-start: 0.75rem;
   inset-inline-start: 0.75rem;
-  z-index: 100;
+  z-index: var(--z-skip-link);
   translate: 0 -180%;
   border-radius: 0.5rem;
   background: var(--foreground);
@@ -137,7 +137,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
 .editorial-topbar {
   position: sticky;
   inset-block-start: 0;
-  z-index: 30;
+  z-index: var(--z-header);
   display: flex;
   min-height: 4rem;
   align-items: center;
@@ -162,7 +162,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
   position: fixed;
   inset-inline: 0;
   inset-block-end: 0;
-  z-index: 40;
+  z-index: var(--z-dock);
 }
 
 /* The dock grows when a recitation is running, so content pads to match. */
@@ -188,7 +188,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
 
 .editorial-panel {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) + 0.25rem);
+  border-radius: var(--radius-lg);
   background: var(--card);
   box-shadow: var(--shadow-panel);
   padding: var(--space-panel);
@@ -216,9 +216,9 @@ button[class*="text-primary-foreground"][data-state="checked"] {
 }
 
 .editorial-panel--inset {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--muted) 55%, var(--card));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
   box-shadow: none;
   padding: var(--space-panel);
 }
@@ -229,7 +229,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
 
 .editorial-kicker {
   color: var(--accent-strong);
-  font-size: var(--text-caption);
+  font-size: var(--text-label);
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -260,7 +260,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
 .mushaf-reader-header {
   position: sticky;
   inset-block-start: 0;
-  z-index: 30;
+  z-index: var(--z-header);
   flex-shrink: 0;
   border-block-end: 1px solid var(--border);
   background: var(--mushaf-header);

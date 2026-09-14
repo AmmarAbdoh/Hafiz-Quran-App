@@ -80,7 +80,7 @@ export function ActiveQuiz({
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{progressText}</p>
-            <p className="truncate text-caption text-muted-foreground">
+            <p className="truncate text-label text-muted-foreground">
               {t("active.score", {
                 score: `${formatNumber(score.correct)}/${formatNumber(score.total)}`,
               })}

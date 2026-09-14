@@ -66,9 +66,7 @@ export function QuizTypesStep({
     return (
       <fieldset className="space-y-2">
         <legend className="text-sm font-semibold">{t(titleKey)}</legend>
-        <p className="text-caption text-muted-foreground">
-          {t(descriptionKey)}
-        </p>
+        <p className="text-label text-muted-foreground">{t(descriptionKey)}</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {types.map((type) => {
             const Icon = TYPE_ICONS[type];
@@ -158,7 +156,7 @@ export function QuizTypesStep({
         aria-label={t("types.presetsLabel")}
         className="flex flex-wrap items-center gap-2"
       >
-        <span className="text-caption font-semibold text-muted-foreground">
+        <span className="text-label font-semibold text-muted-foreground">
           {t("types.presetsLabel")}
         </span>
         {QUIZ_PRESETS.map((preset: QuizPreset) => {

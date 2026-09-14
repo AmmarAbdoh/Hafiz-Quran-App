@@ -39,7 +39,7 @@ export function QuizScopeChips({
   return (
     <div className="rounded-xl border border-border bg-muted/20 p-2">
       <div className="flex items-center justify-between gap-2 px-1 pb-2">
-        <p className="text-caption font-semibold text-muted-foreground">
+        <p className="text-label font-semibold text-muted-foreground">
           {t("scope.selectedCount", {
             count: selected.length,
             formattedCount: formatNumber(selected.length),
@@ -48,7 +48,7 @@ export function QuizScopeChips({
         <button
           type="button"
           onClick={onClear}
-          className="min-h-11 rounded-lg px-2 text-caption font-semibold text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="min-h-11 rounded-lg px-2 text-label font-semibold text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {t("actions.clearAll")}
         </button>

@@ -183,7 +183,7 @@ export function QuizResults({
                       })}{" "}
                       · {formatQuestionType(answer.questionType)}
                     </span>
-                    <span className="block truncate text-caption text-muted-foreground">
+                    <span className="block truncate text-label text-muted-foreground">
                       {formatVerseKey(answer.testedVerseKey)}
                     </span>
                   </span>

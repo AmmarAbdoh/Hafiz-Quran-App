@@ -242,7 +242,7 @@ export function QuizPage() {
                     completed && !current && "border-primary/30 bg-primary/5",
                   )}
                 >
-                  <span className="text-caption text-muted-foreground">
+                  <span className="text-label text-muted-foreground">
                     {formatNumber(index + 1)}
                   </span>
                   <span className="truncate">{t(`steps.${step}`)}</span>

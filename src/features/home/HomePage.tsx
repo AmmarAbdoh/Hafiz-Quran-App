@@ -92,7 +92,7 @@ export function HomePage() {
             >
               {DEMO_AYAH_LABEL}
             </blockquote>
-            <figcaption className="mt-2 text-caption font-medium text-muted-foreground">
+            <figcaption className="mt-2 text-label font-medium text-muted-foreground">
               {t("verseReference")}
             </figcaption>
           </figure>
