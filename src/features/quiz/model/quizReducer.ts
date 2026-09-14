@@ -2,7 +2,7 @@ import type {
   QuizAnswerRecord,
   QuizEngineError,
   QuizQuestion,
-  QuizSessionSummaryV2,
+  QuizSessionSummaryV3,
   QuizState,
 } from "./types";
 import type { QuizConfig } from "./types";
@@ -35,7 +35,7 @@ export type QuizAction =
   | { type: "QUESTION_FAILED" }
   | {
       type: "FINISH";
-      summary: QuizSessionSummaryV2;
+      summary: QuizSessionSummaryV3;
       historySaveFailed: boolean;
     };
 

@@ -10,7 +10,7 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 1rem;
   --background: #f6f7f7;
   --foreground: #141718;
   --card: #ffffff;
@@ -23,8 +23,22 @@
   --secondary-foreground: #0d4e46;
   --muted: #eef0f0;
   --muted-foreground: #5a6160;
-  --accent: #c49a3c;
-  --accent-foreground: #1a1408;
+  --mushaf-ayah-highlight: color-mix(in srgb, var(--primary) 12%, transparent);
+  --mushaf-ayah-highlight-strong: color-mix(
+    in srgb,
+    var(--primary) 20%,
+    transparent
+  );
+  --mushaf-ayah-highlight-pulse: color-mix(
+    in srgb,
+    var(--primary) 28%,
+    transparent
+  );
+  --accent: color-mix(in srgb, var(--primary) 8%, var(--card));
+  --accent-foreground: var(--foreground);
+  --brand-gold: #c49a3c;
+  --surface-hover: color-mix(in srgb, var(--primary) 6%, var(--card));
+  --surface-selected: color-mix(in srgb, var(--primary) 12%, var(--card));
   --destructive: #a93232;
   --success: #1f6b4f;
   --success-foreground: #f4fbf7;
@@ -49,9 +63,6 @@
   --mushaf-header-panel: var(--muted);
   --mushaf-page: #fbfaf8;
   --mushaf-footer: color-mix(in srgb, var(--card) 92%, transparent);
-  --mushaf-ayah-highlight: rgb(20 23 24 / 0.06);
-  --mushaf-ayah-highlight-strong: rgb(20 23 24 / 0.1);
-  --mushaf-ayah-highlight-pulse: rgb(20 23 24 / 0.14);
 }
 
 :root:lang(ar) {
@@ -77,8 +88,11 @@
   --secondary-foreground: #dff5ee;
   --muted: #232728;
   --muted-foreground: #a4abab;
-  --accent: #d3a958;
-  --accent-foreground: #16130d;
+  --accent: color-mix(in srgb, var(--primary) 14%, var(--card));
+  --accent-foreground: var(--foreground);
+  --brand-gold: #d3a958;
+  --surface-hover: color-mix(in srgb, var(--primary) 10%, var(--card));
+  --surface-selected: color-mix(in srgb, var(--primary) 18%, var(--card));
   --destructive: #ed7777;
   --success: #6bc9a8;
   --success-foreground: #06201c;

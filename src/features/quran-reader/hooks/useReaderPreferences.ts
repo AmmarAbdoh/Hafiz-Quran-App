@@ -1,45 +1,56 @@
 import { useCallback, useState } from "react";
-import { safeStorage } from "@/shared/storage";
-
-const TAJWEED_STORAGE_KEY = "mushaf-tajweed-colored";
-const FOOTER_PINNED_STORAGE_KEY = "mushaf-footer-pinned";
+import { safeStorage, STORAGE_KEYS } from "@/shared/storage";
+import {
+  DEFAULT_MUSHAF_SCALE,
+  normalizeMushafScale,
+  type MushafScale,
+} from "@/features/quran-reader/model/mushafScale";
+import { useTajweedColored } from "./useTajweedColored";
 
 function readBooleanPreference(key: string): boolean {
   return safeStorage.getItem(key) === "true";
 }
 
+function readMushafScale(): MushafScale {
+  const raw = safeStorage.getItem(STORAGE_KEYS.mushafScale);
+  if (!raw) return DEFAULT_MUSHAF_SCALE;
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed)) return DEFAULT_MUSHAF_SCALE;
+  return normalizeMushafScale(parsed);
+}
+
 export function useReaderPreferences() {
-  const [tajweedColored, setTajweedColored] = useState(() =>
-    readBooleanPreference(TAJWEED_STORAGE_KEY),
+  const { tajweedColored, setTajweedColored } = useTajweedColored();
+  const [mushafScale, setMushafScale] = useState<MushafScale>(() =>
+    readMushafScale(),
   );
-  const [legendPinned, setLegendPinned] = useState(false);
-  const [footerPinned, setFooterPinned] = useState(() =>
-    readBooleanPreference(FOOTER_PINNED_STORAGE_KEY),
+  const [mushafWarmth, setMushafWarmth] = useState(() =>
+    readBooleanPreference(STORAGE_KEYS.mushafWarmth),
   );
 
-  // These actions are installed in the reader header context, so their
-  // identity must remain stable while unrelated reader state changes.
-  const changeTajweedColored = useCallback((value: boolean) => {
-    setTajweedColored(value);
-    safeStorage.setItem(TAJWEED_STORAGE_KEY, String(value));
-    if (!value) setLegendPinned(false);
+  const changeTajweedColored = useCallback(
+    (value: boolean) => {
+      setTajweedColored(value);
+    },
+    [setTajweedColored],
+  );
+
+  const changeMushafScale = useCallback((scale: MushafScale) => {
+    setMushafScale(scale);
+    safeStorage.setItem(STORAGE_KEYS.mushafScale, String(scale));
   }, []);
 
-  const changeLegendPinned = useCallback((pinned: boolean) => {
-    setLegendPinned(pinned);
+  const changeMushafWarmth = useCallback((value: boolean) => {
+    setMushafWarmth(value);
+    safeStorage.setItem(STORAGE_KEYS.mushafWarmth, String(value));
   }, []);
-
-  const changeFooterPinned = (pinned: boolean) => {
-    setFooterPinned(pinned);
-    safeStorage.setItem(FOOTER_PINNED_STORAGE_KEY, String(pinned));
-  };
 
   return {
     tajweedColored,
-    legendPinned,
-    footerPinned,
+    mushafScale,
+    mushafWarmth,
     changeTajweedColored,
-    changeLegendPinned,
-    changeFooterPinned,
+    changeMushafScale,
+    changeMushafWarmth,
   };
 }

@@ -27,9 +27,11 @@ export function InfoQuestion({
         <p className="text-sm text-muted-foreground">
           {t(`prompts.${question.type}`)}
         </p>
+        {/* One surah's lines are enough context and keep the prompt compact. */}
         <QuizMushafPreview
           page={question.verse.page}
           mushafData={mushafData}
+          surahFilter={question.verse.sura_no}
           highlightVerseKey={question.verseKey}
         />
       </div>
@@ -40,13 +42,15 @@ export function InfoQuestion({
         disabled={answered}
         onSelect={onSubmit}
       />
-      {answered && isCorrect !== null && (
+      {answered && isCorrect !== null && selectedChoiceId !== null && (
         <QuizFeedback
           isCorrect={isCorrect}
-          verse={question.verse}
+          question={question}
+          selectedChoiceId={selectedChoiceId}
           verseInfoRecords={verseInfoRecords}
           mushafData={mushafData}
           streak={streak}
+          showMushaf={false}
           onNext={onNext}
         />
       )}

@@ -1,4 +1,4 @@
-import type { MouseEvent } from "react";
+import type { MouseEvent, PointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
   MushafPageView,
@@ -27,10 +27,17 @@ interface MushafPageBlockProps {
   practiceRevealedLocations?: string[];
   practiceTargetWordLocation?: string | null;
   practiceWrongFlashLocation?: string | null;
+  bookmarkedVerseKeys?: ReadonlySet<string>;
   onWordActivate?: (
     word: MushafWord,
     event: MouseEvent<HTMLButtonElement>,
   ) => void;
+  onWordPointerDown?: (
+    word: MushafWord,
+    event: PointerEvent<HTMLButtonElement>,
+  ) => void;
+  onWordPointerUp?: () => void;
+  onWordPointerCancel?: () => void;
   className?: string;
   id?: string;
   surahFilter?: number;
@@ -51,7 +58,11 @@ export function MushafPageBlock({
   practiceRevealedLocations = EMPTY_LOCATIONS,
   practiceTargetWordLocation = null,
   practiceWrongFlashLocation = null,
+  bookmarkedVerseKeys,
   onWordActivate,
+  onWordPointerDown,
+  onWordPointerUp,
+  onWordPointerCancel,
   className,
   id,
   surahFilter,
@@ -79,11 +90,12 @@ export function MushafPageBlock({
       practiceTargetWordLocation={practiceTargetWordLocation}
       incorrectWordLocation={practiceWrongFlashLocation}
       incorrectWordLabel={t("word.incorrect")}
-      getWordActivationLabel={(word) =>
-        t("word.activate", { word: word.location })
-      }
+      bookmarkedVerseKeys={bookmarkedVerseKeys}
       getSurahAccessibleLabel={(surahName) => `${t("surah")} ${surahName}`}
       onWordActivate={onWordActivate}
+      onWordPointerDown={onWordPointerDown}
+      onWordPointerUp={onWordPointerUp}
+      onWordPointerCancel={onWordPointerCancel}
       className={className}
       id={id}
       surahFilter={surahFilter}

@@ -1,72 +1,69 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { MushafReaderHeaderState } from "@/features/quran-reader/context/MushafReaderContext";
 
-interface UseReaderHeaderSyncOptions extends Omit<
-  MushafReaderHeaderState,
-  "onTogglePractice"
-> {
+interface UseReaderHeaderSyncOptions {
   enabled: boolean;
   setHeader: (header: MushafReaderHeaderState | null) => void;
+  surahLabel: string;
+  page: number;
+  practiceActive: boolean;
+  practiceLoading: boolean;
+  onOpenSurahDrawer: MushafReaderHeaderState["onOpenSurahDrawer"];
+  onOpenAyahSearch: MushafReaderHeaderState["onOpenAyahSearch"];
+  onOpenListenOptions: MushafReaderHeaderState["onOpenListenOptions"];
+  onOpenReadingPreferences: MushafReaderHeaderState["onOpenReadingPreferences"];
   onTogglePractice: () => void | Promise<void>;
 }
 
 export function useReaderHeaderSync({
   enabled,
   setHeader,
-  tajweedColored,
-  legendPinned,
-  layoutMode,
+  surahLabel,
+  page,
   practiceActive,
   practiceLoading,
-  onTajweedColoredChange,
-  onLegendPinnedChange,
-  onLayoutModeChange,
-  onOpenLegendGuide,
   onOpenSurahDrawer,
   onOpenAyahSearch,
   onOpenListenOptions,
+  onOpenReadingPreferences,
   onTogglePractice,
 }: UseReaderHeaderSyncOptions): void {
+  const callbacksRef = useRef({
+    onOpenSurahDrawer,
+    onOpenAyahSearch,
+    onOpenListenOptions,
+    onOpenReadingPreferences,
+    onTogglePractice,
+  });
+  callbacksRef.current = {
+    onOpenSurahDrawer,
+    onOpenAyahSearch,
+    onOpenListenOptions,
+    onOpenReadingPreferences,
+    onTogglePractice,
+  };
+
   useEffect(() => {
     if (!enabled) {
       setHeader(null);
       return;
     }
 
+    const callbacks = callbacksRef.current;
     setHeader({
-      tajweedColored,
-      legendPinned,
-      layoutMode,
+      surahLabel,
+      page,
       practiceActive,
       practiceLoading,
-      onTajweedColoredChange,
-      onLegendPinnedChange,
-      onLayoutModeChange,
-      onOpenLegendGuide,
-      onOpenSurahDrawer,
-      onOpenAyahSearch,
-      onOpenListenOptions,
+      onOpenSurahDrawer: callbacks.onOpenSurahDrawer,
+      onOpenAyahSearch: callbacks.onOpenAyahSearch,
+      onOpenListenOptions: callbacks.onOpenListenOptions,
+      onOpenReadingPreferences: callbacks.onOpenReadingPreferences,
       onTogglePractice: () => {
-        void onTogglePractice();
+        void callbacks.onTogglePractice();
       },
     });
+  }, [enabled, page, practiceActive, practiceLoading, setHeader, surahLabel]);
 
-    return () => setHeader(null);
-  }, [
-    enabled,
-    layoutMode,
-    legendPinned,
-    onLayoutModeChange,
-    onLegendPinnedChange,
-    onOpenAyahSearch,
-    onOpenLegendGuide,
-    onOpenListenOptions,
-    onOpenSurahDrawer,
-    onTajweedColoredChange,
-    onTogglePractice,
-    practiceActive,
-    practiceLoading,
-    setHeader,
-    tajweedColored,
-  ]);
+  useEffect(() => () => setHeader(null), [setHeader]);
 }

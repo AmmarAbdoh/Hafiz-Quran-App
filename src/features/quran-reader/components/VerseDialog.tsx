@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SURAH_NAMES, TAFSEER_OPTIONS, useTafseer } from "@/domain/quran";
+import { TAFSEER_OPTIONS, useSurahNames, useTafseer } from "@/domain/quran";
 import { BookOpen, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatNumber, useLocale } from "@/app/i18n";
@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/shared/components/ui/dialog";
 import { Label } from "@/shared/components/ui/label";
-import { SearchableRtlSelect } from "@/shared/components/SearchableRtlSelect";
+import { SearchableSelect } from "@/shared/components/SearchableSelect";
 import { loadTafseer } from "@/domain/quran";
 import type { MushafVerse } from "@/domain/quran";
 
@@ -26,6 +26,7 @@ export function VerseDialog({ verse, open, onOpenChange }: VerseDialogProps) {
   const { t } = useTranslation("reader");
   const { t: tCommon } = useTranslation("common");
   const { locale } = useLocale();
+  const { surahName, language: surahLanguage } = useSurahNames();
   const { tafseerId, setTafseerId } = useTafseer();
   const [tafseerText, setTafseerText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,7 +62,6 @@ export function VerseDialog({ verse, open, onOpenChange }: VerseDialogProps) {
 
   if (!verse) return null;
 
-  const surahName = SURAH_NAMES[verse.sura_no - 1];
   const tafseerName = TAFSEER_OPTIONS[tafseerId];
 
   return (
@@ -80,8 +80,11 @@ export function VerseDialog({ verse, open, onOpenChange }: VerseDialogProps) {
             </DialogTitle>
             <DialogDescription className="text-sm sm:text-base">
               {t("surah")}{" "}
-              <bdi dir="rtl" lang="ar">
-                {surahName}
+              <bdi
+                dir={surahLanguage === "ar" ? "rtl" : "ltr"}
+                lang={surahLanguage}
+              >
+                {surahName(verse.sura_no)}
               </bdi>{" "}
               — {t("ayah")} {formatNumber(verse.aya_no, locale)}
             </DialogDescription>
@@ -106,7 +109,7 @@ export function VerseDialog({ verse, open, onOpenChange }: VerseDialogProps) {
             {t("tafsirDialog.source")}
           </Label>
           <div className="w-full sm:flex-1">
-            <SearchableRtlSelect
+            <SearchableSelect
               id="tafseer-source"
               value={tafseerId}
               onValueChange={setTafseerId}

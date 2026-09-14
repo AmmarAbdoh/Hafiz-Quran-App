@@ -1,8 +1,22 @@
 const DIACRITICS_RE = /[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g;
+const ARABIC_SCRIPT_RE = /[\u0600-\u06FF]/;
+
+/** Tells Quran text apart from interface-language text such as a surah name. */
+export function containsArabicScript(text: string): boolean {
+  return ARABIC_SCRIPT_RE.test(text);
+}
+
+const ARABIC_INDIC_DIGITS_RE = /[\u0660-\u0669]/g;
+
+function normalizeDigits(text: string): string {
+  return text.replace(ARABIC_INDIC_DIGITS_RE, (digit) =>
+    String(digit.charCodeAt(0) - 0x0660),
+  );
+}
 
 /** Normalize Arabic for fuzzy speech-to-text matching against mushaf words. */
 export function normalizeArabicForMatch(text: string): string {
-  return text
+  return normalizeDigits(text)
     .replace(DIACRITICS_RE, "")
     .replace(/[أإآٱ]/g, "ا")
     .replace(/ى/g, "ي")

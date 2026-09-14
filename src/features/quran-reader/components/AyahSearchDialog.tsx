@@ -17,6 +17,7 @@ import {
 } from "@/features/quran-reader/model/ayahTextSearch";
 import { toArabicNumerals } from "@/shared/lib/arabic-numerals";
 import { cn } from "@/shared/lib/utils";
+import { useSurahNames } from "@/domain/quran";
 import type { MushafVerse } from "@/domain/quran";
 
 interface AyahSearchDialogProps {
@@ -34,6 +35,7 @@ export function AyahSearchDialog({
 }: AyahSearchDialogProps) {
   const { t } = useTranslation("reader");
   const { t: tCommon } = useTranslation("common");
+  const { surahName } = useSurahNames();
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -207,7 +209,7 @@ export function AyahSearchDialog({
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {t("search.resultMeta", {
-                    surahName: result.surahName,
+                    surahName: surahName(result.surah),
                     ayah: toArabicNumerals(result.ayah),
                   })}
                 </p>

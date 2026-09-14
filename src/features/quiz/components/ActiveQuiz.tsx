@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -74,38 +75,46 @@ export function ActiveQuiz({
 
   return (
     <div className="space-y-6">
-      <header className="editorial-panel sticky top-0 z-10 shadow-sm backdrop-blur">
-        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold">{progressText}</p>
-            <p className="text-caption text-muted-foreground">
+      {/* One row: where you are, what is being asked, and how to stop. */}
+      <header className="editorial-panel editorial-panel--inset sticky top-0 z-10 rounded-xl shadow-sm backdrop-blur">
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">{progressText}</p>
+            <p className="truncate text-caption text-muted-foreground">
               {t("active.score", {
                 score: `${formatNumber(score.correct)}/${formatNumber(score.total)}`,
               })}
+              {currentQuestion &&
+                ` · ${formatQuestionType(currentQuestion.type)}`}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {streak > 0 && (
-              <Badge variant="secondary">
-                {t("active.streak", { count: formatNumber(streak) })}
-              </Badge>
-            )}
-            {currentQuestion && (
-              <Badge variant="outline">
-                {formatQuestionType(currentQuestion.type)}
-              </Badge>
-            )}
-            <Button variant="outline" className="min-h-11" onClick={onFinish}>
-              {t("actions.finish")}
-            </Button>
-            <Button variant="ghost" className="min-h-11" onClick={onExit}>
-              {t("actions.exit")}
-            </Button>
-          </div>
+          {streak > 1 && (
+            <Badge variant="secondary" className="shrink-0">
+              {t("active.streak", { count: formatNumber(streak) })}
+            </Badge>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-11 shrink-0"
+            onClick={onFinish}
+          >
+            {t("actions.finish")}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="min-h-11 min-w-11 shrink-0"
+            onClick={onExit}
+            aria-label={t("actions.exit")}
+            title={t("actions.exit")}
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </Button>
         </div>
         {progress.total > 0 && (
           <div
-            className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
+            className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
             role="progressbar"
             aria-label={t("active.progressLabel")}
             aria-valuemin={0}

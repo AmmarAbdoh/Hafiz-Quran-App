@@ -4,6 +4,7 @@ import { useRef, type MouseEvent as ReactMouseEvent } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { VerseActionsPopover } from "@/features/quran-reader/components/VerseActionsPopover";
+import { ToastProvider } from "@/shared/components/Toast";
 import type { MushafWord } from "@/domain/quran";
 import { useMushafVerseInteractions } from "./useMushafVerseInteractions";
 
@@ -24,6 +25,16 @@ vi.mock("@/features/quran-reader/context/QuranPlaybackContext", () => ({
 
 vi.mock("@/features/quran-reader/hooks/useQuranAudio", () => ({
   useQuranAudio: () => ({ ...audio, playing: false }),
+}));
+
+vi.mock("@/features/quran-reader/hooks/useBookmarks", () => ({
+  useBookmarks: () => ({
+    bookmarks: [],
+    bookmarkedSet: new Set<string>(),
+    isBookmarked: () => false,
+    toggleBookmark: vi.fn(),
+    refresh: vi.fn(),
+  }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -132,7 +143,11 @@ function InteractionHarness() {
 }
 
 function prepareOverlappingWords() {
-  render(<InteractionHarness />);
+  render(
+    <ToastProvider>
+      <InteractionHarness />
+    </ToastProvider>,
+  );
   const fallback = screen.getByRole("button", { name: "Fallback word" });
   const overlapping = screen.getByRole("button", {
     name: "Overlapping word",

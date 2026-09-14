@@ -4,4 +4,5 @@ export * from "./data";
 export * from "./model";
 export * from "./mushaf";
 export { VerseMetadata } from "./components/VerseMetadata";
+export { useSurahNames } from "./hooks/useSurahNames";
 export { useTafseer } from "./hooks/useTafseer";

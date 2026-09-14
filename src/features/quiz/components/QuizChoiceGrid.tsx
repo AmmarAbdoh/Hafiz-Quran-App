@@ -1,8 +1,8 @@
 import { Check, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/lib/utils";
-import { useQuizFormatters } from "../hooks/useQuizFormatters";
 import type { QuizChoice } from "../model/types";
+import { QuizAnswerLabel } from "./QuizAnswerLabel";
 
 interface QuizChoiceGridProps {
   choices: QuizChoice[];
@@ -20,7 +20,6 @@ export function QuizChoiceGrid({
   onSelect,
 }: QuizChoiceGridProps) {
   const { t } = useTranslation("quiz");
-  const { formatNumber } = useQuizFormatters();
   const showResults = correctId !== null && selectedId !== null;
 
   return (
@@ -29,10 +28,6 @@ export function QuizChoiceGrid({
         const isSelected = selectedId === choice.id;
         const isCorrect = showResults && choice.id === correctId;
         const isWrong = showResults && isSelected && !isCorrect;
-        const isNumeric = /^\d+$/.test(choice.label);
-        const numericLabel = isNumeric
-          ? formatNumber(Number.parseInt(choice.label, 10))
-          : choice.label;
 
         return (
           <button
@@ -53,13 +48,10 @@ export function QuizChoiceGrid({
             )}
           >
             <span className="flex items-start gap-2">
-              <span
+              <QuizAnswerLabel
                 className="line-clamp-3 flex-1"
-                dir={isNumeric ? undefined : "rtl"}
-                lang={isNumeric ? undefined : "ar"}
-              >
-                {numericLabel}
-              </span>
+                label={choice.label}
+              />
               {isCorrect && (
                 <span className="inline-flex shrink-0 items-center gap-1">
                   <Check className="h-4 w-4" aria-hidden />

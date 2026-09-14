@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { SafeStorage } from "@/shared/storage";
-import type { QuizSessionSummaryV2 } from "../model/types";
+import type {
+  QuizSessionSummaryV2,
+  QuizSessionSummaryV3,
+} from "../model/types";
 import {
   loadQuizHistory,
   migrateQuizSession,
@@ -38,6 +41,16 @@ const v2Summary: QuizSessionSummaryV2 = {
   durationMs: 1_000,
 };
 
+const v3Summary: QuizSessionSummaryV3 = {
+  ...v2Summary,
+  schemaVersion: 3,
+  id: "v3",
+  answers: [
+    { questionType: "ayah_number", verseKey: "1:1", isCorrect: true },
+    { questionType: "ayah_number", verseKey: "1:2", isCorrect: false },
+  ],
+};
+
 describe("quiz history storage", () => {
   it("migrates V1 records without losing the legacy scope fallback", () => {
     const v1 = {
@@ -51,14 +64,35 @@ describe("quiz history storage", () => {
       durationMs: 5_000,
     };
     expect(migrateQuizSession(v1)).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       id: "v1",
       scope: null,
       legacyScopeSummary: "legacy localized scope",
+      answers: [],
     });
   });
 
-  it("rewrites migrated history in V2 form and keeps every valid session", () => {
+  it("keeps V2 scores and scope, with no per-answer detail to replay", () => {
+    expect(migrateQuizSession(v2Summary)).toMatchObject({
+      schemaVersion: 3,
+      id: "v2",
+      scope: { mode: "surah", surahNumbers: [1, 2] },
+      correctCount: 1,
+      answers: [],
+    });
+  });
+
+  it("keeps per-answer detail for V3 records and drops malformed entries", () => {
+    const withNoise = {
+      ...v3Summary,
+      answers: [...v3Summary.answers, { questionType: "ayah_number" }],
+    };
+    expect(migrateQuizSession(withNoise)).toMatchObject({
+      answers: v3Summary.answers,
+    });
+  });
+
+  it("rewrites migrated history in V3 form and keeps every valid session", () => {
     const v1 = {
       id: "v1",
       completedAt: "2025-01-01T00:00:00.000Z",
@@ -70,14 +104,14 @@ describe("quiz history storage", () => {
       durationMs: 10,
     };
     const { storage, values } = createMemoryStorage({
-      [QUIZ_HISTORY_STORAGE_KEY]: JSON.stringify([v2Summary, v1]),
+      [QUIZ_HISTORY_STORAGE_KEY]: JSON.stringify([v3Summary, v2Summary, v1]),
     });
     const history = loadQuizHistory(storage);
-    expect(history.map((session) => session.id)).toEqual(["v2", "v1"]);
+    expect(history.map((session) => session.id)).toEqual(["v3", "v2", "v1"]);
     const rewritten = JSON.parse(
       values.get(QUIZ_HISTORY_STORAGE_KEY) ?? "[]",
-    ) as QuizSessionSummaryV2[];
-    expect(rewritten.every((session) => session.schemaVersion === 2)).toBe(
+    ) as QuizSessionSummaryV3[];
+    expect(rewritten.every((session) => session.schemaVersion === 3)).toBe(
       true,
     );
   });
@@ -88,8 +122,8 @@ describe("quiz history storage", () => {
       setItem: () => false,
       removeItem: () => false,
     };
-    expect(saveQuizSession(v2Summary, storage)).toEqual({
-      history: [v2Summary],
+    expect(saveQuizSession(v3Summary, storage)).toEqual({
+      history: [v3Summary],
       saved: false,
     });
   });

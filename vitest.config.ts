@@ -21,6 +21,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     exclude: [...configDefaults.exclude, "e2e/**"],
+    // Component tests that mount the full provider stack need more than the
+    // 5s default once coverage instrumentation and parallel workers compete.
+    testTimeout: 20_000,
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary", "html"],

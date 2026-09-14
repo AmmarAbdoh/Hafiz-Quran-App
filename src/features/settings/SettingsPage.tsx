@@ -80,7 +80,8 @@ export function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { reciter, setReciterId } = useReciter();
   const { tafseerId, setTafseerId } = useTafseer();
-  const { preview, isPreviewPlaying } = useReciterPreview(reciter);
+  const { preview, isPreviewPlaying, previewError } =
+    useReciterPreview(reciter);
   const [wordByWordGuideOpen, setWordByWordGuideOpen] = useState(false);
 
   const chooseTheme = (nextTheme: Theme) => {
@@ -222,6 +223,11 @@ export function SettingsPage() {
             {DEMO_AYAH_LABEL}
           </span>
         </Button>
+        {previewError ? (
+          <p role="alert" className="text-sm text-destructive">
+            {t("recitation.previewError")}
+          </p>
+        ) : null}
         <p className="text-caption text-muted-foreground">
           {t("recitation.count", {
             count: formatNumber(RECITERS.length, locale),

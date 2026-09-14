@@ -1,10 +1,15 @@
-import type { CSSProperties, MouseEvent } from "react";
+import type { CSSProperties, MouseEvent, PointerEvent } from "react";
 import type { MushafWord } from "../model";
 import { cn } from "@/shared/lib/utils";
 
 type MushafWordActivationHandler = (
   word: MushafWord,
   event: MouseEvent<HTMLButtonElement>,
+) => void;
+
+type MushafWordPointerHandler = (
+  word: MushafWord,
+  event: PointerEvent<HTMLButtonElement>,
 ) => void;
 
 interface MushafWordGlyphProps {
@@ -17,10 +22,13 @@ interface MushafWordGlyphProps {
   practiceTarget?: boolean;
   hidden?: boolean;
   incorrect?: boolean;
+  bookmarked?: boolean;
   incorrectLabel?: string;
   wordZIndex?: number;
-  getActivationLabel?: (word: MushafWord) => string;
   onActivate?: MushafWordActivationHandler;
+  onPointerDown?: MushafWordPointerHandler;
+  onPointerUp?: () => void;
+  onPointerCancel?: () => void;
 }
 
 type MushafGlyphStyle = CSSProperties & { fontPalette?: string };
@@ -36,14 +44,18 @@ export function MushafWordGlyph({
   hidden = false,
   incorrect = false,
   incorrectLabel,
+  bookmarked = false,
   wordZIndex,
-  getActivationLabel,
   onActivate,
+  onPointerDown,
+  onPointerUp,
+  onPointerCancel,
 }: MushafWordGlyphProps) {
   const interactive = fontReady && Boolean(onActivate) && !hidden && !incorrect;
   const className = cn(
     "mushaf-word",
     word.char_type === "end" && "mushaf-word-end",
+    bookmarked && word.char_type === "end" && "mushaf-word--bookmarked",
     !fontReady && "opacity-0",
     fontReady && !colored && "mushaf-word-plain",
     interactive && "mushaf-word--interactive",
@@ -103,12 +115,18 @@ export function MushafWordGlyph({
     <button
       {...contentAttributes}
       type="button"
-      aria-label={getActivationLabel?.(word) ?? word.code_v2}
+      tabIndex={-1}
+      aria-hidden
       aria-pressed={selected || undefined}
       onClick={(event) => {
         event.stopPropagation();
         onActivate?.(word, event);
       }}
+      onPointerDown={(event) => {
+        onPointerDown?.(word, event);
+      }}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
     >
       {word.code_v2}
     </button>

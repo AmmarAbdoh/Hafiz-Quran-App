@@ -6,6 +6,13 @@ const CDN_BASE = "https://verses.quran.foundation";
 const TAJWEED_SAKIN_LIGHT_GREY = "#4a4a4a";
 const loadedFonts = new Map<string, Promise<boolean>>();
 const injectedPalettes = new Set<string>();
+/**
+ * Families this module has added to the document. `document.fonts.check` cannot
+ * answer that question: it reports whether the text would render at all, so it
+ * returns true for a family that was never loaded and the page would then draw
+ * its glyphs in a fallback face and reflow once the real font arrived.
+ */
+const documentFontFamilies = new Set<string>();
 
 function getFontCacheKey(page: number, theme: Theme, colored: boolean): string {
   const fontFamily = getQcfFontFamily(page, colored);
@@ -13,12 +20,7 @@ function getFontCacheKey(page: number, theme: Theme, colored: boolean): string {
 }
 
 function isQcfFontInDocument(page: number, colored: boolean): boolean {
-  const fontFamily = getQcfFontFamily(page, colored);
-  try {
-    return document.fonts.check(`1em "${fontFamily}"`);
-  } catch {
-    return false;
-  }
+  return documentFontFamilies.has(getQcfFontFamily(page, colored));
 }
 
 function isFirefox(): boolean {
@@ -88,6 +90,7 @@ export async function preloadQcfPageFont(
       fontFace.display = "block";
       await fontFace.load();
       document.fonts.add(fontFace);
+      documentFontFamilies.add(fontFamily);
       if (colored) ensureTajweedPalettes(fontFamily);
       return true;
     } catch {

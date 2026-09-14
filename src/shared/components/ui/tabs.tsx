@@ -1,8 +1,20 @@
 import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/lib/utils";
 
-const Tabs = TabsPrimitive.Root;
+/**
+ * Radix defaults tabs to left to right, which would put the first tab on the
+ * wrong side in Arabic, so the interface direction is passed in.
+ */
+const Tabs = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root>
+>(({ dir, ...props }, ref) => {
+  const { i18n } = useTranslation();
+  return <TabsPrimitive.Root ref={ref} dir={dir ?? i18n.dir()} {...props} />;
+});
+Tabs.displayName = TabsPrimitive.Root.displayName;
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,

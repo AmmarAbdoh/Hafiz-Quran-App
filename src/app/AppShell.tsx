@@ -1,52 +1,60 @@
 import type { ReactNode } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
   BookOpenText,
   GraduationCap,
-  Home,
+  LayoutGrid,
   Moon,
   Settings2,
   Sun,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { ServiceWorkerUpdatePrompt } from "@/app/ServiceWorkerUpdatePrompt";
 import {
   isQuranReaderPath,
   MushafReaderHeader,
   MushafReaderProvider,
+  PlaybackMiniPlayer,
   useMushafReader,
+  useResumeReaderPath,
 } from "@/features/quran-reader";
 import { Button } from "@/shared/components/ui/button";
 import { useTheme } from "@/shared/hooks/use-theme";
 import { cn } from "@/shared/lib/utils";
 
 const navigationItems = [
-  { to: "/", labelKey: "navigation.home", icon: Home, section: "home" },
   {
-    to: "/quran/page/1",
     labelKey: "navigation.reader",
     icon: BookOpenText,
     section: "reader",
   },
   {
+    to: "/index",
+    labelKey: "navigation.index",
+    icon: LayoutGrid,
+    section: "index",
+  },
+  {
     to: "/quiz",
-    labelKey: "navigation.quiz",
+    labelKey: "navigation.review",
     icon: GraduationCap,
     section: "quiz",
   },
   {
     to: "/settings",
-    labelKey: "navigation.settings",
+    labelKey: "navigation.more",
     icon: Settings2,
     section: "settings",
   },
 ] as const;
 
-function getActiveSection(
-  pathname: string,
-): (typeof navigationItems)[number]["section"] {
+type NavSection = (typeof navigationItems)[number]["section"] | "home";
+
+function getActiveSection(pathname: string): NavSection {
   if (pathname.startsWith("/quran")) return "reader";
+  if (pathname.startsWith("/index")) return "index";
   if (pathname.startsWith("/quiz")) return "quiz";
   if (pathname.startsWith("/settings") || pathname.startsWith("/about")) {
     return "settings";
@@ -106,6 +114,7 @@ function Navigation({ mobile = false }: { mobile?: boolean }) {
   const { pathname } = useLocation();
   const { t } = useTranslation("common");
   const { t: tA11y } = useTranslation("a11y");
+  const resumeReaderPath = useResumeReaderPath();
   const activeSection = getActiveSection(pathname);
 
   return (
@@ -118,11 +127,12 @@ function Navigation({ mobile = false }: { mobile?: boolean }) {
       {navigationItems.map((item) => {
         const active = item.section === activeSection;
         const Icon = item.icon;
+        const to = item.section === "reader" ? resumeReaderPath : item.to;
 
         return (
           <Link
             key={item.section}
-            to={item.to}
+            to={to}
             aria-current={active ? "page" : undefined}
             className={cn(
               "relative inline-flex min-h-11 items-center justify-center rounded-xl text-sm font-semibold transition-colors",
@@ -144,7 +154,6 @@ function Navigation({ mobile = false }: { mobile?: boolean }) {
 }
 
 function ReaderShell({ children }: { children: ReactNode }) {
-  const navigate = useNavigate();
   const { header } = useMushafReader();
   const { t, i18n } = useTranslation("common");
   const { t: tA11y } = useTranslation("a11y");
@@ -157,20 +166,22 @@ function ReaderShell({ children }: { children: ReactNode }) {
       {header ? (
         <MushafReaderHeader {...header} />
       ) : (
+        // Shown for the moment before the reader publishes its own header, so it
+        // leads home like the real one rather than back through history.
         <header className="editorial-topbar editorial-topbar--reader">
           <Button
-            type="button"
+            asChild
             variant="ghost"
             size="icon"
             className="min-h-11 min-w-11"
-            onClick={() => navigate(-1)}
-            aria-label={tA11y("goBack")}
           >
-            {i18n.dir() === "rtl" ? (
-              <ArrowRight aria-hidden="true" />
-            ) : (
-              <ArrowLeft aria-hidden="true" />
-            )}
+            <Link to="/" aria-label={t("navigation.home")}>
+              {i18n.dir() === "rtl" ? (
+                <ArrowRight aria-hidden="true" />
+              ) : (
+                <ArrowLeft aria-hidden="true" />
+              )}
+            </Link>
           </Button>
           <span className="font-bold">{t("navigation.reader")}</span>
           <ThemeButton />
@@ -190,6 +201,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (isQuranReaderPath(pathname)) {
     return (
       <MushafReaderProvider>
+        <ServiceWorkerUpdatePrompt />
         <ReaderShell>{children}</ReaderShell>
       </MushafReaderProvider>
     );
@@ -197,6 +209,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="editorial-shell">
+      <ServiceWorkerUpdatePrompt />
       <a className="skip-link" href="#app-content">
         {tA11y("skipToContent")}
       </a>
@@ -223,8 +236,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           {children}
         </main>
 
-        <div className="editorial-bottom-nav">
-          <Navigation mobile />
+        {/*
+          The mini player and the mobile nav share one fixed dock so the player
+          stacks above the nav without either needing to know its height.
+        */}
+        <div className="editorial-dock">
+          <PlaybackMiniPlayer />
+          <div className="editorial-bottom-nav">
+            <Navigation mobile />
+          </div>
         </div>
       </div>
     </div>

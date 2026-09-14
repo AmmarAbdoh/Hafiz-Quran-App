@@ -23,7 +23,6 @@
   .mushaf-reader-layout {
     --mushaf-dock-offset: 0px;
     --mushaf-dock-reserve: 64px;
-    --mushaf-audio-offset: 0px;
     display: flex;
     min-height: 0;
     flex: 1;
@@ -39,51 +38,7 @@
     z-index: 35;
     display: flex;
     flex-direction: column;
-    transform: translateY(0);
-    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform;
     padding-bottom: max(0px, env(safe-area-inset-bottom));
-  }
-
-  .mushaf-bottom-dock--collapsed {
-    transform: translateY(calc(100% - 10px));
-  }
-
-  .mushaf-bottom-dock--fully-collapsed {
-    transform: translateY(100%);
-  }
-
-  .mushaf-bottom-dock__hover-sentinel {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 36;
-    height: 12px;
-  }
-
-  .mushaf-bottom-dock__peek {
-    position: relative;
-    flex-shrink: 0;
-    height: 10px;
-    cursor: pointer;
-    background: linear-gradient(
-      to top,
-      color-mix(in srgb, var(--background) 92%, transparent),
-      transparent
-    );
-  }
-
-  .mushaf-bottom-dock--collapsed .mushaf-bottom-dock__peek::after {
-    content: "";
-    position: absolute;
-    top: 4px;
-    left: 50%;
-    width: 36px;
-    height: 3px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--foreground) 22%, transparent);
-    transform: translateX(-50%);
   }
 
   .mushaf-bottom-chrome {
@@ -101,12 +56,70 @@
     box-shadow: 0 -8px 28px -12px rgb(0 0 0 / 0.45);
   }
 
-  .mushaf-playback-dock {
-    position: fixed;
-    right: 0;
-    bottom: var(--mushaf-dock-offset);
-    left: 0;
-    z-index: 34;
+  /* Playback takes over the single bottom strip instead of stacking a second
+     bar above the footer, so the reading area never loses two rows at once. */
+  .mushaf-playback-bar {
+    position: relative;
+    z-index: 20;
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--primary) 6%, transparent);
+  }
+
+  .mushaf-playback-bar--practice {
+    background: color-mix(in srgb, var(--primary) 9%, transparent);
+  }
+
+  .mushaf-playback-bar__progress {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    block-size: 2px;
+    background: var(--primary);
+    transition: inline-size 0.2s ease;
+  }
+
+  .mushaf-playback-bar__row {
+    display: flex;
+    max-width: 72rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.125rem 0.5rem;
+    margin-inline: auto;
+    padding: 0.375rem 0.75rem;
+  }
+
+  .mushaf-playback-bar__info {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 100%;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .mushaf-playback-bar__controls {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .mushaf-playback-bar__row {
+      flex-wrap: nowrap;
+      padding-inline: 1rem;
+    }
+
+    .mushaf-playback-bar__info {
+      flex: 1 1 auto;
+    }
+
+    .mushaf-playback-bar__controls {
+      flex: 0 0 auto;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
   }
 
   .mushaf-footer-bar {
@@ -117,66 +130,20 @@
     background: transparent;
   }
 
-  .mushaf-footer-bar--with-pin {
-    padding-inline-start: 2rem;
-  }
-
   @media (min-width: 640px) {
     .mushaf-footer-bar {
       padding-inline: 0.75rem;
     }
-
-    .mushaf-footer-bar--with-pin {
-      padding-inline-start: 2.25rem;
-    }
-  }
-
-  .mushaf-footer-pin {
-    position: absolute;
-    top: 50%;
-    inset-inline-start: 0.375rem;
-    display: inline-flex;
-    min-height: 2.75rem;
-    min-width: 2.75rem;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    border-radius: 0.375rem;
-    background: transparent;
-    color: var(--muted-foreground);
-    transform: translateY(-50%);
-    cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      color 0.15s ease;
-  }
-
-  @media (min-width: 640px) {
-    .mushaf-footer-pin {
-      inset-inline-start: 0.5rem;
-    }
-  }
-
-  .mushaf-footer-pin:hover {
-    background: color-mix(in srgb, var(--muted) 55%, transparent);
-    color: var(--foreground);
-  }
-
-  .mushaf-footer-pin--active {
-    color: var(--primary);
-  }
-
-  .mushaf-footer-pin--active:hover {
-    background: color-mix(in srgb, var(--primary) 10%, transparent);
-    color: var(--primary);
   }
 
   .mushaf-footer-surah-nav {
     display: inline-flex;
-    min-width: 0;
+    /* Icon-only on phones, so it still needs a full touch target. */
+    min-width: 2.75rem;
     max-width: 7rem;
-    min-height: 2.25rem;
+    min-height: 2.75rem;
     align-items: center;
+    justify-content: center;
     gap: 0.25rem;
     border: 0;
     border-radius: 0.375rem;
@@ -191,6 +158,7 @@
 
   @media (min-width: 640px) {
     .mushaf-footer-surah-nav {
+      min-width: 0;
       max-width: 10rem;
       gap: 0.375rem;
       padding: 0.3rem 0.5rem;
@@ -221,7 +189,10 @@
     }
   }
 
+  /* Phones give the width to the current surah name instead; the button keeps
+     the neighbouring name in its accessible label. */
   .mushaf-footer-surah-nav__label {
+    display: none;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -233,6 +204,7 @@
 
   @media (min-width: 640px) {
     .mushaf-footer-surah-nav__label {
+      display: block;
       font-size: 1rem;
     }
   }
@@ -256,18 +228,38 @@
     flex: 1;
     overflow-x: hidden;
     overflow-y: auto;
-    padding-bottom: calc(
-      var(--mushaf-dock-reserve) + var(--mushaf-audio-offset)
-    );
-    scroll-padding-bottom: calc(
-      var(--mushaf-dock-reserve) + var(--mushaf-audio-offset)
-    );
+    padding-bottom: var(--mushaf-dock-reserve);
+    scroll-padding-bottom: var(--mushaf-dock-reserve);
     direction: ltr;
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
     -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
+  }
+
+  .mushaf-reader-layout {
+    --mushaf-scale: 1;
+    --mushaf-font-size-base: clamp(1rem, 10vw, 1.55rem);
+    --mushaf-line-height-base: clamp(2.1rem, 6.75vh, 3.1rem);
+  }
+
+  .mushaf-reader-layout--sepia {
+    --mushaf-page: #f4ecd8;
+    --background: #f0e8d8;
+    --card: #faf4e8;
+    --muted: #ebe3d2;
+  }
+
+  .dark .mushaf-reader-layout--sepia {
+    --mushaf-page: #1c1914;
+    --background: #141210;
+    --card: #1a1814;
+    --muted: #242018;
+  }
+
+  .mushaf-bottom-chrome--controls {
+    border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    background: color-mix(in srgb, var(--mushaf-footer) 96%, transparent);
+    backdrop-filter: blur(10px);
   }
 
   .mushaf-stage:hover,
@@ -303,13 +295,15 @@
     background: color-mix(in srgb, var(--primary) 55%, transparent);
   }
 
+  /* No inline padding here: the mushaf page wrapper supplies the side gutters,
+     and doubling them pushed the page wider than the stage could show. */
   .mushaf-stage-inner {
     display: flex;
     min-height: 100%;
     width: 100%;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem 0.5rem;
+    padding: 1.5rem 0;
     direction: rtl;
   }
 
@@ -318,7 +312,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding: 0.5rem 0.5rem 0.5rem;
+    padding: 0.5rem 0;
   }
 
   .mushaf-surah-page {

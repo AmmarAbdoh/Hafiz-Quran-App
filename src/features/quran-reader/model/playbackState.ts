@@ -9,7 +9,6 @@ export interface QuranPlaybackState {
   active: boolean;
   playing: boolean;
   surah: number;
-  surahName: string;
   currentAyah: number;
   reciterName: string;
   supportsWordHighlight: boolean;
@@ -30,7 +29,6 @@ export const initialQuranPlaybackState: QuranPlaybackState = {
   active: false,
   playing: false,
   surah: 0,
-  surahName: "",
   currentAyah: 0,
   reciterName: "",
   supportsWordHighlight: false,
@@ -49,7 +47,6 @@ export const initialQuranPlaybackState: QuranPlaybackState = {
 
 interface PlaybackItemState {
   surah: number;
-  surahName: string;
   ayah: number;
   reciterName: string;
   supportsWordHighlight: boolean;
@@ -87,7 +84,6 @@ export function quranPlaybackReducer(
         active: true,
         playing: false,
         surah: item.surah,
-        surahName: item.surahName,
         currentAyah: item.ayah,
         reciterName: item.reciterName,
         supportsWordHighlight: item.supportsWordHighlight,

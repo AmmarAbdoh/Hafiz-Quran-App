@@ -28,7 +28,7 @@ const verse: MushafVerse = {
 describe("VerseDialog", () => {
   beforeEach(() => {
     window.localStorage.clear();
-    window.localStorage.setItem("hafiz-quran.locale", "en");
+    window.localStorage.setItem("artqiy.locale", "en");
     mocks.loadTafseer.mockReset();
   });
 

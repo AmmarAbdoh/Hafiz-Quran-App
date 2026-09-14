@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  MushafFontLoadingState,
+  MushafPageSkeleton,
   MushafPageView,
   useQuranData,
   type MushafPageLayout,
@@ -9,13 +9,8 @@ import {
 } from "@/domain/quran";
 import { Button } from "@/shared/components/ui/button";
 import { useTheme } from "@/shared/hooks/use-theme";
-import { safeStorage } from "@/shared/storage";
-
-const TAJWEED_STORAGE_KEY = "mushaf-tajweed-colored";
-
-function readTajweedColored(): boolean {
-  return safeStorage.getItem(TAJWEED_STORAGE_KEY) === "true";
-}
+import { useTajweedColored } from "@/features/quran-reader/hooks/useTajweedColored";
+const QUIZ_PREVIEW_SKELETON_LINES = 6;
 
 function getRevealedLocations(
   pageLayout: MushafPageLayout | null,
@@ -56,14 +51,12 @@ export function QuizMushafPreview({
 }: QuizMushafPreviewProps) {
   const { t } = useTranslation("quiz");
   const { theme } = useTheme();
+  const { tajweedColored: storedTajweedColored } = useTajweedColored();
   const { loadPageLayout } = useQuranData();
   const [pageLayout, setPageLayout] = useState<MushafPageLayout | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
-  const [tajweedColored] = useState(
-    () => tajweedColoredProp ?? readTajweedColored(),
-  );
-  const resolvedTajweed = tajweedColoredProp ?? tajweedColored;
+  const resolvedTajweed = tajweedColoredProp ?? storedTajweedColored;
 
   useEffect(() => {
     let cancelled = false;
@@ -111,7 +104,13 @@ export function QuizMushafPreview({
           </Button>
         </div>
       ) : !pageLayout ? (
-        <MushafFontLoadingState compact message={t("active.loading")} />
+        <div className="relative mx-auto w-fit max-w-full px-2">
+          <MushafPageSkeleton
+            page={page}
+            lines={QUIZ_PREVIEW_SKELETON_LINES}
+            label={t("active.loading")}
+          />
+        </div>
       ) : (
         <MushafPageView
           pageLayout={pageLayout}
@@ -120,7 +119,10 @@ export function QuizMushafPreview({
           theme={theme}
           loadingMessage={t("active.loading")}
           highlightVerseKey={highlightVerseKey}
+          // Review reads at its own pace, so the tested ayah stays tinted.
+          highlightPulse={false}
           surahFilter={surahFilter}
+          practiceMode={Boolean(hiddenVerseKey)}
           hidePracticeWords={Boolean(hiddenVerseKey)}
           revealedWordLocations={revealedLocations}
         />

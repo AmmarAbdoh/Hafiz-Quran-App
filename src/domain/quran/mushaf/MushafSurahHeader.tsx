@@ -1,9 +1,11 @@
 import type { CSSProperties } from "react";
+import { BISMILLAH_TEXT } from "../model/constants";
 
 interface MushafSurahHeaderProps {
   surahName: string;
   headerLines?: number;
   accessibleLabel?: string;
+  showBismillah?: boolean;
 }
 
 export function MushafSurahHeader({
@@ -12,6 +14,7 @@ export function MushafSurahHeader({
   accessibleLabel = surahName.startsWith("سورة ")
     ? surahName
     : `سورة ${surahName}`,
+  showBismillah = false,
 }: MushafSurahHeaderProps) {
   const spacerLines = Math.max(0, headerLines - 1);
 
@@ -37,6 +40,11 @@ export function MushafSurahHeader({
           ﴾
         </span>
       </div>
+      {showBismillah ? (
+        <p className="mushaf-bismillah font-mushaf" aria-label={BISMILLAH_TEXT}>
+          {BISMILLAH_TEXT}
+        </p>
+      ) : null}
     </div>
   );
 }

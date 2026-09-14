@@ -9,7 +9,6 @@ import {
   getPageSurahNumbers,
   getSurahAyahCount,
   getSurahPages,
-  getSurahTashkeelName,
 } from "@/domain/quran";
 import {
   getQuranRouteContext,
@@ -56,6 +55,8 @@ interface SelectReaderMetadataOptions {
   visibleSurahPage: number;
   mushafData: MushafVerse[];
   verseInfoRecords: VerseInfoRecord[];
+  /** Surah labels follow the interface language, so the caller supplies them. */
+  surahName: (surahNumber: number) => string;
 }
 
 export function selectReaderRouteState({
@@ -138,6 +139,7 @@ export function selectReaderMetadata({
   visibleSurahPage,
   mushafData,
   verseInfoRecords,
+  surahName,
 }: SelectReaderMetadataOptions): ReaderMetadata {
   if (layoutMode === "surah") {
     const visibleVerse = mushafData.find(
@@ -153,7 +155,7 @@ export function selectReaderMetadata({
     );
 
     return {
-      surahNames: [getSurahTashkeelName(mushafData, currentSurahNumber)],
+      surahNames: [surahName(currentSurahNumber)],
       surahAyahCount: getSurahAyahCount(mushafData, currentSurahNumber),
       juzNumber: verseInfo?.juz_number,
     };
@@ -164,9 +166,7 @@ export function selectReaderMetadata({
   const verseInfo = findVerseInfoRecord(firstVerse, verseInfoRecords);
 
   return {
-    surahNames: pageSurahs.map((surahNumber) =>
-      getSurahTashkeelName(mushafData, surahNumber),
-    ),
+    surahNames: pageSurahs.map(surahName),
     surahAyahCount:
       pageSurahs.length === 1
         ? getSurahAyahCount(mushafData, pageSurahs[0]!)

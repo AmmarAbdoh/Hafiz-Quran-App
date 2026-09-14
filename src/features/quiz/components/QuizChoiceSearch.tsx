@@ -2,17 +2,19 @@ import { useId, useMemo, useState, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { normalizeArabicForMatch } from "@/shared/lib/arabic-normalize";
+import { filterQuizSearchChoices } from "../model/filterQuizSearchChoices";
 import type { QuizChoice } from "../model/types";
 
 interface QuizChoiceSearchProps {
   choices: QuizChoice[];
+  requiredChoiceId?: string;
   disabled?: boolean;
   onConfirm: (choiceId: string) => void;
 }
 
 export function QuizChoiceSearch({
   choices,
+  requiredChoiceId,
   disabled = false,
   onConfirm,
 }: QuizChoiceSearchProps) {
@@ -23,30 +25,13 @@ export function QuizChoiceSearch({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const searchableChoices = useMemo(
-    () =>
-      choices.map((choice) => ({
-        choice,
-        normalizedLabel: normalizeArabicForMatch(choice.label),
-      })),
-    [choices],
-  );
-  const normalizedQuery = normalizeArabicForMatch(searchTerm);
   const filtered = useMemo(
-    () =>
-      normalizedQuery
-        ? searchableChoices
-            .filter(({ normalizedLabel }) =>
-              normalizedLabel.includes(normalizedQuery),
-            )
-            .slice(0, 8)
-            .map(({ choice }) => choice)
-        : [],
-    [normalizedQuery, searchableChoices],
+    () => filterQuizSearchChoices(choices, searchTerm, requiredChoiceId),
+    [choices, requiredChoiceId, searchTerm],
   );
   const selected = choices.find((choice) => choice.id === selectedId);
   const activeChoice = filtered[activeIndex];
-  const showResults = normalizedQuery.length > 0 && !selected;
+  const showResults = !selected;
 
   function selectChoice(choice: QuizChoice): void {
     setSelectedId(choice.id);

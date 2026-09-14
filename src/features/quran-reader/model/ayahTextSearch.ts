@@ -1,4 +1,3 @@
-import { SURAH_NAMES } from "@/domain/quran";
 import { normalizeArabicForMatch } from "@/shared/lib/arabic-normalize";
 import type { MushafVerse } from "@/domain/quran";
 
@@ -7,7 +6,6 @@ export interface AyahSearchEntry {
   ayah: number;
   text: string;
   normalizedText: string;
-  surahName: string;
 }
 
 export interface AyahSearchResult extends AyahSearchEntry {
@@ -16,6 +14,19 @@ export interface AyahSearchResult extends AyahSearchEntry {
 
 const MIN_QUERY_LENGTH = 2;
 const DEFAULT_LIMIT = 20;
+
+export function parseAyahReference(
+  query: string,
+): { surah: number; ayah: number } | null {
+  const trimmed = query.trim();
+  const match = /^(\d{1,3})\s*[:٫،]\s*(\d{1,3})$/.exec(trimmed);
+  if (!match) return null;
+  const surah = Number(match[1]);
+  const ayah = Number(match[2]);
+  if (!Number.isFinite(surah) || !Number.isFinite(ayah)) return null;
+  if (surah < 1 || surah > 114 || ayah < 1) return null;
+  return { surah, ayah };
+}
 
 export function buildAyahSearchIndex(
   mushafData: MushafVerse[],
@@ -36,7 +47,6 @@ export function buildAyahSearchIndex(
       ayah: verse.aya_no,
       text,
       normalizedText: normalizeArabicForMatch(text),
-      surahName: SURAH_NAMES[verse.sura_no - 1] ?? verse.sura_name_ar,
     });
   }
 
@@ -65,6 +75,15 @@ export function searchAyahsByText(
   query: string,
   limit = DEFAULT_LIMIT,
 ): AyahSearchResult[] {
+  const reference = parseAyahReference(query);
+  if (reference) {
+    const match = index.find(
+      (entry) =>
+        entry.surah === reference.surah && entry.ayah === reference.ayah,
+    );
+    return match ? [{ ...match, score: 0 }] : [];
+  }
+
   const normalizedQuery = normalizeArabicForMatch(query);
   if (normalizedQuery.length < MIN_QUERY_LENGTH) return [];
 

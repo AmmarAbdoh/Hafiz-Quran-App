@@ -1,7 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
-import { safeStorage, STORAGE_KEYS } from "@/shared/storage";
+import {
+  LEGACY_STORAGE_KEYS,
+  safeStorage,
+  STORAGE_KEYS,
+} from "@/shared/storage";
 import {
   defaultLocale,
   defaultNamespace,
@@ -11,7 +15,9 @@ import {
 } from "./resources";
 
 function readInitialLocale(): Locale {
-  const storedLocale = safeStorage.getItem(STORAGE_KEYS.locale);
+  const storedLocale =
+    safeStorage.getItem(STORAGE_KEYS.locale) ??
+    safeStorage.getItem(LEGACY_STORAGE_KEYS.locale);
   return isLocale(storedLocale) ? storedLocale : defaultLocale;
 }
 
@@ -39,15 +45,18 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     safeStorage.setItem(STORAGE_KEYS.locale, locale);
+    safeStorage.removeItem(LEGACY_STORAGE_KEYS.locale);
     document.documentElement.lang = locale;
     document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
     void i18n.changeLanguage(locale);
 
     const translateCommon = i18n.getFixedT(locale, "common");
     document.title = translateCommon("appName");
+    // The tagline is a short slogan, so the fuller description is what search
+    // results and link previews should show.
     document
       .querySelector<HTMLMetaElement>('meta[name="description"]')
-      ?.setAttribute("content", translateCommon("appTagline"));
+      ?.setAttribute("content", translateCommon("appDescription"));
   }, [locale]);
 
   return (

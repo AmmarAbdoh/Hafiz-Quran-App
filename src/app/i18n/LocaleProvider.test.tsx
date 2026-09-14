@@ -2,7 +2,11 @@
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useTranslation } from "react-i18next";
-import { safeStorage, STORAGE_KEYS } from "@/shared/storage";
+import {
+  LEGACY_STORAGE_KEYS,
+  safeStorage,
+  STORAGE_KEYS,
+} from "@/shared/storage";
 import { LocaleProvider, useLocale } from "./LocaleProvider";
 
 function LocaleProbe() {
@@ -41,26 +45,39 @@ describe("LocaleProvider", () => {
       </LocaleProvider>,
     );
 
-    await waitFor(() =>
-      expect(screen.getByText("حافظ القرآن")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("ارتق")).toBeInTheDocument());
     expect(document.documentElement).toHaveAttribute("lang", "ar");
     expect(document.documentElement).toHaveAttribute("dir", "rtl");
     expect(document.title).not.toBe("");
 
     fireEvent.click(screen.getByRole("button", { name: "English" }));
 
-    await waitFor(() =>
-      expect(screen.getByText("Hafiz Quran")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("Artqiy")).toBeInTheDocument());
     expect(screen.getByTestId("locale")).toHaveTextContent("en");
     expect(document.documentElement).toHaveAttribute("lang", "en");
     expect(document.documentElement).toHaveAttribute("dir", "ltr");
     expect(safeStorage.getItem(STORAGE_KEYS.locale)).toBe("en");
-    expect(document.title).toBe("Hafiz Quran");
+    expect(document.title).toBe("Artqiy");
     expect(document.querySelector('meta[name="description"]')).toHaveAttribute(
       "content",
-      "Read, review, and test in one place",
+      "Your companion for reading the Quran and reviewing memorization",
     );
+  });
+
+  it("adopts a locale stored under the previous app name", async () => {
+    window.localStorage.setItem(LEGACY_STORAGE_KEYS.locale, "en");
+
+    render(
+      <LocaleProvider>
+        <LocaleProbe />
+      </LocaleProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Artqiy")).toBeInTheDocument());
+    expect(screen.getByTestId("locale")).toHaveTextContent("en");
+    await waitFor(() =>
+      expect(safeStorage.getItem(STORAGE_KEYS.locale)).toBe("en"),
+    );
+    expect(safeStorage.getItem(LEGACY_STORAGE_KEYS.locale)).toBeNull();
   });
 });

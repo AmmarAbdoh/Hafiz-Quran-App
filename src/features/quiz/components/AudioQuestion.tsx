@@ -6,7 +6,6 @@ import { useAyahAudio } from "../hooks/useAyahAudio";
 import type { AudioIdentifyQuizQuestion } from "../model/types";
 import { QuizChoiceGrid } from "./QuizChoiceGrid";
 import { QuizFeedback } from "./QuizFeedback";
-import { QuizMushafPreview } from "./QuizMushafPreview";
 import type { QuizQuestionViewProps } from "./questionViewTypes";
 
 interface AudioQuestionProps extends QuizQuestionViewProps {
@@ -71,13 +70,6 @@ export function AudioQuestion({
             {t("audio.error")}
           </p>
         )}
-        {answered && (
-          <QuizMushafPreview
-            page={question.verse.page}
-            mushafData={mushafData}
-            highlightVerseKey={question.verseKey}
-          />
-        )}
       </div>
 
       <QuizChoiceGrid
@@ -87,10 +79,11 @@ export function AudioQuestion({
         disabled={answered}
         onSelect={onSubmit}
       />
-      {answered && isCorrect !== null && (
+      {answered && isCorrect !== null && selectedChoiceId !== null && (
         <QuizFeedback
           isCorrect={isCorrect}
-          verse={question.verse}
+          question={question}
+          selectedChoiceId={selectedChoiceId}
           verseInfoRecords={verseInfoRecords}
           mushafData={mushafData}
           streak={streak}

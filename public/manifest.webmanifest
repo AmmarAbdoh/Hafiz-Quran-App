@@ -1,0 +1,34 @@
+{
+  "id": "/",
+  "name": "ارتق · اقرأ وارتقِ",
+  "short_name": "ارتق",
+  "description": "رفيقك لقراءة القرآن الكريم ومراجعة الحفظ",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f7f7",
+  "theme_color": "#f6f7f7",
+  "categories": ["books", "education", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

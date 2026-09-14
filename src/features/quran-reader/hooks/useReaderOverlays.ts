@@ -22,12 +22,17 @@ export function useReaderOverlays({
   const [listenOpen, setListenOpen] = useState(false);
   const [listenPreset, setListenPreset] = useState<ListenPreset | null>(null);
   const [legendGuideOpen, setLegendGuideOpen] = useState(false);
+  const [readingPreferencesOpen, setReadingPreferencesOpen] = useState(false);
 
   // Header actions live in context; stable identities keep header
   // synchronization from feeding back into the provider on every render.
   const openSurahDrawer = useCallback(() => setSurahDrawerOpen(true), []);
   const openAyahSearch = useCallback(() => setAyahSearchOpen(true), []);
   const openLegendGuide = useCallback(() => setLegendGuideOpen(true), []);
+  const openReadingPreferences = useCallback(
+    () => setReadingPreferencesOpen(true),
+    [],
+  );
   const openListenOptions = useCallback(
     (preset?: ListenPreset) => {
       if (practiceActive) stopPractice();
@@ -52,9 +57,12 @@ export function useReaderOverlays({
     listenPreset,
     legendGuideOpen,
     setLegendGuideOpen,
+    readingPreferencesOpen,
+    setReadingPreferencesOpen,
     openSurahDrawer,
     openAyahSearch,
     openLegendGuide,
+    openReadingPreferences,
     openListenOptions,
   };
 }

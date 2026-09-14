@@ -147,7 +147,7 @@ export function ReciterSelect({
   const inputRef = useRef<HTMLInputElement>(null);
   const generatedId = useId();
   const listboxId = `${generatedId}-listbox`;
-  const { playUrl, playingUrl } = usePreviewAudio();
+  const { playUrl, playingUrl, previewError } = usePreviewAudio();
 
   const selected = getReciterById(value);
   const groups = getRecitersByCategory();
@@ -313,6 +313,11 @@ export function ReciterSelect({
           className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl"
         >
           <div className="app-main-scroll max-h-[min(22rem,55vh)] overflow-y-auto p-1.5">
+            {previewError ? (
+              <p role="alert" className="px-3 py-2 text-sm text-destructive">
+                {t("recitation.previewError")}
+              </p>
+            ) : null}
             {visibleReciters.length === 0 ? (
               <p className="px-3 py-8 text-center text-sm text-muted-foreground">
                 {t("recitation.empty")}

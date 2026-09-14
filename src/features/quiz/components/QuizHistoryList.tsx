@@ -1,10 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/shared/components/ui/badge";
 import { useQuizFormatters } from "../hooks/useQuizFormatters";
-import type { QuizSessionSummaryV2 } from "../model/types";
+import type { QuizSessionSummaryV3 } from "../model/types";
 
 interface QuizHistoryListProps {
-  history: QuizSessionSummaryV2[];
+  history: QuizSessionSummaryV3[];
 }
 
 export function QuizHistoryList({ history }: QuizHistoryListProps) {

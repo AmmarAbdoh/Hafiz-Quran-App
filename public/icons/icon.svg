@@ -1,0 +1,37 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  width="512"
+  height="512"
+  role="img"
+>
+  <!-- Numeric references keep this file pure ASCII; they resolve to "ارتق". -->
+  <title>&#1575;&#1585;&#1578;&#1602;</title>
+  <rect width="512" height="512" rx="112" fill="#0f6b60" />
+
+  <!-- Arch above the mushaf, echoing the sura border ornament. -->
+  <path
+    d="M188 176a68 68 0 0 1 136 0"
+    fill="none"
+    stroke="#c49a3c"
+    stroke-width="20"
+    stroke-linecap="round"
+  />
+
+  <!-- Open mushaf: two facing pages meeting at the spine. -->
+  <path
+    d="M256 236c-30-20-76-28-116-24v138c40-4 86 4 116 24Z"
+    fill="#ffffff"
+  />
+  <path
+    d="M256 236c30-20 76-28 116-24v138c-40-4-86 4-116 24Z"
+    fill="#f2f5f4"
+  />
+  <path
+    d="M256 236v138"
+    fill="none"
+    stroke="#0f6b60"
+    stroke-width="14"
+    stroke-linecap="round"
+  />
+</svg>

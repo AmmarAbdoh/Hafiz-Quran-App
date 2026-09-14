@@ -8,7 +8,7 @@ export function RouteLoadingState() {
       <span className="route-state__mark" aria-hidden="true">
         ۞
       </span>
-      <p>{t("loading", { defaultValue: "جارٍ التحميل…" })}</p>
+      <p>{t("loading")}</p>
     </div>
   );
 }

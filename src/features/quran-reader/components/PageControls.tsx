@@ -98,6 +98,7 @@ export function PageControls({
 
   return (
     <div
+      dir="ltr"
       className={cn(
         "inline-flex items-center gap-0.5 rounded-full bg-muted/50",
         pillPadding,
@@ -110,11 +111,11 @@ export function PageControls({
         variant="ghost"
         size="icon"
         className={cn(controlSize, "shrink-0 rounded-full")}
-        onClick={() => prevPage !== null && onPageChange(prevPage)}
-        disabled={prevPage === null}
-        aria-label={t("navigation.previousPage")}
+        onClick={() => nextPage !== null && onPageChange(nextPage)}
+        disabled={nextPage === null}
+        aria-label={t("navigation.nextPage")}
       >
-        <ChevronLeft className={cn(iconSize, "rtl:rotate-180")} aria-hidden />
+        <ChevronLeft className={iconSize} aria-hidden />
       </Button>
 
       {editing ? (
@@ -160,11 +161,11 @@ export function PageControls({
         variant="ghost"
         size="icon"
         className={cn(controlSize, "shrink-0 rounded-full")}
-        onClick={() => nextPage !== null && onPageChange(nextPage)}
-        disabled={nextPage === null}
-        aria-label={t("navigation.nextPage")}
+        onClick={() => prevPage !== null && onPageChange(prevPage)}
+        disabled={prevPage === null}
+        aria-label={t("navigation.previousPage")}
       >
-        <ChevronRight className={cn(iconSize, "rtl:rotate-180")} aria-hidden />
+        <ChevronRight className={iconSize} aria-hidden />
       </Button>
     </div>
   );

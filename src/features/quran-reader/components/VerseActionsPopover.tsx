@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { BookOpen, Volume2, X } from "lucide-react";
+import { BookOpen, Bookmark, Copy, Share2, Volume2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
@@ -18,22 +18,23 @@ interface VerseActionsPopoverProps {
   onListenWord?: () => void;
   onListenAyah: () => void;
   onTafseer: () => void;
+  onCopy?: () => void;
+  onShare?: () => void;
+  isBookmarked?: boolean;
+  onBookmarkToggle?: () => void;
   onClose: () => void;
   popoverRef?: React.Ref<HTMLDivElement>;
 }
 
 function getPopoverPosition(anchor: DOMRect) {
-  const rootStyles = getComputedStyle(document.documentElement);
-  const dockOffset = Number.parseFloat(
-    rootStyles.getPropertyValue("--mushaf-dock-offset"),
-  );
-  const audioOffset = Number.parseFloat(
-    rootStyles.getPropertyValue("--mushaf-audio-offset"),
-  );
-  const bottomReserve =
-    (Number.isFinite(dockOffset) ? dockOffset : 0) +
-    (Number.isFinite(audioOffset) ? audioOffset : 0) +
-    16;
+  // The reader layout owns the dock variables, not the document root.
+  const layout = document.querySelector(".mushaf-reader-layout");
+  const dockOffset = layout
+    ? Number.parseFloat(
+        getComputedStyle(layout).getPropertyValue("--mushaf-dock-offset"),
+      )
+    : 0;
+  const bottomReserve = (Number.isFinite(dockOffset) ? dockOffset : 0) + 16;
 
   const centerX = anchor.left + anchor.width / 2;
   const placeBelow = anchor.top < HEADER_SAFE_ZONE + 80;
@@ -67,6 +68,10 @@ export function VerseActionsPopover({
   onListenWord,
   onListenAyah,
   onTafseer,
+  onCopy,
+  onShare,
+  isBookmarked = false,
+  onBookmarkToggle,
   onClose,
   popoverRef,
 }: VerseActionsPopoverProps) {
@@ -154,6 +159,45 @@ export function VerseActionsPopover({
             <BookOpen className="h-3.5 w-3.5" />
             {t("actions.tafsir")}
           </Button>
+
+          {onCopy ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="min-h-11 gap-1.5 text-xs"
+              onClick={onCopy}
+            >
+              <Copy className="h-3.5 w-3.5" />
+              {t("actions.copy")}
+            </Button>
+          ) : null}
+
+          {onShare ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="min-h-11 gap-1.5 text-xs"
+              onClick={onShare}
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              {t("actions.share")}
+            </Button>
+          ) : null}
+
+          {onBookmarkToggle ? (
+            <Button
+              variant={isBookmarked ? "default" : "secondary"}
+              size="sm"
+              className="min-h-11 gap-1.5 text-xs"
+              onClick={onBookmarkToggle}
+              aria-pressed={isBookmarked}
+            >
+              <Bookmark
+                className={cn("h-3.5 w-3.5", isBookmarked && "fill-current")}
+              />
+              {isBookmarked ? t("actions.unbookmark") : t("actions.bookmark")}
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>,

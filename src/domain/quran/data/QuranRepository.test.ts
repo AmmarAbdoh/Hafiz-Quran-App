@@ -155,6 +155,40 @@ describe("LocalQuranRepository", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
+  it("exposes settled values synchronously so callers can skip a loading state", async () => {
+    const fetcher = createFetcher();
+    const repository = new LocalQuranRepository({ fetcher });
+
+    expect(repository.peekCoreData()).toBeNull();
+    expect(repository.peekPageLayout(1)).toBeNull();
+    expect(repository.peekLoadedPageLayouts()).toEqual([]);
+
+    const loaded = await repository.loadCoreData();
+    await repository.loadPageLayout(1);
+    const surahLayouts = await repository.loadSurahLayouts(1);
+
+    expect(repository.peekCoreData()).toBe(loaded);
+    expect(repository.peekPageLayout(1)).toEqual(pageOne);
+    expect(repository.peekSurahLayouts(1)).toBe(surahLayouts);
+    expect(repository.peekLoadedPageLayouts()).toEqual([pageOne, pageTwo]);
+
+    repository.clearCache();
+    expect(repository.peekCoreData()).toBeNull();
+    expect(repository.peekLoadedPageLayouts()).toEqual([]);
+  });
+
+  it("does not expose a rejected request as settled", async () => {
+    const fetcher = createFetcher({
+      "/data/quran/v1/core.json.gz": () => new Response(null, { status: 503 }),
+    });
+    const repository = new LocalQuranRepository({ fetcher });
+
+    await expect(repository.loadCoreData()).rejects.toThrow(
+      QuranRepositoryError,
+    );
+    expect(repository.peekCoreData()).toBeNull();
+  });
+
   it("evicts rejected requests so a retry can succeed", async () => {
     let coreAttempts = 0;
     const fetcher = createFetcher({

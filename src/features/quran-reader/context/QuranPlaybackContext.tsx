@@ -11,7 +11,6 @@ import {
 } from "react";
 import {
   SURAH_AYAH_COUNTS,
-  SURAH_NAMES,
   fetchSurahAudioMeta,
   fetchVerseAudioData,
   findActiveWordLocation,
@@ -33,6 +32,7 @@ import {
   type QuranPlaybackState,
 } from "@/features/quran-reader/model/playbackState";
 import { CancellableAudioPlayer } from "@/shared/media";
+import { claimAudioFocus, releaseAudioFocus } from "@/shared/media/audioFocus";
 
 export type { QuranPlaybackState } from "@/features/quran-reader/model/playbackState";
 
@@ -122,6 +122,8 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     audioPlayerRef.current = new CancellableAudioPlayer();
   }
   const audioPlayer = audioPlayerRef.current;
+  const audioOwnerRef = useRef({ stop: () => {} });
+  const stopRef = useRef<() => void>(() => {});
   const syncFrameRef = useRef<number | null>(null);
   const pageNavigatorRef = useRef<((verseKey: string) => void) | null>(null);
   const pendingVerseKeyRef = useRef<string | null>(null);
@@ -161,9 +163,12 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   }, [cleanupAudio, publishActiveWord]);
 
   const stop = useCallback(() => {
+    releaseAudioFocus(audioOwnerRef.current);
     cancelCurrentSession();
     dispatch({ type: "reset" });
   }, [cancelCurrentSession]);
+  stopRef.current = stop;
+  audioOwnerRef.current.stop = () => stopRef.current();
 
   const startWordSync = useCallback(
     (
@@ -271,7 +276,6 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
       type: "item-ready",
       item: {
         surah: item.surah,
-        surahName: SURAH_NAMES[item.surah - 1] ?? "",
         ayah: item.ayah,
         reciterName: reciter.nameAr,
         supportsWordHighlight: session.supportsWordHighlight,
@@ -297,6 +301,7 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     session.index = index;
     const controller = operationControllerRef.current!;
     const operation = controller.begin();
+    claimAudioFocus(audioOwnerRef.current);
     cleanupAudio();
     segmentsRef.current = [];
     presentCurrentItem();
@@ -449,11 +454,12 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     session.quranComId = quranComId;
     session.supportsWordHighlight = Boolean(quranComId);
     session.surahTimestampsCache.clear();
+    presentCurrentItem();
 
     if (stateRef.current.playing) {
       void playAtIndexRef.current(session.index);
     }
-  }, [reciter.id]);
+  }, [presentCurrentItem, reciter.id]);
 
   const goToVerse = useCallback((verseKey: string) => {
     pendingVerseKeyRef.current = verseKey;

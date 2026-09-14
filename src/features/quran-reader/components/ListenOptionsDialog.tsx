@@ -32,7 +32,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
-import { JUZ_NAMES, SURAH_NAMES } from "@/domain/quran";
+import { JUZ_NAMES, useSurahNames } from "@/domain/quran";
 import { cn } from "@/shared/lib/utils";
 import { getSurahAyahCount } from "@/domain/quran";
 import type { MushafVerse } from "@/domain/quran";
@@ -64,6 +64,7 @@ export function ListenOptionsDialog({
   const { t } = useTranslation("reader");
   const { t: tCommon } = useTranslation("common");
   const { locale } = useLocale();
+  const { names: surahNames, language: surahLanguage } = useSurahNames();
   const { startListening } = useQuranPlaybackActions();
   const [tab, setTab] = useState("surah");
   const [plan, setPlan] = useState<ListenPlan>(() =>
@@ -88,10 +89,10 @@ export function ListenOptionsDialog({
     setError(null);
   }, [open, preset]);
 
-  const filteredSurahs = SURAH_NAMES.map((name, index) => ({
-    name,
-    number: index + 1,
-  })).filter(({ name }) => name.includes(surahSearch));
+  const search = surahSearch.trim().toLowerCase();
+  const filteredSurahs = surahNames
+    .map((name, index) => ({ name, number: index + 1 }))
+    .filter(({ name }) => name.toLowerCase().includes(search));
 
   const setRepeat = (repeatMode: RepeatMode, repeatCount = 1) => {
     setPlan((prev) => ({ ...prev, repeatMode, repeatCount }));
@@ -213,7 +214,10 @@ export function ListenOptionsDialog({
                       }))
                     }
                   >
-                    <span dir="rtl" lang="ar">
+                    <span
+                      dir={surahLanguage === "ar" ? "rtl" : "ltr"}
+                      lang={surahLanguage}
+                    >
                       <bdi>{formatNumber(number, locale)}</bdi>. {name}
                     </span>
                     <span className="text-xs text-muted-foreground">

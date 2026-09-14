@@ -2,42 +2,61 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { VerseMetadata } from "@/domain/quran";
-import { getVerseInfo } from "@/domain/quran";
+import { VerseMetadata, getVerseInfo, useSurahNames } from "@/domain/quran";
 import type { MushafVerse, VerseInfoRecord } from "@/domain/quran";
+import { buildAnswerExplanation } from "../model/questionExplanation";
+import type { QuizQuestion } from "../model/types";
+import { QuizAnswerExplanation } from "./QuizAnswerExplanation";
 import { QuizMushafPreview } from "./QuizMushafPreview";
 
 interface QuizFeedbackProps {
   isCorrect: boolean;
-  verse: MushafVerse;
+  question: QuizQuestion;
+  selectedChoiceId: string;
   verseInfoRecords: VerseInfoRecord[];
   mushafData: MushafVerse[];
   streak: number;
+  /** Off when the question itself already shows the answered ayah on the page. */
+  showMushaf?: boolean;
   onNext: () => void;
 }
 
 export function QuizFeedback({
   isCorrect,
-  verse,
+  question,
+  selectedChoiceId,
   verseInfoRecords,
   mushafData,
   streak,
+  showMushaf = true,
   onNext,
 }: QuizFeedbackProps) {
   const { t } = useTranslation("quiz");
+  const { surahName } = useSurahNames();
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const verseInfo = getVerseInfo(verse.id, verseInfoRecords);
-  const verseKey = `${verse.sura_no}:${verse.aya_no}`;
+  const explanation = buildAnswerExplanation({
+    question,
+    selectedChoiceId,
+    mushafData,
+    verseInfoRecords,
+    surahName,
+  });
+  // Review the ayah that was actually asked about, which is not always the
+  // verse the prompt was built around.
+  const testedVerse =
+    mushafData.find(
+      (verse) =>
+        verse.sura_no === explanation.surahNumber &&
+        verse.aya_no === explanation.ayahNumber,
+    ) ?? question.verse;
+  const verseInfo = getVerseInfo(testedVerse.id, verseInfoRecords);
 
   useEffect(() => {
     headingRef.current?.focus();
-  }, [verseKey]);
+  }, [question.id]);
 
   return (
-    <section
-      className="mt-8 space-y-5 text-center"
-      aria-labelledby="quiz-feedback-heading"
-    >
+    <section className="mt-6 space-y-4" aria-labelledby="quiz-feedback-heading">
       <div role="status" aria-live="polite" aria-atomic="true">
         <h3
           id="quiz-feedback-heading"
@@ -47,7 +66,9 @@ export function QuizFeedback({
         >
           {isCorrect
             ? t("feedback.correctAnnouncement")
-            : t("feedback.incorrectAnnouncement")}
+            : t("feedback.incorrectAnnouncement", {
+                answer: explanation.correctLabel,
+              })}
         </h3>
         <div
           className="flex flex-wrap items-center justify-center gap-2"
@@ -67,15 +88,23 @@ export function QuizFeedback({
         </div>
       </div>
 
-      <QuizMushafPreview
-        page={verse.page}
-        mushafData={mushafData}
-        highlightVerseKey={verseKey}
-      />
+      <QuizAnswerExplanation explanation={explanation} isCorrect={isCorrect} />
+
+      {showMushaf && (
+        <QuizMushafPreview
+          page={testedVerse.page}
+          mushafData={mushafData}
+          surahFilter={testedVerse.sura_no}
+          highlightVerseKey={explanation.verseKey}
+        />
+      )}
       <VerseMetadata items={verseInfo} />
-      <Button size="lg" onClick={onNext}>
-        {t("feedback.next")}
-      </Button>
+
+      <div className="flex justify-center">
+        <Button size="lg" className="min-h-11" onClick={onNext}>
+          {t("feedback.next")}
+        </Button>
+      </div>
     </section>
   );
 }

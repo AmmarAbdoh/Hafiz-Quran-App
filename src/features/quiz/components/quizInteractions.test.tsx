@@ -69,6 +69,9 @@ describe("quiz choice interactions", () => {
       />,
     );
 
+    expect(screen.getByRole("option", { name: "بسم الله" })).toBeVisible();
+    expect(screen.getByRole("option", { name: "الحمد لله" })).toBeVisible();
+
     const input = screen.getByRole("combobox", { name: "Search" });
     fireEvent.change(input, { target: { value: "الحمد" } });
     expect(

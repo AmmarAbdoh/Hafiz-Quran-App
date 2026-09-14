@@ -2,22 +2,23 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/images/sura_border_sym4.svg" />
-    <link rel="apple-touch-icon" href="/images/sura_border_sym4.svg" />
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
     <link
-      rel="preload"
-      href="/fonts/ui/inter-latin-wght-normal.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/icons/favicon-32.png"
     />
     <link
-      rel="preload"
-      href="/fonts/ui/noto-sans-arabic-arabic-wght-normal.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/icons/apple-touch-icon.png"
     />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- The mushaf page fonts are fetched per page from this origin, so opening
+         the connection early keeps the first reader render off the DNS and TLS
+         critical path. -->
+    <link rel="preconnect" href="https://verses.quran.foundation" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="theme-color"
@@ -33,7 +34,9 @@
       name="description"
       content="رفيقك لقراءة القرآن الكريم ومراجعة الحفظ"
     />
-    <meta property="og:title" content="حافظ القرآن" />
+    <link rel="canonical" href="%VITE_SITE_URL%/" />
+    <meta property="og:site_name" content="ارتق" />
+    <meta property="og:title" content="ارتق · اقرأ وارتقِ" />
     <meta
       property="og:description"
       content="رفيقك لقراءة القرآن الكريم ومراجعة الحفظ"
@@ -41,9 +44,45 @@
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="ar_SA" />
     <meta property="og:locale:alternate" content="en_US" />
-    <title>حافظ القرآن</title>
+    <meta property="og:url" content="%VITE_SITE_URL%/" />
+    <meta property="og:image" content="%VITE_SITE_URL%/images/og-card.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ارتق · اقرأ وارتقِ" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ارتق · اقرأ وارتقِ" />
+    <meta
+      name="twitter:description"
+      content="رفيقك لقراءة القرآن الكريم ومراجعة الحفظ"
+    />
+    <meta name="twitter:image" content="%VITE_SITE_URL%/images/og-card.png" />
+    <title>ارتق</title>
   </head>
   <body>
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem("theme");
+          if (
+            theme === "dark" ||
+            (!theme &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches)
+          ) {
+            document.documentElement.classList.add("dark");
+          }
+          var locale =
+            localStorage.getItem("artqiy.locale") ||
+            localStorage.getItem("hafiz-quran.locale") ||
+            "ar";
+          document.documentElement.lang = locale === "en" ? "en" : "ar";
+          document.documentElement.dir = locale === "en" ? "ltr" : "rtl";
+        } catch (error) {
+          /* ignore storage failures during boot */
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -1,8 +1,8 @@
 import { useState } from "react";
+import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { SearchableRtlSelect } from "@/shared/components/SearchableRtlSelect";
+import { SearchableSelect } from "@/shared/components/SearchableSelect";
 import { Button } from "@/shared/components/ui/button";
-import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import {
@@ -13,185 +13,255 @@ import {
 } from "@/shared/components/ui/tabs";
 import {
   JUZ_NAMES,
-  SURAH_NAMES,
   TOTAL_MUSHAF_PAGES,
   type MushafVerse,
   getSurahAyahCount,
 } from "@/domain/quran";
 import { normalizeArabicForMatch } from "@/shared/lib/arabic-normalize";
+import { cn } from "@/shared/lib/utils";
 import { useQuizFormatters } from "../hooks/useQuizFormatters";
+import { validateScope } from "../model/scopeValidation";
 import type { QuizScope, QuizScopeMode } from "../model/types";
+import { QuizScopeChips } from "./QuizScopeChips";
 
 interface QuizScopeStepProps {
   mushafData: MushafVerse[];
   scope: QuizScope;
+  ayahCount: number;
   onScopeChange: (scope: QuizScope) => void;
   onNext: () => void;
 }
 
-interface CheckboxGridProps {
-  count: number;
+type ScopePresetId = "shortSurahs" | "lastJuz" | "fatihah";
+
+/** Starting points that match what most people are memorizing. */
+const SCOPE_PRESETS: readonly { id: ScopePresetId; scope: QuizScope }[] = [
+  {
+    id: "shortSurahs",
+    scope: {
+      mode: "surah",
+      surahIndices: Array.from({ length: 37 }, (_, index) => index + 78),
+    },
+  },
+  { id: "lastJuz", scope: { mode: "juz", juzIndices: [30] } },
+  { id: "fatihah", scope: { mode: "surah", surahIndices: [1] } },
+];
+
+interface ToggleGridProps {
+  total: number;
   names: readonly string[];
-  selected: Set<number>;
+  nameLanguage: "ar" | "en";
+  selected: number[];
+  ayahCountFor?: (index: number) => number;
   onToggle: (index: number) => void;
-  onToggleAll: () => void;
+  onSelectAll: () => void;
   searchPlaceholder: string;
   groupLabel: string;
 }
 
-function CheckboxGrid({
-  count,
+/**
+ * Whole cells are the control: a tinted, checked card says "selected" from
+ * across the screen, which a small checkbox in a 114-row list does not.
+ */
+function ToggleGrid({
+  total,
   names,
+  nameLanguage,
   selected,
+  ayahCountFor,
   onToggle,
-  onToggleAll,
+  onSelectAll,
   searchPlaceholder,
   groupLabel,
-}: CheckboxGridProps) {
+}: ToggleGridProps) {
   const { t } = useTranslation("quiz");
   const { formatNumber } = useQuizFormatters();
   const [search, setSearch] = useState("");
+  const normalizedSearch = normalizeArabicForMatch(search);
+  const selectedSet = new Set(selected);
   const filtered = names
     .map((name, index) => ({ name, index: index + 1 }))
-    .filter(({ name }) =>
-      normalizeArabicForMatch(name).includes(normalizeArabicForMatch(search)),
+    .filter(
+      ({ name, index }) =>
+        normalizeArabicForMatch(name).includes(normalizedSearch) ||
+        String(index).includes(search.trim()),
     );
-  const allSelected = selected.size === count;
 
   return (
-    <fieldset className="space-y-4">
+    <fieldset className="space-y-2">
       <legend className="sr-only">{groupLabel}</legend>
-      <div className="flex flex-wrap gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11"
-          onClick={onToggleAll}
-        >
-          {allSelected ? t("actions.clearAll") : t("actions.selectAll")}
-        </Button>
+      <div className="flex flex-wrap gap-2">
         <Input
-          className="min-h-11 min-w-56 flex-1"
+          className="min-h-11 min-w-48 flex-1"
+          type="search"
           aria-label={searchPlaceholder}
           placeholder={searchPlaceholder}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          onClick={onSelectAll}
+        >
+          {t("actions.selectAll")}
+        </Button>
       </div>
-      <div className="grid max-h-80 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map(({ name, index }) => (
-          <label
-            key={index}
-            className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
-          >
-            <Checkbox
-              checked={selected.has(index)}
-              onCheckedChange={() => onToggle(index)}
-            />
-            <span className="text-sm" dir="rtl" lang="ar">
-              {formatNumber(index)}. {name}
-            </span>
-          </label>
-        ))}
+
+      <div className="max-h-72 overflow-y-auto rounded-xl border border-border p-1">
+        {filtered.length === 0 ? (
+          <p className="p-3 text-sm text-muted-foreground" role="status">
+            {t("scope.noMatches")}
+          </p>
+        ) : (
+          <ul className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map(({ name, index }) => {
+              const isSelected = selectedSet.has(index);
+              return (
+                <li key={index}>
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={isSelected}
+                    onClick={() => onToggle(index)}
+                    className={cn(
+                      "flex min-h-11 w-full items-center gap-2 rounded-lg border px-2.5 py-1 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isSelected
+                        ? "border-primary bg-primary/10 font-semibold text-primary"
+                        : "border-transparent hover:border-border hover:bg-muted/60",
+                    )}
+                  >
+                    <Check
+                      className={cn(
+                        "h-4 w-4 shrink-0",
+                        isSelected ? "opacity-100" : "opacity-0",
+                      )}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1 truncate text-sm">
+                      <span
+                        className={
+                          isSelected ? "font-normal" : "text-muted-foreground"
+                        }
+                      >
+                        {formatNumber(index)}.
+                      </span>{" "}
+                      <bdi
+                        dir={nameLanguage === "ar" ? "rtl" : "ltr"}
+                        lang={nameLanguage}
+                      >
+                        {name}
+                      </bdi>
+                    </span>
+                    {ayahCountFor && (
+                      <span
+                        className={cn(
+                          "shrink-0 text-caption",
+                          isSelected ? "font-normal" : "text-muted-foreground",
+                        )}
+                      >
+                        {t("summary.ayahs", {
+                          count: ayahCountFor(index),
+                          formattedCount: formatNumber(ayahCountFor(index)),
+                        })}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
+      <p className="text-caption text-muted-foreground">
+        {t("scope.listHint", {
+          count: total,
+          formattedCount: formatNumber(total),
+        })}
+      </p>
     </fieldset>
   );
 }
 
-function toggleSelection(previous: Set<number>, index: number): Set<number> {
-  const next = new Set(previous);
-  if (next.has(index)) next.delete(index);
-  else next.add(index);
-  return next;
+function toggleIndex(values: number[], index: number): number[] {
+  return values.includes(index)
+    ? values.filter((value) => value !== index)
+    : [...values, index].sort((left, right) => left - right);
 }
 
 export function QuizScopeStep({
   mushafData,
   scope,
+  ayahCount,
   onScopeChange,
   onNext,
 }: QuizScopeStepProps) {
   const { t } = useTranslation("quiz");
-  const { formatNumber } = useQuizFormatters();
+  const { formatNumber, surahNames, surahNameLanguage } = useQuizFormatters();
   const [mode, setMode] = useState<QuizScopeMode>(scope.mode);
-  const [surahSelected, setSurahSelected] = useState(
-    () => new Set(scope.surahIndices ?? []),
-  );
-  const [juzSelected, setJuzSelected] = useState(
-    () => new Set(scope.juzIndices ?? []),
-  );
-  const [pageFrom, setPageFrom] = useState(String(scope.pageFrom ?? 1));
-  const [pageTo, setPageTo] = useState(String(scope.pageTo ?? 1));
-  const [ayahSurah, setAyahSurah] = useState(String(scope.ayahRangeSurah ?? 1));
-  const [ayahFrom, setAyahFrom] = useState(String(scope.ayahFrom ?? 1));
-  const [ayahTo, setAyahTo] = useState(String(scope.ayahTo ?? 7));
-  const surahOptions = SURAH_NAMES.map((name, index) => ({
+  // Drafts hold what is on screen; the committed scope only ever takes valid
+  // values, so leaving the step mid-edit cannot lose a selection or store one
+  // that makes no sense.
+  const [draft, setDraft] = useState<QuizScope>(scope);
+  const surahIndices = draft.surahIndices ?? [];
+  const juzIndices = draft.juzIndices ?? [];
+  const surahOptions = surahNames.map((name, index) => ({
     value: String(index + 1),
     label: `${formatNumber(index + 1)}. ${name}`,
   }));
-  const maxAyah = getSurahAyahCount(
-    mushafData,
-    Number.parseInt(ayahSurah, 10) || 1,
-  );
+  const rangeSurah = draft.ayahRangeSurah ?? 1;
+  const maxAyah = getSurahAyahCount(mushafData, rangeSurah);
 
-  function isValid(): boolean {
-    if (mode === "surah") return surahSelected.size > 0;
-    if (mode === "juz") return juzSelected.size > 0;
-    if (mode === "page") {
-      const from = Number.parseInt(pageFrom, 10);
-      const to = Number.parseInt(pageTo, 10);
-      return from >= 1 && to <= TOTAL_MUSHAF_PAGES && from <= to;
-    }
-    const from = Number.parseInt(ayahFrom, 10);
-    const to = Number.parseInt(ayahTo, 10);
-    return from >= 1 && to <= maxAyah && from <= to;
+  function update(changes: Partial<QuizScope>, nextMode = mode): void {
+    const next: QuizScope = { ...draft, ...changes, mode: nextMode };
+    setDraft(next);
+    if (validateScope(next, mushafData) === null) onScopeChange(next);
   }
 
-  function confirmScope(): void {
-    if (!isValid()) return;
-    switch (mode) {
-      case "surah":
-        onScopeChange({
-          mode,
-          surahIndices: [...surahSelected].sort((left, right) => left - right),
-        });
-        break;
-      case "juz":
-        onScopeChange({
-          mode,
-          juzIndices: [...juzSelected].sort((left, right) => left - right),
-        });
-        break;
-      case "page":
-        onScopeChange({
-          mode,
-          pageFrom: Number.parseInt(pageFrom, 10),
-          pageTo: Number.parseInt(pageTo, 10),
-        });
-        break;
-      case "ayah_range":
-        onScopeChange({
-          mode,
-          ayahRangeSurah: Number.parseInt(ayahSurah, 10),
-          ayahFrom: Number.parseInt(ayahFrom, 10),
-          ayahTo: Number.parseInt(ayahTo, 10),
-        });
-        break;
-    }
-    onNext();
+  function applyPreset(preset: QuizScope): void {
+    setMode(preset.mode);
+    update(preset, preset.mode);
   }
+
+  const error = validateScope({ ...draft, mode }, mushafData);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold">{t("scope.title")}</h2>
+        <h2 tabIndex={-1} className="text-xl font-semibold outline-none">
+          {t("scope.title")}
+        </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {t("scope.description")}
         </p>
       </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-caption font-semibold text-muted-foreground">
+          {t("scope.presetsLabel")}
+        </span>
+        {SCOPE_PRESETS.map((preset) => (
+          <Button
+            key={preset.id}
+            type="button"
+            variant="outline"
+            size="sm"
+            className="min-h-11 rounded-full"
+            onClick={() => applyPreset(preset.scope)}
+          >
+            {t(`scope.presets.${preset.id}`)}
+          </Button>
+        ))}
+      </div>
+
       <Tabs
         value={mode}
-        onValueChange={(value) => setMode(value as QuizScopeMode)}
+        onValueChange={(value) => {
+          const nextMode = value as QuizScopeMode;
+          setMode(nextMode);
+          update({}, nextMode);
+        }}
       >
         <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger className="min-h-11" value="surah">
@@ -208,81 +278,116 @@ export function QuizScopeStep({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="surah" className="mt-4">
-          <CheckboxGrid
-            count={114}
-            names={SURAH_NAMES}
-            selected={surahSelected}
+        <TabsContent value="surah" className="mt-4 space-y-3">
+          <QuizScopeChips
+            selected={surahIndices}
+            names={surahNames}
+            nameLanguage={surahNameLanguage}
+            emptyLabel={t("scope.pickSurah")}
+            onRemove={(index) =>
+              update({ surahIndices: toggleIndex(surahIndices, index) })
+            }
+            onClear={() => update({ surahIndices: [] })}
+          />
+          <ToggleGrid
+            total={114}
+            names={surahNames}
+            nameLanguage={surahNameLanguage}
+            selected={surahIndices}
+            ayahCountFor={(index) => getSurahAyahCount(mushafData, index)}
             groupLabel={t("scope.tabs.surah")}
             searchPlaceholder={t("scope.searchSurah")}
             onToggle={(index) =>
-              setSurahSelected((previous) => toggleSelection(previous, index))
+              update({ surahIndices: toggleIndex(surahIndices, index) })
             }
-            onToggleAll={() =>
-              setSurahSelected((previous) =>
-                previous.size === 114
-                  ? new Set()
-                  : new Set(
-                      Array.from({ length: 114 }, (_, index) => index + 1),
-                    ),
-              )
+            onSelectAll={() =>
+              update({
+                surahIndices: Array.from(
+                  { length: 114 },
+                  (_, index) => index + 1,
+                ),
+              })
             }
           />
         </TabsContent>
-        <TabsContent value="juz" className="mt-4">
-          <CheckboxGrid
-            count={30}
+
+        <TabsContent value="juz" className="mt-4 space-y-3">
+          <QuizScopeChips
+            selected={juzIndices}
             names={JUZ_NAMES}
-            selected={juzSelected}
+            nameLanguage="ar"
+            emptyLabel={t("scope.pickJuz")}
+            onRemove={(index) =>
+              update({ juzIndices: toggleIndex(juzIndices, index) })
+            }
+            onClear={() => update({ juzIndices: [] })}
+          />
+          <ToggleGrid
+            total={30}
+            names={JUZ_NAMES}
+            nameLanguage="ar"
+            selected={juzIndices}
             groupLabel={t("scope.tabs.juz")}
             searchPlaceholder={t("scope.searchJuz")}
             onToggle={(index) =>
-              setJuzSelected((previous) => toggleSelection(previous, index))
+              update({ juzIndices: toggleIndex(juzIndices, index) })
             }
-            onToggleAll={() =>
-              setJuzSelected((previous) =>
-                previous.size === 30
-                  ? new Set()
-                  : new Set(
-                      Array.from({ length: 30 }, (_, index) => index + 1),
-                    ),
-              )
+            onSelectAll={() =>
+              update({
+                juzIndices: Array.from({ length: 30 }, (_, index) => index + 1),
+              })
             }
           />
         </TabsContent>
+
         <TabsContent value="page" className="mt-4 space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="quiz-page-from">{t("scope.fromPage")}</Label>
               <Input
                 id="quiz-page-from"
+                className="min-h-11"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={TOTAL_MUSHAF_PAGES}
-                value={pageFrom}
-                onChange={(event) => setPageFrom(event.target.value)}
+                value={draft.pageFrom ?? ""}
+                onChange={(event) =>
+                  update({
+                    pageFrom: Number.parseInt(event.target.value, 10),
+                    pageTo:
+                      draft.pageTo ?? Number.parseInt(event.target.value, 10),
+                  })
+                }
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="quiz-page-to">{t("scope.toPage")}</Label>
               <Input
                 id="quiz-page-to"
+                className="min-h-11"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={TOTAL_MUSHAF_PAGES}
-                value={pageTo}
-                onChange={(event) => setPageTo(event.target.value)}
+                value={draft.pageTo ?? ""}
+                onChange={(event) =>
+                  update({ pageTo: Number.parseInt(event.target.value, 10) })
+                }
               />
             </div>
           </div>
         </TabsContent>
+
         <TabsContent value="ayah_range" className="mt-4 space-y-4">
           <div className="space-y-2">
             <Label>{t("scope.surah")}</Label>
-            <SearchableRtlSelect
-              value={ayahSurah}
+            <SearchableSelect
+              value={String(rangeSurah)}
               options={surahOptions}
-              onValueChange={setAyahSurah}
+              onValueChange={(value) =>
+                update({ ayahRangeSurah: Number.parseInt(value, 10) })
+              }
               placeholder={t("scope.surah")}
             />
           </div>
@@ -291,33 +396,67 @@ export function QuizScopeStep({
               <Label htmlFor="quiz-ayah-from">{t("scope.fromAyah")}</Label>
               <Input
                 id="quiz-ayah-from"
+                className="min-h-11"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={maxAyah}
-                value={ayahFrom}
-                onChange={(event) => setAyahFrom(event.target.value)}
+                value={draft.ayahFrom ?? ""}
+                onChange={(event) =>
+                  update({ ayahFrom: Number.parseInt(event.target.value, 10) })
+                }
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="quiz-ayah-to">{t("scope.toAyah")}</Label>
               <Input
                 id="quiz-ayah-to"
+                className="min-h-11"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={maxAyah}
-                value={ayahTo}
-                onChange={(event) => setAyahTo(event.target.value)}
+                value={draft.ayahTo ?? ""}
+                onChange={(event) =>
+                  update({ ayahTo: Number.parseInt(event.target.value, 10) })
+                }
               />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {t("scope.ayahCount", { count: formatNumber(maxAyah) })}
           </p>
         </TabsContent>
       </Tabs>
-      <Button size="lg" disabled={!isValid()} onClick={confirmScope}>
-        {t("scope.continue")}
-      </Button>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+        <p
+          className={
+            error
+              ? "text-sm font-medium text-destructive"
+              : "text-sm text-muted-foreground"
+          }
+          role={error ? "alert" : "status"}
+        >
+          {error
+            ? t(`scope.errors.${error}`, {
+                maxPage: formatNumber(TOTAL_MUSHAF_PAGES),
+                maxAyah: formatNumber(maxAyah),
+              })
+            : t("scope.poolSize", {
+                count: ayahCount,
+                formattedCount: formatNumber(ayahCount),
+              })}
+        </p>
+        <Button
+          size="lg"
+          className="min-h-11"
+          disabled={Boolean(error)}
+          onClick={onNext}
+        >
+          {t("scope.continue")}
+        </Button>
+      </div>
     </div>
   );
 }

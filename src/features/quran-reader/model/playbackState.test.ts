@@ -11,7 +11,6 @@ describe("quranPlaybackReducer", () => {
       type: "item-ready",
       item: {
         surah: 2,
-        surahName: "البقرة",
         ayah: 255,
         reciterName: "قارئ",
         supportsWordHighlight: true,

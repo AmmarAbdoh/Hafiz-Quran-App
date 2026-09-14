@@ -15,6 +15,7 @@ export function FillBlankQuestion({
   verseInfoRecords,
   answered,
   isCorrect,
+  selectedChoiceId,
   streak,
   onSubmit,
   onNext,
@@ -35,16 +36,19 @@ export function FillBlankQuestion({
       {!answered && (
         <QuizChoiceSearch
           choices={question.searchOptions}
+          requiredChoiceId={question.hiddenVerseKey}
           onConfirm={onSubmit}
         />
       )}
-      {answered && isCorrect !== null && (
+      {answered && isCorrect !== null && selectedChoiceId !== null && (
         <QuizFeedback
           isCorrect={isCorrect}
-          verse={question.hiddenVerse}
+          question={question}
+          selectedChoiceId={selectedChoiceId}
           verseInfoRecords={verseInfoRecords}
           mushafData={mushafData}
           streak={streak}
+          showMushaf={false}
           onNext={onNext}
         />
       )}

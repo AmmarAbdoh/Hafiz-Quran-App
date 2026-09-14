@@ -1,16 +1,28 @@
-import { useCallback, useEffect, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useParams } from "react-router-dom";
-import { preloadQcfFontsForReaderPage, useQuranData } from "@/domain/quran";
+import { useLocale } from "@/app/i18n";
+import {
+  MushafPageSkeleton,
+  preloadQcfFontsForReaderPage,
+  useQuranData,
+} from "@/domain/quran";
 import { AyahSearchDialog } from "@/features/quran-reader/components/AyahSearchDialog";
 import { ListenOptionsDialog } from "@/features/quran-reader/components/ListenOptionsDialog";
 import { MushafAudioBar } from "@/features/quran-reader/components/MushafAudioBar";
 import { MushafBottomChrome } from "@/features/quran-reader/components/MushafBottomChrome";
-import { MushafFooter } from "@/features/quran-reader/components/MushafFooter";
-import { MushafSurahFooter } from "@/features/quran-reader/components/MushafSurahFooter";
-import { MushafSurahPlaybackDock } from "@/features/quran-reader/components/MushafSurahPlaybackDock";
+import { MushafControlBar } from "@/features/quran-reader/components/MushafControlBar";
+import { MushafPageProgress } from "@/features/quran-reader/components/MushafPageProgress";
+import { ReadingPreferencesSheet } from "@/features/quran-reader/components/ReadingPreferencesSheet";
 import { MushafSurahViewer } from "@/features/quran-reader/components/MushafSurahViewer";
 import { MushafViewer } from "@/features/quran-reader/components/MushafViewer";
+import { PageControls } from "@/features/quran-reader/components/PageControls";
 import { PracticeAudioBar } from "@/features/quran-reader/components/PracticeAudioBar";
 import { SurahDrawer } from "@/features/quran-reader/components/SurahDrawer";
 import { TajweedLegendDialog } from "@/features/quran-reader/components/TajweedLegendDialog";
@@ -23,9 +35,12 @@ import { usePlaybackNavigationSync } from "@/features/quran-reader/hooks/usePlay
 import { useReaderDerivedState } from "@/features/quran-reader/hooks/useReaderDerivedState";
 import { useReaderHeaderSync } from "@/features/quran-reader/hooks/useReaderHeaderSync";
 import { useReaderKeyboardNavigation } from "@/features/quran-reader/hooks/useReaderKeyboardNavigation";
+import { useReaderOverlays } from "@/features/quran-reader/hooks/useReaderOverlays";
 import { useReaderMetadata } from "@/features/quran-reader/hooks/useReaderMetadata";
 import { useReaderNavigation } from "@/features/quran-reader/hooks/useReaderNavigation";
-import { useReaderOverlays } from "@/features/quran-reader/hooks/useReaderOverlays";
+import { useReaderChrome } from "@/features/quran-reader/hooks/useReaderChrome";
+import { useReaderPositionPersistence } from "@/features/quran-reader/hooks/useReaderPositionPersistence";
+import { useSwipePageTurn } from "@/features/quran-reader/hooks/useSwipePageTurn";
 import { useReaderPreferences } from "@/features/quran-reader/hooks/useReaderPreferences";
 import { useSurahPageNavigation } from "@/features/quran-reader/hooks/useSurahPageNavigation";
 import { useVerseHighlight } from "@/features/quran-reader/hooks/useVerseHighlight";
@@ -34,7 +49,6 @@ import {
   useRecitationPractice,
 } from "@practice/runtime";
 import { Button } from "@/shared/components/ui/button";
-import { Skeleton } from "@/shared/components/ui/skeleton";
 import { useTheme } from "@/shared/hooks/use-theme";
 import { cn } from "@/shared/lib/utils";
 import "./quran-reader.css";
@@ -44,6 +58,7 @@ const DEFAULT_TOTAL_PAGES = 604;
 export function QuranReaderPage() {
   const { t } = useTranslation("reader");
   const { t: tErrors } = useTranslation("errors");
+  const { locale } = useLocale();
   const location = useLocation();
   const params = useParams<
     "first" | "second" | "pageNumber" | "surahNumber" | "ayahNumber"
@@ -79,6 +94,10 @@ export function QuranReaderPage() {
 
   const layoutRef = useRef<HTMLDivElement>(null);
   const mushafStageRef = useRef<HTMLDivElement>(null);
+  const swipeNavigationRef = useRef({
+    onNext: () => {},
+    onPrevious: () => {},
+  });
   const totalPages = DEFAULT_TOTAL_PAGES;
   const loading = coreLoading || layoutLoading;
 
@@ -143,6 +162,87 @@ export function QuranReaderPage() {
     practiceActive,
     stopPractice,
   });
+  // Practice takes over the page surface, so it stops the page responding to
+  // taps and swipes. Listening does not: page turns stay live while a recitation
+  // plays, otherwise the whole page reads as unresponsive.
+  const practiceMode = RECITATION_PRACTICE_ENABLED && practiceActive;
+  const readerChrome = useReaderChrome(!practiceMode);
+  const [pageAnnouncement, setPageAnnouncement] = useState("");
+  const skipPageAnnouncementRef = useRef(true);
+
+  const currentAyah =
+    route.routeContext.type === "ayah" ? route.routeContext.ayah : undefined;
+
+  useReaderPositionPersistence({
+    layoutMode: route.layoutMode,
+    page: route.currentPage,
+    surah: route.currentSurahNumber,
+    ayah: currentAyah,
+    scrollContainerRef: mushafStageRef,
+  });
+
+  useEffect(() => {
+    layoutRef.current?.style.setProperty(
+      "--mushaf-scale",
+      String(preferences.mushafScale),
+    );
+  }, [preferences.mushafScale]);
+
+  const statusPage =
+    route.layoutMode === "page"
+      ? route.currentPage
+      : surahNavigation.visiblePage;
+  const statusSurahLabel =
+    metadata.surahNames.length > 0
+      ? metadata.surahNames.join(locale === "ar" ? "، " : ", ")
+      : "";
+
+  useEffect(() => {
+    if (skipPageAnnouncementRef.current) {
+      skipPageAnnouncementRef.current = false;
+      return;
+    }
+    setPageAnnouncement(
+      t("status.pageTurn", {
+        page: statusPage,
+      }),
+    );
+  }, [statusPage, t]);
+
+  swipeNavigationRef.current = {
+    onNext: () => navigation.changePage(route.currentPage + 1),
+    onPrevious: () => navigation.changePage(route.currentPage - 1),
+  };
+
+  const handleSwipeNext = useCallback(() => {
+    swipeNavigationRef.current.onNext();
+  }, []);
+  const handleSwipePrevious = useCallback(() => {
+    swipeNavigationRef.current.onPrevious();
+  }, []);
+
+  useSwipePageTurn({
+    enabled: !practiceMode && route.layoutMode === "page" && !loading && !error,
+    containerRef: mushafStageRef,
+    onNext: handleSwipeNext,
+    onPrevious: handleSwipePrevious,
+  });
+
+  const handleStagePointerUp = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (practiceMode) return;
+      const target = event.target as HTMLElement;
+      if (
+        target.closest(
+          "button, a, input, textarea, [data-verse-actions], [role='dialog']",
+        )
+      ) {
+        return;
+      }
+      readerChrome.toggleControls();
+    },
+    [practiceMode, readerChrome],
+  );
 
   const togglePractice = useCallback(async () => {
     if (!RECITATION_PRACTICE_ENABLED || !currentPageLayout) return;
@@ -182,20 +282,19 @@ export function QuranReaderPage() {
   ]);
 
   useReaderHeaderSync({
-    enabled: !loading && !error,
+    // The header is driven by the route, not by Quran data, so it renders while
+    // the page loads. Waiting would swap the shorter fallback bar for the full
+    // header and push the mushaf down as it appears.
+    enabled: !error,
     setHeader,
-    tajweedColored: preferences.tajweedColored,
-    legendPinned: preferences.legendPinned,
-    layoutMode: route.layoutMode,
+    surahLabel: statusSurahLabel,
+    page: statusPage,
     practiceActive,
     practiceLoading,
-    onTajweedColoredChange: preferences.changeTajweedColored,
-    onLegendPinnedChange: preferences.changeLegendPinned,
-    onLayoutModeChange: navigation.changeLayoutMode,
-    onOpenLegendGuide: overlays.openLegendGuide,
     onOpenSurahDrawer: overlays.openSurahDrawer,
     onOpenAyahSearch: overlays.openAyahSearch,
     onOpenListenOptions: overlays.openListenOptions,
+    onOpenReadingPreferences: overlays.openReadingPreferences,
     onTogglePractice: togglePractice,
   });
 
@@ -221,19 +320,72 @@ export function QuranReaderPage() {
     setActiveVerseInView,
   });
 
-  if (loading || awaitingLayout) {
-    return (
-      <div
-        className="flex min-h-[50vh] flex-col items-center justify-center gap-3 px-4"
-        aria-live="polite"
-      >
-        <Skeleton className="h-[30vh] w-full max-w-3xl" />
-        <p className="text-center text-sm text-muted-foreground">
-          {t("loading")}
-        </p>
-      </div>
+  // Page navigation travels with whichever bar owns the bottom strip.
+  const pageControls =
+    route.layoutMode === "page" ? (
+      <PageControls
+        compact
+        currentPage={route.currentPage}
+        totalPages={totalPages}
+        onPageChange={navigation.changePage}
+      />
+    ) : (
+      <PageControls
+        compact
+        currentPage={surahNavigation.visiblePage}
+        totalPages={totalPages}
+        minPage={surahLayout.bounds.min}
+        maxPage={surahLayout.bounds.max}
+        pageSequence={surahLayout.pages}
+        onPageChange={surahNavigation.changePage}
+      />
+    );
+
+  const pageProgress = (
+    <MushafPageProgress
+      page={statusPage}
+      juzNumber={
+        typeof metadata.juzNumber === "number" ? metadata.juzNumber : null
+      }
+      hizbNumber={
+        typeof metadata.hizbNumber === "number" ? metadata.hizbNumber : null
+      }
+    />
+  );
+
+  // An untouched page states where it sits in the mushaf; a tap trades that row
+  // for page navigation, and playback takes the strip over entirely.
+  let bottomBar: ReactNode = pageProgress;
+  if (practiceMode) {
+    bottomBar = <PracticeAudioBar pageControls={pageControls} />;
+  } else if (active) {
+    // The playback row owns the strip and carries page navigation itself.
+    bottomBar = <MushafAudioBar pageControls={pageControls} />;
+  } else if (readerChrome.controlsVisible) {
+    bottomBar = (
+      <MushafControlBar
+        pageControls={pageControls}
+        onKeepVisible={readerChrome.keepControlsVisible}
+        onSuspendAutoHide={readerChrome.suspendAutoHide}
+        onResumeAutoHide={readerChrome.resumeAutoHide}
+      />
     );
   }
+
+  const bottomChromeClassName = cn(
+    !practiceMode && !active && "mushaf-bottom-chrome--controls",
+  );
+
+  // The dock stays mounted in every reader state so the space it reserves at the
+  // foot of the page never jumps; only its surface comes and goes.
+  const bottomChrome = (
+    <MushafBottomChrome
+      layoutRef={layoutRef}
+      chromeClassName={bottomChromeClassName}
+    >
+      {bottomBar}
+    </MushafBottomChrome>
+  );
 
   if (error) {
     const retry = () => {
@@ -270,25 +422,53 @@ export function QuranReaderPage() {
     overlays.setSurahDrawerOpen(false);
   };
 
+  // The stage, the dock and the overlays render in every state. Swapping the
+  // whole tree for a loading branch used to unmount an open dialog mid-flight,
+  // which left its modal layer holding pointer events for the rest of the visit.
+  const showSkeleton = loading || awaitingLayout;
+
   return (
-    <div ref={layoutRef} className="mushaf-reader-layout">
-      <div ref={mushafStageRef} className="mushaf-stage">
+    <div
+      ref={layoutRef}
+      className={cn(
+        "mushaf-reader-layout",
+        preferences.mushafWarmth && "mushaf-reader-layout--sepia",
+      )}
+    >
+      <div
+        ref={mushafStageRef}
+        className="mushaf-stage"
+        onPointerUp={handleStagePointerUp}
+      >
         <div
           className={cn(
             "mushaf-stage-inner",
             route.layoutMode === "surah" && "mushaf-stage-inner--surah",
           )}
         >
-          {route.layoutMode === "page" && currentPageLayout && (
-            <MushafViewer
-              mushafData={mushafData}
-              pageLayout={currentPageLayout}
-              tajweedColored={preferences.tajweedColored}
-              highlightVerseKey={highlight.highlightVerseKey}
-            />
+          {showSkeleton && (
+            // The placeholder shares the stage with the mushaf, so the page
+            // frame is already in place before the layout and glyphs arrive.
+            <div className="relative mx-auto w-fit max-w-full px-2">
+              <MushafPageSkeleton
+                page={route.currentPage}
+                label={t("loading")}
+              />
+            </div>
           )}
 
-          {route.layoutMode === "surah" && (
+          {!showSkeleton &&
+            route.layoutMode === "page" &&
+            currentPageLayout && (
+              <MushafViewer
+                mushafData={mushafData}
+                pageLayout={currentPageLayout}
+                tajweedColored={preferences.tajweedColored}
+                highlightVerseKey={highlight.highlightVerseKey}
+              />
+            )}
+
+          {!showSkeleton && route.layoutMode === "surah" && (
             <MushafSurahViewer
               key={route.currentSurahNumber}
               mushafData={mushafData}
@@ -306,52 +486,24 @@ export function QuranReaderPage() {
         </div>
       </div>
 
-      {(active || (RECITATION_PRACTICE_ENABLED && practiceActive)) && (
-        <MushafSurahPlaybackDock layoutRef={layoutRef}>
-          {RECITATION_PRACTICE_ENABLED && practiceActive ? (
-            <PracticeAudioBar />
-          ) : (
-            <MushafAudioBar />
-          )}
-        </MushafSurahPlaybackDock>
-      )}
+      {bottomChrome}
 
-      <MushafBottomChrome
-        layoutRef={layoutRef}
-        collapsePeekPx={route.layoutMode === "surah" ? 0 : undefined}
-        pinned={preferences.footerPinned}
-      >
-        {route.layoutMode === "page" ? (
-          <MushafFooter
-            currentPage={route.currentPage}
-            totalPages={totalPages}
-            onPageChange={navigation.changePage}
-            surahNames={metadata.surahNames}
-            surahAyahCount={metadata.surahAyahCount}
-            juzNumber={metadata.juzNumber}
-            hizbNumber={metadata.hizbNumber}
-            pinned={preferences.footerPinned}
-            onPinnedChange={preferences.changeFooterPinned}
-          />
-        ) : (
-          <MushafSurahFooter
-            surahName={metadata.surahNames[0] ?? ""}
-            ayahCount={metadata.surahAyahCount}
-            currentSurah={route.currentSurahNumber}
-            mushafData={mushafData}
-            currentPage={surahNavigation.visiblePage}
-            totalPages={totalPages}
-            minPage={surahLayout.bounds.min}
-            maxPage={surahLayout.bounds.max}
-            pageSequence={surahLayout.pages}
-            juzNumber={metadata.juzNumber}
-            onPageChange={surahNavigation.changePage}
-            onSurahChange={navigation.changeSurah}
-            pinned={preferences.footerPinned}
-            onPinnedChange={preferences.changeFooterPinned}
-          />
-        )}
-      </MushafBottomChrome>
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {pageAnnouncement}
+      </div>
+
+      <ReadingPreferencesSheet
+        open={overlays.readingPreferencesOpen}
+        onOpenChange={overlays.setReadingPreferencesOpen}
+        layoutMode={route.layoutMode}
+        onLayoutModeChange={navigation.changeLayoutMode}
+        tajweedColored={preferences.tajweedColored}
+        onTajweedColoredChange={preferences.changeTajweedColored}
+        mushafWarmth={preferences.mushafWarmth}
+        onMushafWarmthChange={preferences.changeMushafWarmth}
+        mushafScale={preferences.mushafScale}
+        onMushafScaleChange={preferences.changeMushafScale}
+      />
 
       <TajweedLegendDialog
         open={overlays.legendGuideOpen}

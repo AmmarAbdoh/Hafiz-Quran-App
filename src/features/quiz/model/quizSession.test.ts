@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildSessionSummary } from "./quizSession";
+import { buildSessionSummary, collectWeakVerses } from "./quizSession";
 
 describe("buildSessionSummary", () => {
   afterEach(() => {
@@ -11,17 +11,29 @@ describe("buildSessionSummary", () => {
       scope: { mode: "page", pageFrom: 3, pageTo: 5 },
       sessionMode: "fixed",
       answers: [
-        { questionType: "ayah_number", isCorrect: true },
-        { questionType: "ayah_number", isCorrect: false },
+        {
+          questionType: "ayah_number",
+          testedVerseKey: "112:1",
+          isCorrect: true,
+        },
+        {
+          questionType: "ayah_number",
+          testedVerseKey: "112:2",
+          isCorrect: false,
+        },
       ],
       startedAt: 1_000,
       completedAt: 4_000,
       id: "session",
     });
 
-    expect(summary.schemaVersion).toBe(2);
+    expect(summary.schemaVersion).toBe(3);
     expect(summary.scope).toEqual({ mode: "page", from: 3, to: 5 });
     expect(summary).not.toHaveProperty("scopeSummary");
+    expect(summary.answers).toEqual([
+      { questionType: "ayah_number", verseKey: "112:1", isCorrect: true },
+      { questionType: "ayah_number", verseKey: "112:2", isCorrect: false },
+    ]);
     expect(summary.accuracyByType.ayah_number).toEqual({
       correct: 1,
       total: 2,
@@ -50,5 +62,44 @@ describe("buildSessionSummary", () => {
       surah_name: { correct: 0, total: 1 },
       page_number: { correct: 1, total: 1 },
     });
+  });
+});
+
+describe("collectWeakVerses", () => {
+  it("ranks the ayahs missed most often and ignores mastered ones", () => {
+    const session = buildSessionSummary({
+      scope: { mode: "surah", surahIndices: [111] },
+      sessionMode: "fixed",
+      answers: [
+        {
+          questionType: "fill_blank",
+          testedVerseKey: "112:2",
+          isCorrect: false,
+        },
+        {
+          questionType: "ayah_number",
+          testedVerseKey: "112:2",
+          isCorrect: false,
+        },
+        {
+          questionType: "fill_blank",
+          testedVerseKey: "112:3",
+          isCorrect: false,
+        },
+        {
+          questionType: "fill_blank",
+          testedVerseKey: "112:1",
+          isCorrect: true,
+        },
+      ],
+      startedAt: 0,
+      completedAt: 1_000,
+      id: "session",
+    });
+
+    expect(collectWeakVerses([session])).toEqual([
+      { verseKey: "112:2", missed: 2, asked: 2 },
+      { verseKey: "112:3", missed: 1, asked: 1 },
+    ]);
   });
 });

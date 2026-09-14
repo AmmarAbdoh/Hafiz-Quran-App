@@ -22,9 +22,10 @@ import {
   scrollMushafToPage,
   useMushafScrollPageSpy,
 } from "@/features/quran-reader/hooks/useMushafScrollPageSpy";
+import { loadReaderPosition } from "@/features/quran-reader/services/readerPositionStorage";
 import { useTheme } from "@/shared/hooks/use-theme";
 import {
-  MushafFontLoadingState,
+  MushafPageSkeleton,
   buildMushafPageItemsForSurah,
   preloadQcfPageFont,
   type MushafPageLayout,
@@ -98,10 +99,17 @@ export function MushafSurahViewer({
     setTafseerVerse,
     popoverRef,
     activateWord,
+    handlePointerDown,
+    handlePointerUp,
     clearSelection,
     handleListenWord,
     handleListenAyah,
     handleTafseer,
+    handleCopyVerse,
+    handleShareVerse,
+    handleBookmarkToggle,
+    selectionBookmarked,
+    bookmarkedSet,
   } = useMushafVerseInteractions({
     mushafRef,
     mushafData,
@@ -170,9 +178,26 @@ export function MushafSurahViewer({
   }, [scrollToPageRef, scrollContainerRef, surahNumber]);
 
   useEffect(() => {
-    if (!scrollContainerRef?.current) return;
-    scrollContainerRef.current.scrollTo({ top: 0, behavior: "auto" });
-  }, [surahNumber, scrollContainerRef]);
+    const container = scrollContainerRef?.current;
+    if (!container || surahFontsLoading) return;
+
+    const saved = loadReaderPosition();
+    if (
+      saved?.layout === "surah" &&
+      saved.surah === surahNumber &&
+      saved.scrollRatio !== undefined &&
+      !highlightVerseKey
+    ) {
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      container.scrollTo({
+        top: Math.max(0, maxScroll * saved.scrollRatio),
+        behavior: "auto",
+      });
+      return;
+    }
+
+    container.scrollTo({ top: 0, behavior: "auto" });
+  }, [surahNumber, scrollContainerRef, surahFontsLoading, highlightVerseKey]);
 
   useEffect(() => {
     if (!highlightVerseKey || !mushafRef.current) return;
@@ -207,7 +232,19 @@ export function MushafSurahViewer({
   }
 
   if (surahFontsLoading) {
-    return <MushafFontLoadingState compact message={t("loadingSurah")} />;
+    return (
+      <div className="flex w-full flex-col items-stretch">
+        <section className="mushaf-surah-page">
+          <div className="relative mx-auto w-fit max-w-full px-2">
+            <MushafPageSkeleton
+              pageLayout={surahPageLayouts[0]}
+              surahFilter={surahNumber}
+              label={t("loadingSurah")}
+            />
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (
@@ -246,7 +283,11 @@ export function MushafSurahViewer({
             practiceRevealedLocations={practice.revealedLocations}
             practiceTargetWordLocation={practice.currentWordLocation}
             practiceWrongFlashLocation={practice.wrongFlashLocation}
+            bookmarkedVerseKeys={bookmarkedSet}
             onWordActivate={activateWord}
+            onWordPointerDown={handlePointerDown}
+            onWordPointerUp={handlePointerUp}
+            onWordPointerCancel={handlePointerUp}
           />
         </section>
       ))}
@@ -273,6 +314,10 @@ export function MushafSurahViewer({
           }
           onListenAyah={handleListenAyah}
           onTafseer={handleTafseer}
+          onCopy={handleCopyVerse}
+          onShare={handleShareVerse}
+          isBookmarked={selectionBookmarked}
+          onBookmarkToggle={handleBookmarkToggle}
           onClose={clearSelection}
           popoverRef={popoverRef}
         />

@@ -8,51 +8,96 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatNumber, useLocale } from "@/app/i18n";
 import { Button } from "@/shared/components/ui/button";
-import { DEMO_AYAH_LABEL } from "@/domain/quran";
+import { DEMO_AYAH_LABEL, useSurahNames } from "@/domain/quran";
+import {
+  useReaderPositionSnapshot,
+  useResumeReaderPath,
+} from "@/features/quran-reader";
 
 export function HomePage() {
   const { t } = useTranslation("home");
+  const { locale } = useLocale();
+  const { surahName } = useSurahNames();
+  const readerPath = useResumeReaderPath();
+  const savedPosition = useReaderPositionSnapshot();
 
   return (
     <div className="space-y-8 md:space-y-12">
-      <section className="editorial-panel editorial-panel--hero relative isolate overflow-hidden">
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-[12%] top-0 -z-10 h-px bg-gradient-to-r from-transparent via-accent to-transparent"
-        />
-        <p className="editorial-kicker inline-flex items-center gap-2">
-          <Sparkles aria-hidden="true" className="h-4 w-4" />
-          {t("eyebrow")}
-        </p>
-        <h1 className="mx-auto mt-5 max-w-3xl text-balance text-display">
-          {t("title")}
-        </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-balance text-body text-muted-foreground">
-          {t("description")}
-        </p>
-
-        <div
-          className="editorial-rule mx-auto my-8 max-w-xl"
-          aria-hidden="true"
-        >
-          <span className="h-1.5 w-1.5 rotate-45 bg-accent" />
-        </div>
-
-        <figure>
-          <blockquote
-            lang="ar"
-            dir="rtl"
-            aria-label={DEMO_AYAH_LABEL}
-            className="quran-snippet text-3xl leading-loose text-foreground sm:text-4xl"
+      {savedPosition ? (
+        <section className="editorial-panel flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="editorial-kicker">{t("continue.label")}</p>
+            <h1 className="mt-2 text-balance">{t("continue.title")}</h1>
+            <p className="mt-2 text-body text-muted-foreground">
+              {savedPosition.layout === "page"
+                ? t("continue.pageDescription", {
+                    page: formatNumber(savedPosition.page, locale),
+                  })
+                : savedPosition.ayah
+                  ? t("continue.ayahDescription", {
+                      surahName: surahName(savedPosition.surah),
+                      ayah: formatNumber(savedPosition.ayah, locale),
+                    })
+                  : t("continue.surahDescription", {
+                      surahName: surahName(savedPosition.surah),
+                    })}
+            </p>
+          </div>
+          <Button
+            asChild
+            size="lg"
+            className="min-h-11 w-full shrink-0 sm:w-fit"
           >
-            {DEMO_AYAH_LABEL}
-          </blockquote>
-          <figcaption className="mt-2 text-caption font-medium text-muted-foreground">
-            {t("verseReference")}
-          </figcaption>
-        </figure>
-      </section>
+            <Link to={readerPath}>
+              {t("continue.action")}
+              <ArrowUpRight
+                aria-hidden="true"
+                className="h-4 w-4 rtl:-scale-x-100"
+              />
+            </Link>
+          </Button>
+        </section>
+      ) : (
+        <section className="editorial-panel editorial-panel--hero relative isolate overflow-hidden">
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-[12%] top-0 -z-10 h-px bg-gradient-to-r from-transparent via-accent to-transparent"
+          />
+          <p className="editorial-kicker inline-flex items-center gap-2">
+            <Sparkles aria-hidden="true" className="h-4 w-4" />
+            {t("eyebrow")}
+          </p>
+          <h1 className="mx-auto mt-5 max-w-3xl text-balance text-display">
+            {t("title")}
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-balance text-body text-muted-foreground">
+            {t("description")}
+          </p>
+
+          <div
+            className="editorial-rule mx-auto my-8 max-w-xl"
+            aria-hidden="true"
+          >
+            <span className="h-1.5 w-1.5 rotate-45 bg-accent" />
+          </div>
+
+          <figure>
+            <blockquote
+              lang="ar"
+              dir="rtl"
+              aria-label={DEMO_AYAH_LABEL}
+              className="quran-snippet text-3xl leading-loose text-foreground sm:text-4xl"
+            >
+              {DEMO_AYAH_LABEL}
+            </blockquote>
+            <figcaption className="mt-2 text-caption font-medium text-muted-foreground">
+              {t("verseReference")}
+            </figcaption>
+          </figure>
+        </section>
+      )}
 
       <section
         aria-label={t("reader.title")}
@@ -72,7 +117,7 @@ export function HomePage() {
             {t("reader.description")}
           </p>
           <Button asChild size="lg" className="mt-6 w-full sm:mt-auto sm:w-fit">
-            <Link to="/quran/page/1">
+            <Link to={readerPath}>
               {t("reader.action")}
               <ArrowUpRight
                 aria-hidden="true"

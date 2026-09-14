@@ -1,6 +1,17 @@
-import { useLayoutEffect, useMemo, useRef, type MouseEvent } from "react";
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type MouseEvent,
+  type PointerEvent,
+} from "react";
 import type { MushafPageLayout, MushafWord } from "../model";
-import { buildMushafPageItems, buildMushafPageItemsForSurah } from "../model";
+import {
+  buildMushafPageItems,
+  buildMushafPageItemsForSurah,
+  isCenterAlignedPage,
+  showsStandaloneBismillah,
+} from "../model";
 import { MushafLine } from "./MushafLine";
 import { MushafSurahHeader } from "./MushafSurahHeader";
 import { cn } from "@/shared/lib/utils";
@@ -17,6 +28,7 @@ interface MushafPageProps {
   surahFilter?: number;
   selectedWordLocation?: string | null;
   highlightVerseKey?: string | null;
+  highlightPulse?: boolean;
   activeVerseKey?: string | null;
   activeWordLocation?: string | null;
   practiceMode?: boolean;
@@ -25,28 +37,44 @@ interface MushafPageProps {
   practiceTargetWordLocation?: string | null;
   incorrectWordLocation?: string | null;
   incorrectWordLabel?: string;
-  getWordActivationLabel?: (word: MushafWord) => string;
   getSurahAccessibleLabel?: (surahName: string) => string;
+  verseTextByKey?: ReadonlyMap<string, string>;
+  bookmarkedVerseKeys?: ReadonlySet<string>;
   onWordActivate?: (
     word: MushafWord,
     event: MouseEvent<HTMLButtonElement>,
   ) => void;
+  onWordPointerDown?: (
+    word: MushafWord,
+    event: PointerEvent<HTMLButtonElement>,
+  ) => void;
+  onWordPointerUp?: () => void;
+  onWordPointerCancel?: () => void;
   className?: string;
   id?: string;
 }
 
-function isCenterAlignedPage(page: number): boolean {
-  return page === 1 || page === 2;
-}
-
+/**
+ * Summing the flex items is deliberate: the line is RTL and clipped, so
+ * `scrollWidth` cannot be trusted to report the surplus that spills past the
+ * inline end, which is exactly the overflow that hides the end of the line.
+ */
 function measureLineOverflowFit(lines: NodeListOf<HTMLElement>): number {
   let fit = 1;
 
   for (const line of lines) {
-    if (line.childElementCount === 0) continue;
-    if (line.scrollWidth > line.clientWidth + 1 && line.clientWidth > 0) {
-      fit = Math.min(fit, line.clientWidth / line.scrollWidth);
+    const available = line.clientWidth;
+    if (available <= 0) continue;
+
+    const groups = line.querySelectorAll<HTMLElement>(".mushaf-word-group");
+    if (groups.length === 0) continue;
+
+    let content = 0;
+    for (const group of groups) {
+      content += group.getBoundingClientRect().width;
     }
+
+    if (content > available + 1) fit = Math.min(fit, available / content);
   }
 
   return fit;
@@ -63,6 +91,7 @@ export function MushafPage({
   surahFilter,
   selectedWordLocation = null,
   highlightVerseKey = null,
+  highlightPulse = true,
   activeVerseKey = null,
   activeWordLocation = null,
   practiceMode = false,
@@ -71,9 +100,13 @@ export function MushafPage({
   practiceTargetWordLocation = null,
   incorrectWordLocation = null,
   incorrectWordLabel,
-  getWordActivationLabel,
   getSurahAccessibleLabel,
+  verseTextByKey,
+  bookmarkedVerseKeys,
   onWordActivate,
+  onWordPointerDown,
+  onWordPointerUp,
+  onWordPointerCancel,
   className,
   id,
 }: MushafPageProps) {
@@ -139,6 +172,7 @@ export function MushafPage({
             accessibleLabel={getSurahAccessibleLabel?.(
               surahNames?.get(item.surahNumber) ?? `سورة ${item.surahNumber}`,
             )}
+            showBismillah={showsStandaloneBismillah(item.surahNumber)}
           />
         ) : (
           <MushafLine
@@ -152,6 +186,7 @@ export function MushafPage({
             colored={colored}
             selectedWordLocation={selectedWordLocation}
             highlightVerseKey={highlightVerseKey}
+            highlightPulse={highlightPulse}
             activeVerseKey={activeVerseKey}
             activeWordLocation={activeWordLocation}
             practiceMode={practiceMode}
@@ -160,8 +195,12 @@ export function MushafPage({
             practiceTargetWordLocation={practiceTargetWordLocation}
             incorrectWordLocation={incorrectWordLocation}
             incorrectWordLabel={incorrectWordLabel}
-            getWordActivationLabel={getWordActivationLabel}
+            verseTextByKey={verseTextByKey}
+            bookmarkedVerseKeys={bookmarkedVerseKeys}
             onWordActivate={onWordActivate}
+            onWordPointerDown={onWordPointerDown}
+            onWordPointerUp={onWordPointerUp}
+            onWordPointerCancel={onWordPointerCancel}
           />
         ),
       )}

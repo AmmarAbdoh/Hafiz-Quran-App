@@ -5,7 +5,7 @@ import type {
   QuizAnswerRecord,
   QuizConfig,
   QuizQuestion,
-  QuizSessionSummaryV2,
+  QuizSessionSummaryV3,
 } from "./types";
 
 const verse: MushafVerse = {
@@ -32,6 +32,7 @@ const question: QuizQuestion = {
   type: "ayah_number",
   verse,
   verseKey: "1:1",
+  testedVerseKey: "1:1",
   choices: [{ id: "1", label: "1" }],
   correctChoiceId: "1",
 };
@@ -39,12 +40,15 @@ const answer: QuizAnswerRecord = {
   questionId: question.id,
   questionType: question.type,
   verseKey: question.verseKey,
+  testedVerseKey: question.testedVerseKey,
   selectedChoiceId: "1",
+  selectedLabel: "1",
   correctChoiceId: "1",
+  correctLabel: "1",
   isCorrect: true,
 };
-const summary: QuizSessionSummaryV2 = {
-  schemaVersion: 2,
+const summary: QuizSessionSummaryV3 = {
+  schemaVersion: 3,
   id: "session-1",
   completedAt: "2026-01-01T00:00:00.000Z",
   scope: { mode: "surah", surahNumbers: [1] },
@@ -53,6 +57,7 @@ const summary: QuizSessionSummaryV2 = {
   correctCount: 1,
   accuracyByType: { ayah_number: { correct: 1, total: 1 } },
   durationMs: 1000,
+  answers: [{ questionType: "ayah_number", verseKey: "1:1", isCorrect: true }],
 };
 
 describe("quizReducer", () => {

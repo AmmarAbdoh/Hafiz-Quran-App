@@ -5,11 +5,18 @@ import {
   useState,
   type RefObject,
 } from "react";
+import { useTranslation } from "react-i18next";
+import { useToast } from "@/shared/components/Toast";
 import { useQuranPlaybackActions } from "@/features/quran-reader/context/QuranPlaybackContext";
 import { useQuranPlaybackState } from "@/features/quran-reader/context/QuranPlaybackContext";
 import { useQuranAudio } from "@/features/quran-reader/hooks/useQuranAudio";
 import type { VerseSelection } from "@/features/quran-reader/model/selection";
 import { resolveWordElementInLine } from "@/features/quran-reader/model/mushafWordHitTest";
+import { useBookmarks } from "@/features/quran-reader/hooks/useBookmarks";
+import {
+  copyVerseText,
+  shareVerseText,
+} from "@/features/quran-reader/services/verseShare";
 import { getWordAudioUrl } from "@/domain/quran";
 import { findMushafVerse } from "@/domain/quran";
 import type {
@@ -44,11 +51,21 @@ export function useMushafVerseInteractions({
   );
   const popoverRef = useRef<HTMLDivElement>(null);
   const selectedWordElementRef = useRef<HTMLElement | null>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef(false);
   const playback = useQuranPlaybackActions();
   const playbackState = useQuranPlaybackState();
   const { play, stop, playing } = useQuranAudio();
+  const { isBookmarked, toggleBookmark, bookmarkedSet } = useBookmarks();
+  const { t } = useTranslation("reader");
+  const { toast } = useToast();
 
   const clearSelection = useCallback(() => {
+    longPressTriggeredRef.current = false;
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
     const selectedWordElement = selectedWordElementRef.current;
     const shouldRestoreFocus = Boolean(
       popoverRef.current?.contains(document.activeElement),
@@ -137,8 +154,38 @@ export function useMushafVerseInteractions({
     return () => document.removeEventListener("click", handleClickOutside);
   }, [clearSelection, mushafRef]);
 
+  const handleCopyVerse = useCallback(async () => {
+    if (!selection) return;
+    const verse = getVerseForKey(selection.verseKey);
+    if (!verse) return;
+    await copyVerseText(verse.aya_text);
+    toast(t("actions.copied"));
+    clearSelection();
+  }, [clearSelection, getVerseForKey, selection, t, toast]);
+
+  const handleShareVerse = useCallback(async () => {
+    if (!selection) return;
+    const verse = getVerseForKey(selection.verseKey);
+    if (!verse) return;
+    await shareVerseText(verse.aya_text, verse.aya_text);
+    clearSelection();
+  }, [clearSelection, getVerseForKey, selection]);
+
+  const openSelection = useCallback(
+    (word: MushafWordType, element: HTMLElement, mode: "word" | "ayah") => {
+      selectedWordElementRef.current = element;
+      setSelection({ verseKey: word.verse_key, mode, word });
+    },
+    [],
+  );
+
   const activateWord = useCallback(
     (fallbackWord: MushafWordType, event: React.MouseEvent<HTMLElement>) => {
+      if (longPressTriggeredRef.current) {
+        longPressTriggeredRef.current = false;
+        return;
+      }
+
       const line = event.currentTarget.closest(".mushaf-line");
       let element = event.currentTarget;
       let word = fallbackWord;
@@ -181,6 +228,43 @@ export function useMushafVerseInteractions({
     [wordsByLocation],
   );
 
+  const handlePointerDown = useCallback(
+    (word: MushafWordType, event: React.PointerEvent<HTMLElement>) => {
+      if (event.pointerType === "mouse") return;
+
+      const element = event.currentTarget;
+      if (longPressTimerRef.current !== null) {
+        window.clearTimeout(longPressTimerRef.current);
+      }
+
+      longPressTimerRef.current = window.setTimeout(() => {
+        longPressTriggeredRef.current = true;
+        openSelection(
+          word,
+          element,
+          word.char_type === "end" ? "ayah" : "word",
+        );
+      }, 500);
+    },
+    [openSelection],
+  );
+
+  const handlePointerUp = useCallback(() => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (longPressTimerRef.current !== null) {
+        window.clearTimeout(longPressTimerRef.current);
+      }
+    },
+    [],
+  );
+
   const handleListenWord = useCallback(() => {
     if (!selection || selection.mode !== "word") return;
 
@@ -213,6 +297,15 @@ export function useMushafVerseInteractions({
     if (verse) setTafseerVerse(verse);
   }, [selection, getVerseForKey]);
 
+  const handleBookmarkToggle = useCallback(() => {
+    if (!selection) return;
+    toggleBookmark(selection.verseKey);
+  }, [selection, toggleBookmark]);
+
+  const selectionBookmarked = selection
+    ? isBookmarked(selection.verseKey)
+    : false;
+
   return {
     selection,
     anchorRect,
@@ -221,9 +314,16 @@ export function useMushafVerseInteractions({
     setTafseerVerse,
     popoverRef,
     activateWord,
+    handlePointerDown,
+    handlePointerUp,
     clearSelection,
     handleListenWord,
     handleListenAyah,
     handleTafseer,
+    handleCopyVerse,
+    handleShareVerse,
+    handleBookmarkToggle,
+    selectionBookmarked,
+    bookmarkedSet,
   };
 }

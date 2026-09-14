@@ -88,6 +88,12 @@ export class LocalQuranRepository implements QuranRepository {
   private readonly baseUrl: string;
   private readonly fetcher: QuranDataFetcher;
   private readonly requests = new Map<string, Promise<unknown>>();
+  /**
+   * Settled values, kept alongside the in-flight promises so callers can read
+   * what is already in memory without awaiting a microtask. Rendering code uses
+   * this to skip a loading state it would only show for a single frame.
+   */
+  private readonly settled = new Map<string, unknown>();
 
   constructor(options: LocalQuranRepositoryOptions = {}) {
     this.baseUrl = (options.baseUrl ?? "/data/quran").replace(/\/$/, "");
@@ -96,6 +102,34 @@ export class LocalQuranRepository implements QuranRepository {
 
   clearCache(): void {
     this.requests.clear();
+    this.settled.clear();
+  }
+
+  peekCoreData(): QuranCoreData | null {
+    return (this.settled.get("core") as QuranCoreData | undefined) ?? null;
+  }
+
+  peekPageLayout(page: number): MushafPageLayout | null {
+    return (
+      (this.settled.get(`layout:${page}`) as MushafPageLayout | undefined) ??
+      null
+    );
+  }
+
+  peekSurahLayouts(surah: number): MushafPageLayout[] | null {
+    return (
+      (this.settled.get(`surah-layouts:${surah}`) as
+        | MushafPageLayout[]
+        | undefined) ?? null
+    );
+  }
+
+  peekLoadedPageLayouts(): MushafPageLayout[] {
+    const layouts: MushafPageLayout[] = [];
+    for (const [key, value] of this.settled) {
+      if (key.startsWith("layout:")) layouts.push(value as MushafPageLayout);
+    }
+    return layouts;
   }
 
   loadCoreData(): Promise<QuranCoreData> {
@@ -244,6 +278,10 @@ export class LocalQuranRepository implements QuranRepository {
 
     const request = Promise.resolve()
       .then(load)
+      .then((value) => {
+        this.settled.set(key, value);
+        return value;
+      })
       .catch((cause: unknown) => {
         if (this.requests.get(key) === request) this.requests.delete(key);
         if (cause instanceof QuranRepositoryError) throw cause;

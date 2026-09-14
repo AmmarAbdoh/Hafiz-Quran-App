@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
+import { reportError } from "@/shared/observability/errorReporting";
 
 interface BoundaryProps {
   children: ReactNode;
@@ -21,7 +22,10 @@ class Boundary extends Component<BoundaryProps, BoundaryState> {
   }
 
   componentDidCatch(error: Error, details: ErrorInfo) {
-    console.error("Application render failed", error, details.componentStack);
+    reportError(error, {
+      source: "render",
+      componentStack: details.componentStack ?? undefined,
+    });
   }
 
   render() {

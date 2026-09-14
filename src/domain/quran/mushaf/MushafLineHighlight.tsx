@@ -1,9 +1,9 @@
 import {
   useCallback,
   useLayoutEffect,
+  useRef,
   useState,
   type CSSProperties,
-  type RefObject,
 } from "react";
 import { cn } from "@/shared/lib/utils";
 
@@ -15,7 +15,6 @@ interface HighlightRect {
 }
 
 interface MushafLineHighlightProps {
-  containerRef: RefObject<HTMLElement | null>;
   verseKey: string | null;
   activeWordLocation: string | null;
   pulse: boolean;
@@ -90,18 +89,20 @@ function measureWord(
 }
 
 export function MushafLineHighlight({
-  containerRef,
   verseKey,
   activeWordLocation,
   pulse,
   enabled,
 }: MushafLineHighlightProps) {
+  // The layer is a child of the line content, and its own ref is attached
+  // before this component's layout effect runs, unlike a ref owned by the line.
+  const layerRef = useRef<HTMLDivElement>(null);
   const [ayahRect, setAyahRect] = useState<HighlightRect | null>(null);
   const [wordRect, setWordRect] = useState<HighlightRect | null>(null);
 
   // ResizeObserver and event cleanup require one stable subscription callback.
   const measure = useCallback(() => {
-    const container = containerRef.current;
+    const container = layerRef.current?.parentElement;
     if (!container || !enabled) {
       setAyahRect(null);
       setWordRect(null);
@@ -124,12 +125,12 @@ export function MushafLineHighlight({
           )
         : null,
     );
-  }, [activeWordLocation, containerRef, enabled, verseKey]);
+  }, [activeWordLocation, enabled, verseKey]);
 
   useLayoutEffect(() => {
     measure();
 
-    const container = containerRef.current;
+    const container = layerRef.current?.parentElement;
     if (!container || !enabled) return;
 
     const observer = new ResizeObserver(measure);
@@ -143,9 +144,7 @@ export function MushafLineHighlight({
       window.removeEventListener("resize", measure);
       scrollContainer?.removeEventListener("scroll", measure);
     };
-  }, [containerRef, enabled, measure]);
-
-  if (!ayahRect && !wordRect) return null;
+  }, [enabled, measure]);
 
   const ayahStyle: CSSProperties | undefined = ayahRect
     ? { ...ayahRect }
@@ -155,7 +154,7 @@ export function MushafLineHighlight({
     : undefined;
 
   return (
-    <div className="mushaf-line__highlights" aria-hidden>
+    <div className="mushaf-line__highlights" aria-hidden ref={layerRef}>
       {ayahRect ? (
         <div
           className={cn(

@@ -2,24 +2,29 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import path from "node:path";
 
-const LOCALE_STORAGE_KEY = "hafiz-quran.locale";
+const LOCALE_STORAGE_KEY = "artqiy.locale";
 
 function expectedLocale(testInfo: TestInfo): "ar" | "en" {
   return testInfo.project.name === "mobile-arabic" ? "ar" : "en";
 }
 
 // Theme and locale are applied after mount, so colour transitions are still
-// running on first paint. Axe reads blended mid-transition colours, so let the
-// animations settle to keep the contrast checks measuring the resting state.
-async function waitForSettledStyles(page: Page) {
-  // Only transitions are awaited; looping animations such as the loading
-  // spinner never finish and do not affect the audited colours.
+// running on first paint and axe would read blended colours. Waiting for them
+// to finish cannot be done reliably, because a transition queued by a class
+// change is not observable until the following frame; removing them instead
+// snaps every element to its resting colour, which is what the audit is about.
+async function settleStyles(page: Page) {
+  await page.addStyleTag({
+    content: `*, *::before, *::after {
+      transition: none !important;
+      animation: none !important;
+    }`,
+  });
   await page.waitForFunction(
     () =>
-      document
-        .getAnimations()
-        .filter((animation) => animation instanceof CSSTransition)
-        .every((animation) => animation.playState !== "running"),
+      new Promise<boolean>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)));
+      }),
     undefined,
     { timeout: 5000 },
   );
@@ -29,7 +34,7 @@ async function expectNoAccessibilityViolations(
   page: Page,
   options: { allowInlineMushafTargets?: boolean } = {},
 ) {
-  await waitForSettledStyles(page);
+  await settleStyles(page);
 
   const audit = new AxeBuilder({ page }).withTags([
     "wcag2a",
@@ -72,6 +77,16 @@ test.beforeEach(async ({ page }, testInfo) => {
 test("localizes the adaptive shell without loading Quran data", async ({
   page,
 }, testInfo) => {
+  // The app warms the Quran dataset in the background so the reader opens
+  // instantly. Reporting data saver turns that off, leaving only the requests
+  // the shell itself needs, which is what this test is about.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: { saveData: true },
+    });
+  });
+
   const quranRequests: string[] = [];
   page.on("request", (request) => {
     if (request.url().includes("/data/quran/")) {
@@ -216,7 +231,7 @@ test("replaces active reader playback with a newly selected ayah", async ({
     }
 
     const records: AudioRecord[] = [];
-    Object.defineProperty(window, "__hafizAudioRecords", {
+    Object.defineProperty(window, "__artqiyAudioRecords", {
       configurable: true,
       value: records,
     });
@@ -285,9 +300,9 @@ test("replaces active reader playback with a newly selected ayah", async ({
         () =>
           (
             window as unknown as {
-              __hafizAudioRecords: Array<{ plays: number }>;
+              __artqiyAudioRecords: Array<{ plays: number }>;
             }
-          ).__hafizAudioRecords.filter(({ plays }) => plays > 0).length,
+          ).__artqiyAudioRecords.filter(({ plays }) => plays > 0).length,
       ),
     )
     .toBe(1);
@@ -305,14 +320,14 @@ test("replaces active reader playback with a newly selected ayah", async ({
         () =>
           (
             window as unknown as {
-              __hafizAudioRecords: Array<{
+              __artqiyAudioRecords: Array<{
                 source: string;
                 plays: number;
                 pauses: number;
                 removed: boolean;
               }>;
             }
-          ).__hafizAudioRecords,
+          ).__artqiyAudioRecords,
       ),
     )
     .toEqual([
@@ -328,11 +343,7 @@ test("renders an accessible localized 404", async ({ page }) => {
   await expectNoAccessibilityViolations(page);
 });
 
-test("completes a quiz and persists its semantic history", async ({
-  page,
-}, testInfo) => {
-  const locale = expectedLocale(testInfo);
-
+test("completes a quiz and persists its semantic history", async ({ page }) => {
   await page.goto("/quiz");
   await expect(page.locator("h1")).toBeVisible({ timeout: 15_000 });
   await expectNoAccessibilityViolations(page);
@@ -343,17 +354,16 @@ test("completes a quiz and persists its semantic history", async ({
     })
     .click();
 
+  // Keep only the ayah-number type so the session asks a multiple-choice
+  // question rather than the fill-in-the-blank search.
   const questionTypeChoices = page.getByRole("checkbox");
   for (let index = 0; index < (await questionTypeChoices.count()); index += 1) {
     const choice = questionTypeChoices.nth(index);
-    const label = await choice.evaluate(
-      (element) => element.closest("label")?.textContent ?? "",
-    );
-    const ayahNumberLabel = locale === "ar" ? "رقم الآية" : "Ayah number";
-    if (!label.includes(ayahNumberLabel) && (await choice.isChecked())) {
-      await choice.click();
-    }
+    if (await choice.isChecked()) await choice.click();
   }
+  const ayahNumberChoice = page.locator("#quiz-question-type-ayah_number");
+  await ayahNumberChoice.click();
+  await expect(ayahNumberChoice).toBeChecked();
 
   await page
     .getByRole("button", {
@@ -377,9 +387,19 @@ test("completes a quiz and persists its semantic history", async ({
   await expect(
     page.getByRole("heading", { name: /Session results|نتيجة الجلسة/i }),
   ).toBeVisible();
+
+  // The reviewed ayah must be tinted on a page that mounts already highlighted.
+  await page
+    .locator('section[aria-labelledby="quiz-review-title"] button')
+    .first()
+    .click();
+  await expect(
+    page.locator(".quiz-mushaf-preview .mushaf-ayah-highlight").first(),
+  ).toBeVisible({ timeout: 15_000 });
+
   const storedHistory = await page.evaluate(() =>
     window.localStorage.getItem("quiz-history"),
   );
-  expect(storedHistory).toContain('"schemaVersion":2');
+  expect(storedHistory).toContain('"schemaVersion":3');
   await expectNoAccessibilityViolations(page);
 });

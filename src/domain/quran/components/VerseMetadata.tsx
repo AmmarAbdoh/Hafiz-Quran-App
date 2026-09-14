@@ -1,7 +1,8 @@
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { SURAH_NAMES, type VerseInfoItem, type VerseInfoKey } from "../model";
+import { useSurahNames } from "../hooks/useSurahNames";
+import type { VerseInfoItem, VerseInfoKey } from "../model";
 
 interface VerseMetadataProps {
   items: VerseInfoItem[];
@@ -9,6 +10,7 @@ interface VerseMetadataProps {
 
 export function VerseMetadata({ items }: VerseMetadataProps) {
   const { t, i18n } = useTranslation("reader");
+  const { surahName, language: surahLanguage } = useSurahNames();
   const headingId = useId();
   const english = i18n.resolvedLanguage?.startsWith("en") ?? false;
   const numberFormatter = new Intl.NumberFormat(english ? "en-US" : "ar-EG");
@@ -32,8 +34,11 @@ export function VerseMetadata({ items }: VerseMetadataProps) {
               </th>
               <td className="py-2 text-muted-foreground">
                 {info.key === "surah" ? (
-                  <bdi dir="rtl" lang="ar">
-                    {SURAH_NAMES[Number(info.value) - 1] ?? info.value}
+                  <bdi
+                    dir={surahLanguage === "ar" ? "rtl" : "ltr"}
+                    lang={surahLanguage}
+                  >
+                    {surahName(Number(info.value))}
                   </bdi>
                 ) : typeof info.value === "number" ? (
                   numberFormatter.format(info.value)

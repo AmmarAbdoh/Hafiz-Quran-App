@@ -1,4 +1,4 @@
-import { useRef, type MouseEvent } from "react";
+import type { MouseEvent, PointerEvent } from "react";
 import type { MushafWord } from "../model";
 import { MushafLineHighlight } from "./MushafLineHighlight";
 import { MushafWordGlyph } from "./MushafWordGlyph";
@@ -12,8 +12,10 @@ interface MushafLineProps {
   fontPalette?: string;
   fontReady: boolean;
   colored: boolean;
+  verseTextByKey?: ReadonlyMap<string, string>;
   selectedWordLocation?: string | null;
   highlightVerseKey?: string | null;
+  highlightPulse?: boolean;
   activeVerseKey?: string | null;
   activeWordLocation?: string | null;
   practiceMode?: boolean;
@@ -22,11 +24,17 @@ interface MushafLineProps {
   practiceTargetWordLocation?: string | null;
   incorrectWordLocation?: string | null;
   incorrectWordLabel?: string;
-  getWordActivationLabel?: (word: MushafWord) => string;
+  bookmarkedVerseKeys?: ReadonlySet<string>;
   onWordActivate?: (
     word: MushafWord,
     event: MouseEvent<HTMLButtonElement>,
   ) => void;
+  onWordPointerDown?: (
+    word: MushafWord,
+    event: PointerEvent<HTMLButtonElement>,
+  ) => void;
+  onWordPointerUp?: () => void;
+  onWordPointerCancel?: () => void;
 }
 
 function groupWordsIntoAyahRuns(words: MushafWord[]): MushafWord[][] {
@@ -59,6 +67,7 @@ function groupWordsForSpread(words: MushafWord[]): MushafWord[][] {
 }
 
 const EMPTY_LOCATIONS = new Set<string>();
+const EMPTY_VERSE_TEXT = new Map<string, string>();
 
 export function MushafLine({
   lineNumber,
@@ -68,8 +77,10 @@ export function MushafLine({
   fontPalette,
   fontReady,
   colored,
+  verseTextByKey = EMPTY_VERSE_TEXT,
   selectedWordLocation = null,
   highlightVerseKey = null,
+  highlightPulse = true,
   activeVerseKey = null,
   activeWordLocation = null,
   practiceMode = false,
@@ -78,10 +89,12 @@ export function MushafLine({
   practiceTargetWordLocation = null,
   incorrectWordLocation = null,
   incorrectWordLabel,
-  getWordActivationLabel,
+  bookmarkedVerseKeys,
   onWordActivate,
+  onWordPointerDown,
+  onWordPointerUp,
+  onWordPointerCancel,
 }: MushafLineProps) {
-  const lineContentRef = useRef<HTMLDivElement>(null);
   const highlightedVerseKey = highlightVerseKey ?? activeVerseKey;
   const lineHasHighlightedVerse =
     highlightedVerseKey !== null &&
@@ -94,6 +107,7 @@ export function MushafLine({
   const wordZIndexes = new Map(
     words.map((word, index) => [word.location, words.length - index + 1]),
   );
+  const verseInteractive = fontReady && Boolean(onWordActivate);
 
   const renderWord = (word: MushafWord) => {
     const hidden =
@@ -119,10 +133,60 @@ export function MushafLine({
         hidden={hidden}
         incorrect={practiceMode && incorrectWordLocation === word.location}
         incorrectLabel={incorrectWordLabel}
+        bookmarked={
+          word.char_type === "end" &&
+          Boolean(bookmarkedVerseKeys?.has(word.verse_key))
+        }
         wordZIndex={wordZIndexes.get(word.location)}
-        getActivationLabel={getWordActivationLabel}
         onActivate={onWordActivate}
+        onPointerDown={onWordPointerDown}
+        onPointerUp={onWordPointerUp}
+        onPointerCancel={onWordPointerCancel}
       />
+    );
+  };
+
+  const renderAyahRun = (run: MushafWord[]) => {
+    const verseKey = run[0]?.verse_key ?? "";
+    const verseText = verseTextByKey.get(verseKey);
+    const runKey = run.map((word) => word.location).join("-");
+
+    const content = spreadLayout
+      ? groupWordsForSpread(run).map((group) => (
+          <span
+            key={group.map((word) => word.location).join("-")}
+            className="mushaf-word-group"
+          >
+            {group.map(renderWord)}
+          </span>
+        ))
+      : run.map(renderWord);
+
+    if (!verseText) {
+      return (
+        <span
+          key={runKey}
+          className="mushaf-ayah-run"
+          data-verse-key={verseKey}
+        >
+          {content}
+        </span>
+      );
+    }
+
+    return (
+      <span
+        key={runKey}
+        role="group"
+        className="mushaf-ayah-run"
+        data-verse-key={verseKey}
+        aria-label={verseText}
+        // Verse-level focus carries plain Arabic text for screen readers.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- intentional verse target
+        tabIndex={verseInteractive ? 0 : undefined}
+      >
+        {content}
+      </span>
     );
   };
 
@@ -138,15 +202,14 @@ export function MushafLine({
       lang="ar"
     >
       <div
-        ref={lineContentRef}
         className={spreadLayout ? "mushaf-line__verse" : "mushaf-line__content"}
       >
         {showHighlight ? (
           <MushafLineHighlight
-            containerRef={lineContentRef}
             verseKey={lineHasHighlightedVerse ? highlightedVerseKey : null}
             activeWordLocation={lineHasActiveWord ? activeWordLocation : null}
             pulse={
+              highlightPulse &&
               highlightVerseKey !== null &&
               lineHasHighlightedVerse &&
               highlightVerseKey === highlightedVerseKey
@@ -155,24 +218,7 @@ export function MushafLine({
           />
         ) : null}
 
-        {spreadLayout
-          ? groupWordsIntoAyahRuns(words).map((run) => (
-              <span
-                key={run.map((word) => word.location).join("-")}
-                className="mushaf-ayah-run"
-                data-verse-key={run[0]?.verse_key ?? ""}
-              >
-                {groupWordsForSpread(run).map((group) => (
-                  <span
-                    key={group.map((word) => word.location).join("-")}
-                    className="mushaf-word-group"
-                  >
-                    {group.map(renderWord)}
-                  </span>
-                ))}
-              </span>
-            ))
-          : words.map(renderWord)}
+        {groupWordsIntoAyahRuns(words).map(renderAyahRun)}
       </div>
     </div>
   );

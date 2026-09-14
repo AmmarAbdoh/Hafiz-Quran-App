@@ -106,6 +106,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
 }
 
 .editorial-shell {
+  --playback-mini-height: 3.25rem;
   display: flex;
   min-height: 100dvh;
   background: var(--background);
@@ -157,11 +158,23 @@ button[class*="text-primary-foreground"][data-state="checked"] {
   padding: var(--space-panel) 1rem 6.5rem;
 }
 
-.editorial-bottom-nav {
+.editorial-dock {
   position: fixed;
   inset-inline: 0;
   inset-block-end: 0;
   z-index: 40;
+}
+
+/* The dock grows when a recitation is running, so content pads to match. */
+.playback-mini {
+  min-block-size: var(--playback-mini-height);
+}
+
+.editorial-content-column:has(.playback-mini) .editorial-main {
+  padding-block-end: calc(6.5rem + var(--playback-mini-height));
+}
+
+.editorial-bottom-nav {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   border-block-start: 1px solid var(--border);
@@ -276,6 +289,10 @@ button[class*="text-primary-foreground"][data-state="checked"] {
 
   .editorial-bottom-nav {
     display: none;
+  }
+
+  .editorial-content-column:has(.playback-mini) .editorial-main {
+    padding-block-end: calc(3.5rem + var(--playback-mini-height));
   }
 }
 

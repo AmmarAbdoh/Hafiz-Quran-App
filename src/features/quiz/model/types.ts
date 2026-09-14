@@ -30,6 +30,8 @@ export interface QuizConfig {
   questionTypes: QuestionType[];
   sessionMode: QuizSessionMode;
   questionCount?: number;
+  /** Set when replaying only the ayahs missed in the previous session. */
+  focusVerseKeys?: string[];
 }
 
 export interface QuizChoice {
@@ -40,8 +42,15 @@ export interface QuizChoice {
 interface QuizQuestionBase {
   id: string;
   type: QuestionType;
+  /** Verse the prompt is built around. */
   verse: MushafVerse;
   verseKey: string;
+  /**
+   * Ayah the learner is actually asked about. Fill-blank hides a neighbour of
+   * the anchor, and audio can ask what follows, so review must not assume the
+   * anchor is the tested ayah.
+   */
+  testedVerseKey: string;
 }
 
 export interface FillBlankQuizQuestion extends QuizQuestionBase {
@@ -87,8 +96,19 @@ export interface QuizAnswerRecord {
   questionId: string;
   questionType: QuestionType;
   verseKey: string;
+  testedVerseKey: string;
   selectedChoiceId: string;
+  /** Rendered text of the answer, kept so review can name it back. */
+  selectedLabel: string;
   correctChoiceId: string;
+  correctLabel: string;
+  isCorrect: boolean;
+}
+
+/** Compact per-answer record; history keeps outcomes, not full prompts. */
+export interface QuizAnswerHistoryEntry {
+  questionType: QuestionType;
+  verseKey: string;
   isCorrect: boolean;
 }
 
@@ -102,6 +122,26 @@ export type QuizScopeSnapshot =
       from: number;
       to: number;
     };
+
+export interface QuizSessionSummaryV3 {
+  schemaVersion: 3;
+  id: string;
+  completedAt: string;
+  /** Null only for migrated records whose legacy label cannot be parsed safely. */
+  scope: QuizScopeSnapshot | null;
+  /** Display fallback retained for migrated V1 records only. */
+  legacyScopeSummary?: string;
+  sessionMode: "fixed" | "endless";
+  questionCount: number;
+  correctCount: number;
+  accuracyByType: Partial<
+    Record<QuestionType, { correct: number; total: number }>
+  >;
+  durationMs: number;
+  /** Empty for sessions migrated from earlier schemas. */
+  answers: QuizAnswerHistoryEntry[];
+  reviewOfMistakes?: boolean;
+}
 
 export interface QuizSessionSummaryV2 {
   schemaVersion: 2;
@@ -147,7 +187,7 @@ export interface QuizState {
   answers: QuizAnswerRecord[];
   streak: number;
   error: QuizEngineError | null;
-  sessionSummary: QuizSessionSummaryV2 | null;
+  sessionSummary: QuizSessionSummaryV3 | null;
   selectedChoiceId: string | null;
   lastIsCorrect: boolean | null;
   startedAt: number | null;

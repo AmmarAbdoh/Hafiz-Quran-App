@@ -1,3 +1,3 @@
 export { MushafPageView } from "./MushafPageView";
-export { MushafFontLoadingState } from "./MushafFontLoadingState";
+export { MushafPageSkeleton } from "./MushafPageSkeleton";
 export { preloadQcfFontsForReaderPage, preloadQcfPageFont } from "./qcfFonts";

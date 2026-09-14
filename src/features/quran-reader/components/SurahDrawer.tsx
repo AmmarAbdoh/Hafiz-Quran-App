@@ -9,8 +9,7 @@ import {
   DialogTitle,
 } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
-import { SURAH_NAMES } from "@/domain/quran";
-import { getSurahAyahCount } from "@/domain/quran";
+import { getSurahAyahCount, useSurahNames } from "@/domain/quran";
 import { cn } from "@/shared/lib/utils";
 import type { MushafVerse } from "@/domain/quran";
 
@@ -34,11 +33,13 @@ export function SurahDrawer({
   const { t } = useTranslation("reader");
   const { t: tCommon } = useTranslation("common");
   const { locale } = useLocale();
+  const { names, language } = useSurahNames();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filtered = SURAH_NAMES.map((name, index) => ({ name, index })).filter(
-    ({ name }) => name.includes(searchTerm),
-  );
+  const search = searchTerm.trim().toLowerCase();
+  const filtered = names
+    .map((name, index) => ({ name, index }))
+    .filter(({ name }) => name.toLowerCase().includes(search));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -96,7 +97,10 @@ export function SurahDrawer({
                   aria-current={currentSurah === index ? "page" : undefined}
                 >
                   <span className="flex items-center justify-between gap-2">
-                    <span dir="rtl" lang="ar">
+                    <span
+                      dir={language === "ar" ? "rtl" : "ltr"}
+                      lang={language}
+                    >
                       <bdi>{formatNumber(index + 1, locale)}</bdi>. {name}
                     </span>
                     <span className="text-xs text-muted-foreground">

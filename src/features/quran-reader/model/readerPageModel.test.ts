@@ -4,6 +4,7 @@ import type {
   MushafVerse,
   VerseInfoRecord,
 } from "@/domain/quran";
+import { getSurahTashkeelName } from "@/domain/quran";
 import {
   findVersePage,
   selectReaderMetadata,
@@ -30,6 +31,9 @@ const verseInfoRecords: VerseInfoRecord[] = mushafData.map((verse) => ({
   page_number: verse.page,
   juz_number: verse.page,
 }));
+
+const surahName = (surahNumber: number) =>
+  getSurahTashkeelName(mushafData, surahNumber);
 
 const pageLayouts: MushafPageLayout[] = [
   makePageLayout(2, "2:1"),
@@ -71,6 +75,7 @@ describe("reader page selectors", () => {
         visibleSurahPage: 2,
         mushafData,
         verseInfoRecords,
+        surahName,
       }),
     ).toEqual({
       surahNames: ["البَقَرَة"],
@@ -89,6 +94,7 @@ describe("reader page selectors", () => {
         visibleSurahPage: 3,
         mushafData,
         verseInfoRecords,
+        surahName,
       }),
     ).toEqual({
       surahNames: ["البَقَرَة"],

@@ -5,21 +5,17 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { MushafLayoutMode } from "@/features/quran-reader/model/quranReaderRoutes";
 
 export interface MushafReaderHeaderState {
-  tajweedColored: boolean;
-  legendPinned: boolean;
-  layoutMode: MushafLayoutMode;
+  /** Surah names on the visible page, already joined for the interface language. */
+  surahLabel: string;
+  page: number;
   practiceActive: boolean;
   practiceLoading: boolean;
-  onTajweedColoredChange: (value: boolean) => void;
-  onLegendPinnedChange: (pinned: boolean) => void;
-  onLayoutModeChange: (mode: MushafLayoutMode) => void;
-  onOpenLegendGuide: () => void;
   onOpenSurahDrawer: () => void;
   onOpenAyahSearch: () => void;
   onOpenListenOptions: () => void;
+  onOpenReadingPreferences: () => void;
   onTogglePractice: () => void;
 }
 

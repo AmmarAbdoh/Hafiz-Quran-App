@@ -8,8 +8,11 @@
     flex-direction: column;
     gap: 0;
     -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
+  }
+
+  .mushaf-ayah-run[role="group"] {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   .mushaf-surah-header-block {
@@ -72,18 +75,60 @@
     color: var(--foreground);
   }
 
+  .mushaf-bismillah {
+    margin: 0;
+    width: 100%;
+    min-height: var(--mushaf-line-height, 2.5rem);
+    padding-inline: 0.5rem;
+    text-align: center;
+    font-size: clamp(1rem, 3vw, 1.65rem);
+    line-height: 1.6;
+    color: var(--foreground);
+  }
+
+  .mushaf-page:not(.mushaf-page--full) .mushaf-bismillah {
+    min-height: var(--mushaf-lh, 2.5rem);
+  }
+
+  .mushaf-page--full .mushaf-bismillah {
+    inline-size: var(--mushaf-line-width);
+    margin-inline: auto;
+    font-size: calc(var(--mushaf-font-size, 1rem) * 0.92);
+    line-height: var(--mushaf-line-height, 2.5rem);
+  }
+
   .mushaf-page--full {
     --mushaf-page-fit: 1;
-    --mushaf-font-size: clamp(1rem, 10vw, 1.55rem);
-    --mushaf-line-height: clamp(2.1rem, 6.75vh, 3.1rem);
-    --mushaf-line-width: min(98vw, 64.5vh);
+    --mushaf-font-size: calc(
+      var(--mushaf-font-size-base, clamp(1rem, 10vw, 1.55rem)) *
+        var(--mushaf-scale, 1)
+    );
+    --mushaf-line-height: calc(
+      var(--mushaf-line-height-base, clamp(2.1rem, 6.75vh, 3.1rem)) *
+        var(--mushaf-scale, 1)
+    );
+    /* A spread line has a fixed word count, so glyph size is bound to the line
+       width: the text scale has to widen the line, not just the font, or the
+       surplus spills past the inline end and is swallowed by `overflow: clip`.
+       The width can never exceed the viewport minus the page wrapper's gutters
+       and room for a thin scrollbar, otherwise the stage clips it instead. */
+    --mushaf-line-width: min(
+      calc(100vw - 1.5rem),
+      calc(64.5vh * var(--mushaf-scale, 1))
+    );
     inline-size: var(--mushaf-line-width);
     margin-inline: auto;
   }
 
   .mushaf-line {
-    --mushaf-fs: clamp(1.15rem, 2.2vw + 0.65rem, 2.1rem);
-    --mushaf-lh: clamp(2.25rem, 4vw + 1.6rem, 3.9rem);
+    --mushaf-fs: calc(
+      var(--mushaf-font-size-base, clamp(1rem, 10vw, 1.55rem)) *
+        var(--mushaf-scale, 1)
+    );
+    --mushaf-lh: calc(
+      var(--mushaf-line-height-base, clamp(2.1rem, 6.75vh, 3.1rem)) *
+        var(--mushaf-scale, 1)
+    );
     display: flex;
     min-height: var(--mushaf-lh);
     flex-wrap: nowrap;
@@ -226,6 +271,20 @@
     padding: 0;
   }
 
+  .mushaf-word-end.mushaf-word--bookmarked::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: -0.42rem;
+    top: 50%;
+    width: 0.32rem;
+    height: 0.32rem;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--primary) 72%, transparent);
+    transform: translateY(-50%);
+    pointer-events: none;
+    opacity: 0.85;
+  }
+
   .mushaf-word--word-selected {
     border-radius: 0.2rem;
     background-color: color-mix(in srgb, var(--primary) 28%, transparent);
@@ -281,27 +340,79 @@
     color: var(--foreground);
   }
 
+  /* Loading placeholder. It reuses the real page, line and heading boxes so the
+     bars occupy the exact geometry of the text that replaces them, leaving the
+     page still when the glyphs arrive. */
+  /* Matches the intrinsic width of the centred opening pages. */
+  .mushaf-page--skeleton:not(.mushaf-page--full) {
+    inline-size: min(92vw, 23rem);
+  }
+
+  .mushaf-page--skeleton .mushaf-skeleton-line {
+    display: flex;
+    inline-size: 100%;
+    align-items: center;
+  }
+
+  .mushaf-skeleton-bar {
+    flex: 1;
+    block-size: 0.58em;
+    border-radius: 999px;
+    background-color: color-mix(
+      in srgb,
+      var(--muted-foreground) 13%,
+      transparent
+    );
+    background-image: linear-gradient(
+      to left,
+      transparent 0%,
+      color-mix(in srgb, var(--muted-foreground) 17%, transparent) 50%,
+      transparent 100%
+    );
+    background-repeat: no-repeat;
+    background-size: 60% 100%;
+    animation: mushaf-skeleton-sweep 1.8s ease-in-out infinite;
+  }
+
+  .mushaf-skeleton-bar--heading {
+    flex: 0 0 auto;
+    inline-size: min(58%, 16rem);
+    block-size: clamp(0.85rem, 1.8vh, 1.2rem);
+  }
+
+  /* Sweeps along the reading direction of the page. */
+  @keyframes mushaf-skeleton-sweep {
+    from {
+      background-position: 160% 0;
+    }
+    to {
+      background-position: -60% 0;
+    }
+  }
+
   @media (min-width: 640px) {
     .mushaf-line {
-      --mushaf-fs: clamp(1.35rem, 2.5vw + 0.5rem, 2.15rem);
+      --mushaf-font-size-base: 3.7vh;
+      --mushaf-line-height-base: 6.75vh;
     }
 
     .mushaf-page--full {
-      --mushaf-font-size: 3.7vh;
-      --mushaf-line-height: 6.75vh;
-      --mushaf-line-width: 64.5vh;
+      --mushaf-font-size-base: 3.7vh;
+      --mushaf-line-height-base: 6.75vh;
     }
   }
 
   @media (min-width: 1024px) {
     .mushaf-line {
-      --mushaf-fs: clamp(1.55rem, 1.2vw + 0.85rem, 2.25rem);
+      --mushaf-font-size-base: 3.7vh;
+      --mushaf-line-height-base: 6.75vh;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .mushaf-ayah-highlight--pulse,
-    .mushaf-word--practice-wrong {
+    .mushaf-word--practice-wrong,
+    .mushaf-skeleton-bar {
       animation: none;
     }
 

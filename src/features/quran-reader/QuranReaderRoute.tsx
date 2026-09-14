@@ -1,7 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { Outlet, useParams } from "react-router-dom";
 import { QuranDataProvider, useQuranData } from "@/domain/quran";
-import { QuranPlaybackProvider } from "@/features/quran-reader/context/QuranPlaybackContext";
 import { RecitationPracticeProvider } from "@practice/runtime";
 
 function ReaderLayoutLoader({ children }: { children: ReactNode }) {
@@ -30,11 +29,9 @@ export function QuranReaderRoute() {
   return (
     <QuranDataProvider>
       <ReaderLayoutLoader>
-        <QuranPlaybackProvider>
-          <RecitationPracticeProvider>
-            <Outlet />
-          </RecitationPracticeProvider>
-        </QuranPlaybackProvider>
+        <RecitationPracticeProvider>
+          <Outlet />
+        </RecitationPracticeProvider>
       </ReaderLayoutLoader>
     </QuranDataProvider>
   );

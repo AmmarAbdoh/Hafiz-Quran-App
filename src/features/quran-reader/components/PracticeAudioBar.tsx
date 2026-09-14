@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { CheckCircle2, Eye, EyeOff, Loader2, Mic, Square } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatNumber, useLocale } from "@/app/i18n";
@@ -140,7 +141,12 @@ function PracticeTelemetryStatus({
   );
 }
 
-export function PracticeAudioBar() {
+interface PracticeAudioBarProps {
+  /** Page navigation, kept reachable while the bar owns the bottom strip. */
+  pageControls?: ReactNode;
+}
+
+export function PracticeAudioBar({ pageControls }: PracticeAudioBarProps) {
   const { t } = useTranslation("reader");
   const { locale } = useLocale();
   const practice = useRecitationPractice();
@@ -153,110 +159,109 @@ export function PracticeAudioBar() {
       : 0;
 
   return (
-    <div className="z-40 shrink-0 border-t border-primary/30 bg-primary/5 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl flex-col gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2">
-        <div className="flex items-center gap-2 sm:gap-3">
+    <div className="mushaf-playback-bar mushaf-playback-bar--practice">
+      <div
+        className={cn(
+          "mushaf-playback-bar__progress",
+          practice.completed && "bg-success",
+        )}
+        style={{ inlineSize: `${progressPercent}%` }}
+        aria-hidden
+      />
+
+      <div className="mushaf-playback-bar__row">
+        <div className="mushaf-playback-bar__info">
           <PracticeTelemetryStatus practice={practice} />
+        </div>
 
-          {practice.loadingModel && (
-            <span className="text-xs tabular-nums text-muted-foreground">
-              {t("practice.modelProgress", {
-                progress: formatNumber(practice.modelProgress, locale),
-              })}
-            </span>
-          )}
-
-          {practice.isAnalyzing && (
-            <Loader2
-              className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground"
-              aria-hidden
-            />
-          )}
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="min-h-11 min-w-11"
-            onClick={practice.toggleHideAyat}
-            title={
-              practice.hideAyat
-                ? t("practice.showAyat")
-                : t("practice.hideAyat")
-            }
-            aria-label={
-              practice.hideAyat
-                ? t("practice.showAyat")
-                : t("practice.hideAyat")
-            }
-          >
-            {practice.hideAyat ? (
-              <EyeOff className="h-4 w-4" aria-hidden />
-            ) : (
-              <Eye className="h-4 w-4" aria-hidden />
+        <div className="mushaf-playback-bar__controls">
+          <div className="flex items-center gap-0.5">
+            {practice.loadingModel && (
+              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                {t("practice.modelProgress", {
+                  progress: formatNumber(practice.modelProgress, locale),
+                })}
+              </span>
             )}
-          </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="min-h-11 min-w-11"
-            onClick={practice.stopPractice}
-            aria-label={t("practice.stop")}
-          >
-            <Square className="h-3.5 w-3.5 fill-current" aria-hidden />
-          </Button>
-        </div>
+            {practice.isAnalyzing && (
+              <Loader2
+                className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground"
+                aria-hidden
+              />
+            )}
 
-        {practice.lastTranscript && (
-          <div className="rounded-md border border-border/70 bg-background/70 px-3 py-2">
-            <p className="text-[11px] text-muted-foreground">
-              {t("practice.transcript")}
-            </p>
-            <p
-              className="min-h-[1.25rem] text-sm leading-relaxed text-foreground"
-              dir="rtl"
-              lang="ar"
+            <Button
+              variant="ghost"
+              size="icon"
+              className="min-h-11 min-w-11"
+              onClick={practice.toggleHideAyat}
+              title={
+                practice.hideAyat
+                  ? t("practice.showAyat")
+                  : t("practice.hideAyat")
+              }
+              aria-label={
+                practice.hideAyat
+                  ? t("practice.showAyat")
+                  : t("practice.hideAyat")
+              }
             >
-              {practice.lastTranscript}
-            </p>
-          </div>
-        )}
-
-        <div className="flex items-center gap-2">
-          <div
-            className="h-1.5 flex-1 overflow-hidden rounded-full bg-border"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={practice.totalWords}
-            aria-valuenow={practice.progressIndex}
-            aria-label={t("practice.progress")}
-            aria-valuetext={t("audio.playlistProgress", {
-              current: formatNumber(practice.progressIndex, locale),
-              total: formatNumber(practice.totalWords, locale),
-            })}
-          >
-            <div
-              className={cn(
-                "h-full rounded-full bg-primary transition-[width] duration-300",
-                practice.completed && "bg-success",
+              {practice.hideAyat ? (
+                <EyeOff className="h-4 w-4" aria-hidden />
+              ) : (
+                <Eye className="h-4 w-4" aria-hidden />
               )}
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-          {practice.totalWords > 0 && (
-            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-              {formatNumber(practice.progressIndex, locale)}/
-              {formatNumber(practice.totalWords, locale)}
-            </span>
-          )}
-        </div>
+            </Button>
 
-        {practice.error && (
-          <p className="text-xs text-destructive" role="alert">
-            {t(`practice.errors.${practice.error}`)}
-          </p>
-        )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="min-h-11 min-w-11"
+              onClick={practice.stopPractice}
+              aria-label={t("practice.stop")}
+            >
+              <Square className="h-3.5 w-3.5 fill-current" aria-hidden />
+            </Button>
+          </div>
+
+          {pageControls}
+        </div>
       </div>
+
+      <span
+        className="sr-only"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={practice.totalWords}
+        aria-valuenow={practice.progressIndex}
+        aria-label={t("practice.progress")}
+        aria-valuetext={t("audio.playlistProgress", {
+          current: formatNumber(practice.progressIndex, locale),
+          total: formatNumber(practice.totalWords, locale),
+        })}
+      />
+
+      {practice.lastTranscript && (
+        <div className="mx-3 mb-1.5 rounded-md border border-border/70 bg-background/70 px-3 py-1.5">
+          <p className="text-[11px] text-muted-foreground">
+            {t("practice.transcript")}
+          </p>
+          <p
+            className="min-h-[1.25rem] text-sm leading-relaxed text-foreground"
+            dir="rtl"
+            lang="ar"
+          >
+            {practice.lastTranscript}
+          </p>
+        </div>
+      )}
+
+      {practice.error && (
+        <p className="px-3 pb-1 text-xs text-destructive" role="alert">
+          {t(`practice.errors.${practice.error}`)}
+        </p>
+      )}
     </div>
   );
 }

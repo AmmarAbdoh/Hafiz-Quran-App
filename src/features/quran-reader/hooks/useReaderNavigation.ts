@@ -2,7 +2,6 @@ import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { MushafVerse } from "@/domain/quran";
 import {
-  assignQuranReaderLayout,
   buildCanonicalReaderPath,
   buildQuranAyahPath,
   buildQuranReaderPath,
@@ -120,9 +119,23 @@ export function useReaderNavigation({
   const changeLayoutMode = useCallback(
     (mode: MushafLayoutMode) => {
       if (mode === layoutMode) return;
-      assignQuranReaderLayout(mode, currentPage, currentSurahNumber);
+      clearHighlight();
+      if (practiceActive) stopPractice();
+      const path =
+        mode === "surah"
+          ? buildQuranSurahPath(currentSurahNumber)
+          : buildQuranReaderPath(currentPage);
+      void navigate(path);
     },
-    [currentPage, currentSurahNumber, layoutMode],
+    [
+      clearHighlight,
+      currentPage,
+      currentSurahNumber,
+      layoutMode,
+      navigate,
+      practiceActive,
+      stopPractice,
+    ],
   );
 
   useEffect(() => {

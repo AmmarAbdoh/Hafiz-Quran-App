@@ -1,4 +1,4 @@
-# Hafiz Quran | حافظ القرآن
+# Artqiy | ارتق — اقرأ وارتقِ
 
 An Arabic-first, bilingual Quran reading and memorization app built with React 18, TypeScript, Vite, and Tailwind CSS.
 

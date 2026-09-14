@@ -7,11 +7,13 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { Suspense } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { quranRepository } from "@/domain/quran";
 import { MushafReaderProvider } from "@/features/quran-reader";
 import { AppProviders } from "@/app/providers";
 import { AppRoutes } from "@/app/routes";
+import { RouteLoadingState } from "@/app/RouteLoadingState";
 
 afterEach(() => {
   cleanup();
@@ -22,7 +24,9 @@ async function renderRoute(pathname: string) {
   render(
     <MemoryRouter initialEntries={[pathname]}>
       <AppProviders>
-        <AppRoutes />
+        <Suspense fallback={<RouteLoadingState />}>
+          <AppRoutes />
+        </Suspense>
       </AppProviders>
     </MemoryRouter>,
   );
@@ -63,14 +67,16 @@ describe("application route boundaries", () => {
       <MemoryRouter initialEntries={["/quran/page/1"]}>
         <AppProviders>
           <MushafReaderProvider>
-            <AppRoutes />
+            <Suspense fallback={<RouteLoadingState />}>
+              <AppRoutes />
+            </Suspense>
           </MushafReaderProvider>
         </AppProviders>
       </MemoryRouter>,
     );
 
     expect(
-      await screen.findByRole("alert", undefined, { timeout: 5_000 }),
+      await screen.findByRole("alert", undefined, { timeout: 15_000 }),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", {

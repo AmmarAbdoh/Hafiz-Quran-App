@@ -4,8 +4,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LocaleProvider, useLocale } from "@/app/i18n";
-import { MushafFontLoadingState } from "@/domain/quran";
-import { SearchableRtlSelect } from "@/shared/components/SearchableRtlSelect";
+import { MushafPageSkeleton } from "@/domain/quran";
+import { SearchableSelect } from "@/shared/components/SearchableSelect";
 import { PageControls } from "./PageControls";
 import { TajweedLegendDialog } from "./TajweedLegendDialog";
 
@@ -21,7 +21,7 @@ function LanguageSwitch() {
 function SelectHarness() {
   const [value, setValue] = useState("tabari");
   return (
-    <SearchableRtlSelect
+    <SearchableSelect
       id="tafsir"
       value={value}
       onValueChange={setValue}
@@ -35,7 +35,7 @@ function SelectHarness() {
 
 function LocalizedMushafLoading() {
   const { t } = useTranslation("reader");
-  return <MushafFontLoadingState compact message={t("loading")} />;
+  return <MushafPageSkeleton label={t("loading")} />;
 }
 
 describe("reader interface localization", () => {
@@ -86,10 +86,15 @@ describe("reader interface localization", () => {
       </LocaleProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Use English" }));
     const combobox = await screen.findByRole("combobox", {
       name: "مصدر التفسير",
     });
+    expect(combobox.closest("[dir='rtl']")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Use English" }));
+    await waitFor(() =>
+      expect(combobox.closest("[dir='ltr']")).toBeInTheDocument(),
+    );
 
     fireEvent.keyDown(combobox, { key: "ArrowDown" });
     expect(combobox).toHaveAttribute("aria-expanded", "true");
@@ -99,7 +104,6 @@ describe("reader interface localization", () => {
     fireEvent.keyDown(combobox, { key: "Enter" });
 
     expect(combobox).toHaveValue("ابن كثير");
-    expect(combobox.closest("[dir='rtl']")).toBeInTheDocument();
     expect(combobox).toHaveFocus();
   });
 

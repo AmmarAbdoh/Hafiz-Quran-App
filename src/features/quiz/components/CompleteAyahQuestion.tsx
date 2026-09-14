@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import type { CompleteAyahQuizQuestion } from "../model/types";
 import { QuizChoiceGrid } from "./QuizChoiceGrid";
 import { QuizFeedback } from "./QuizFeedback";
-import { QuizMushafPreview } from "./QuizMushafPreview";
 import type { QuizQuestionViewProps } from "./questionViewTypes";
 
 interface CompleteAyahQuestionProps extends QuizQuestionViewProps {
@@ -23,17 +22,13 @@ export function CompleteAyahQuestion({
   const { t } = useTranslation("quiz");
   return (
     <div className="space-y-6">
-      <div className="space-y-3 text-center">
+      {/* No mushaf page here: seeing the ayah would answer the question. */}
+      <div className="mx-auto w-full max-w-2xl space-y-3 rounded-xl border border-border bg-muted/20 p-5 text-center">
         <p className="text-sm text-muted-foreground">
           {t("prompts.completeAyah")}
         </p>
-        <QuizMushafPreview
-          page={question.verse.page}
-          mushafData={mushafData}
-          highlightVerseKey={question.verseKey}
-        />
         <p
-          className="quran-text font-mushaf text-lg leading-loose text-muted-foreground"
+          className="quran-text font-mushaf text-xl leading-loose"
           dir="rtl"
           lang="ar"
         >
@@ -49,10 +44,11 @@ export function CompleteAyahQuestion({
         onSelect={onSubmit}
       />
 
-      {answered && isCorrect !== null && (
+      {answered && isCorrect !== null && selectedChoiceId !== null && (
         <QuizFeedback
           isCorrect={isCorrect}
-          verse={question.verse}
+          question={question}
+          selectedChoiceId={selectedChoiceId}
           verseInfoRecords={verseInfoRecords}
           mushafData={mushafData}
           streak={streak}

@@ -54,10 +54,17 @@ export function MushafViewer({
     setTafseerVerse,
     popoverRef,
     activateWord,
+    handlePointerDown,
+    handlePointerUp,
     clearSelection,
     handleListenWord,
     handleListenAyah,
     handleTafseer,
+    handleCopyVerse,
+    handleShareVerse,
+    handleBookmarkToggle,
+    selectionBookmarked,
+    bookmarkedSet,
   } = useMushafVerseInteractions({
     mushafRef,
     mushafData,
@@ -112,7 +119,11 @@ export function MushafViewer({
         practiceRevealedLocations={practice.revealedLocations}
         practiceTargetWordLocation={practice.currentWordLocation}
         practiceWrongFlashLocation={practice.wrongFlashLocation}
+        bookmarkedVerseKeys={bookmarkedSet}
         onWordActivate={activateWord}
+        onWordPointerDown={handlePointerDown}
+        onWordPointerUp={handlePointerUp}
+        onWordPointerCancel={handlePointerUp}
       />
 
       {selection && anchorRect && (
@@ -129,6 +140,10 @@ export function MushafViewer({
           }
           onListenAyah={handleListenAyah}
           onTafseer={handleTafseer}
+          onCopy={handleCopyVerse}
+          onShare={handleShareVerse}
+          isBookmarked={selectionBookmarked}
+          onBookmarkToggle={handleBookmarkToggle}
           onClose={clearSelection}
           popoverRef={popoverRef}
         />

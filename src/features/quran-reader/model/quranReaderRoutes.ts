@@ -226,19 +226,6 @@ export function resolveLayoutMode(
   return "surah";
 }
 
-/** Full navigation when switching between surah and page layouts. */
-export function assignQuranReaderLayout(
-  layout: MushafLayoutMode,
-  page: number,
-  surahNumber: number,
-): void {
-  const path =
-    layout === "surah"
-      ? buildQuranSurahPath(surahNumber)
-      : buildQuranReaderPath(page);
-  window.location.assign(path);
-}
-
 export function resolveReaderSurahNumber(
   params: QuranRouteParams,
   mushafData: MushafVerse[],

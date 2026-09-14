@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { SURAH_NAMES } from "@/domain/quran";
 import type { MushafVerse } from "@/domain/quran";
+import type { AudioIdentifyQuizQuestion } from "../types";
 import { generateAudioIdentifyQuestion } from "./audioIdentify";
+
+function generated(
+  question: AudioIdentifyQuizQuestion | null,
+): AudioIdentifyQuizQuestion {
+  if (!question) throw new Error("expected an audio question");
+  return question;
+}
 
 function makeVerse(
   id: number,
@@ -34,6 +43,9 @@ const distractors = Array.from({ length: 14 }, (_, index) =>
   makeVerse(index + 10, index + 2, 1),
 );
 
+const surahName = (surahNumber: number) =>
+  SURAH_NAMES[surahNumber - 1] ?? String(surahNumber);
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -42,10 +54,13 @@ describe("generateAudioIdentifyQuestion", () => {
   it("uses a surah prompt when random selection chooses it", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
 
-    const question = generateAudioIdentifyQuestion(
-      first,
-      [first, second, ...distractors],
-      [first, second, ...distractors],
+    const question = generated(
+      generateAudioIdentifyQuestion(
+        first,
+        [first, second, ...distractors],
+        [first, second, ...distractors],
+        surahName,
+      ),
     );
 
     expect(question.audioPrompt).toBe("surah");
@@ -57,10 +72,13 @@ describe("generateAudioIdentifyQuestion", () => {
   it("uses a surah prompt when the selected ayah has no successor", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.99);
 
-    const question = generateAudioIdentifyQuestion(
-      second,
-      [first, second, ...distractors],
-      [first, second, ...distractors],
+    const question = generated(
+      generateAudioIdentifyQuestion(
+        second,
+        [first, second, ...distractors],
+        [first, second, ...distractors],
+        surahName,
+      ),
     );
 
     expect(question.audioPrompt).toBe("surah");
@@ -71,10 +89,13 @@ describe("generateAudioIdentifyQuestion", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.99);
     const pool = [first, second, ...distractors];
 
-    const question = generateAudioIdentifyQuestion(first, pool, pool);
+    const question = generated(
+      generateAudioIdentifyQuestion(first, pool, pool, surahName),
+    );
 
     expect(question.audioPrompt).toBe("next_ayah");
     expect(question.correctChoiceId).toBe("1:2");
+    expect(question.testedVerseKey).toBe("1:2");
     expect(question.choices).toHaveLength(4);
     expect(question.choices).not.toContainEqual(
       expect.objectContaining({ id: "1:1" }),
@@ -84,18 +105,18 @@ describe("generateAudioIdentifyQuestion", () => {
     );
   });
 
-  it("falls back to the verse label when a surah is outside the name table", () => {
+  it("labels surah choices with the names it is handed", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     const unknown = makeVerse(200, 115, 1);
 
-    const question = generateAudioIdentifyQuestion(
-      unknown,
-      [unknown],
-      [unknown],
+    const question = generated(
+      generateAudioIdentifyQuestion(
+        unknown,
+        [unknown],
+        [unknown],
+        (surahNumber) => `Surah ${surahNumber}`,
+      ),
     );
-    expect(question.choices).toContainEqual({
-      id: "115",
-      label: "Surah 115 Arabic",
-    });
+    expect(question.choices).toContainEqual({ id: "115", label: "Surah 115" });
   });
 });

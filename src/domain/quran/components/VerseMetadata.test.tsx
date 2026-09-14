@@ -14,7 +14,24 @@ function SwitchToEnglish() {
 }
 
 describe("VerseMetadata", () => {
-  it("localizes semantic labels and keeps only the surah name RTL", async () => {
+  it("keeps the Arabic surah name RTL in Arabic", () => {
+    window.localStorage.clear();
+    render(
+      <LocaleProvider>
+        <VerseMetadata
+          items={[
+            { key: "surah", value: "1" },
+            { key: "ayah", value: 7 },
+          ]}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("الفاتحة")).toHaveAttribute("dir", "rtl");
+    expect(screen.getByText("الفاتحة")).toHaveAttribute("lang", "ar");
+  });
+
+  it("localizes semantic labels and transliterates the surah name in English", async () => {
     window.localStorage.clear();
     render(
       <LocaleProvider>
@@ -35,7 +52,7 @@ describe("VerseMetadata", () => {
     expect(screen.getByText("Ayah")).toBeInTheDocument();
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByRole("table")).not.toHaveAttribute("dir", "rtl");
-    expect(screen.getByText("الفاتحة")).toHaveAttribute("dir", "rtl");
-    expect(screen.getByText("الفاتحة")).toHaveAttribute("lang", "ar");
+    expect(screen.getByText("Al-Fatihah")).toHaveAttribute("dir", "ltr");
+    expect(screen.getByText("Al-Fatihah")).toHaveAttribute("lang", "en");
   });
 });

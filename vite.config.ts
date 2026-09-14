@@ -66,6 +66,9 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: practiceEnabled ? "dist-practice" : "dist",
+      // The service worker reads this to precache the lazily imported route
+      // chunks, whose hashed names it cannot otherwise discover.
+      manifest: "asset-manifest.json",
     },
     server: {
       headers: developmentSecurityHeaders,

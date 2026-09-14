@@ -3,6 +3,21 @@ import type { MushafPageLayout, MushafVerse, MushafWordLine } from "./types";
 
 export const MUSHAF_LINES_PER_PAGE = 15;
 
+/**
+ * The opening two pages hold Al-Fatihah and the start of Al-Baqarah on short
+ * centred lines instead of the justified full-width grid used everywhere else.
+ */
+export function isCenterAlignedPage(page: number): boolean {
+  return page === 1 || page === 2;
+}
+
+/**
+ * Both centred pages open with a surah heading above seven lines. The mushaf
+ * never changes, so a placeholder can mirror that shape before the layout for
+ * the page has been fetched.
+ */
+export const CENTER_ALIGNED_PAGE_LINES = 7;
+
 interface MushafSurahHeaderPlacement {
   surahNumber: number;
   beforeLine: number;
@@ -153,4 +168,15 @@ export function buildSurahNameIndex(
     }
   }
   return names;
+}
+
+/** Plain Arabic ayah text keyed by `surah:ayah` for screen readers and copy. */
+export function buildVerseTextIndex(
+  mushafVerses: MushafVerse[],
+): ReadonlyMap<string, string> {
+  const texts = new Map<string, string>();
+  for (const verse of mushafVerses) {
+    texts.set(`${verse.sura_no}:${verse.aya_no}`, verse.aya_text);
+  }
+  return texts;
 }

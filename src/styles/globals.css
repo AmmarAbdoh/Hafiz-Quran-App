@@ -23,6 +23,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-brand-gold: var(--brand-gold);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-selected: var(--surface-selected);
   --color-mushaf-page: var(--mushaf-page);
   --color-mushaf-header: var(--mushaf-header);
   --color-mushaf-header-panel: var(--mushaf-header-panel);
@@ -43,7 +46,9 @@
   --text-subheading--line-height: 1.4;
   --text-body: 1rem;
   --text-body--line-height: var(--leading-ui);
-  --text-caption: 0.8125rem;
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.5;
+  --text-caption: 0.875rem;
   --text-caption--line-height: 1.5;
 }
 

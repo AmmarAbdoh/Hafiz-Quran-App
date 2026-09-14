@@ -49,12 +49,26 @@ function mergeLayouts(
 
 export function QuranDataProvider({ children }: { children: ReactNode }) {
   const { t: tErrors, i18n } = useTranslation("errors");
-  const [mushafData, setMushafData] = useState<MushafVerse[]>([]);
-  const [verseInfoRecords, setVerseInfoRecords] = useState<VerseInfoRecord[]>(
-    [],
+  // This provider mounts per route, so without seeding from what is already in
+  // memory every visit to the reader would flash a skeleton while an in-memory
+  // value resolved on the microtask queue.
+  const [mushafData, setMushafData] = useState<MushafVerse[]>(
+    () => quranRepository.peekCoreData()?.mushafVerses ?? [],
   );
-  const [pages, setPages] = useState(() => new Map<number, MushafPageLayout>());
-  const [loading, setLoading] = useState(true);
+  const [verseInfoRecords, setVerseInfoRecords] = useState<VerseInfoRecord[]>(
+    () => quranRepository.peekCoreData()?.verseInfo ?? [],
+  );
+  const [pages, setPages] = useState(
+    () =>
+      new Map<number, MushafPageLayout>(
+        quranRepository
+          .peekLoadedPageLayouts()
+          .map((layout) => [layout.page, layout]),
+      ),
+  );
+  const [loading, setLoading] = useState(
+    () => quranRepository.peekCoreData() === null,
+  );
   const [pendingLayouts, setPendingLayouts] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [errorRetryable, setErrorRetryable] = useState(false);
@@ -84,6 +98,14 @@ export function QuranDataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const alreadyLoaded = quranRepository.peekCoreData();
+    if (alreadyLoaded) {
+      setMushafData(alreadyLoaded.mushafVerses);
+      setVerseInfoRecords(alreadyLoaded.verseInfo);
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -123,23 +145,37 @@ export function QuranDataProvider({ children }: { children: ReactNode }) {
     [reportError],
   );
 
+  // Layouts already in memory are merged without raising the pending count, so
+  // navigating between prefetched pages never turns the loading flag on.
   const loadPageLayout = useCallback(
-    (page: number) =>
-      runLayoutRequest(async () => {
+    (page: number) => {
+      const cached = quranRepository.peekPageLayout(page);
+      if (cached) {
+        setPages((current) => mergeLayouts(current, [cached]));
+        return Promise.resolve(cached);
+      }
+      return runLayoutRequest(async () => {
         const layout = await quranRepository.loadPageLayout(page);
         setPages((current) => mergeLayouts(current, [layout]));
         return layout;
-      }),
+      });
+    },
     [runLayoutRequest],
   );
 
   const loadSurahLayouts = useCallback(
-    (surah: number) =>
-      runLayoutRequest(async () => {
+    (surah: number) => {
+      const cached = quranRepository.peekSurahLayouts(surah);
+      if (cached) {
+        setPages((current) => mergeLayouts(current, cached));
+        return Promise.resolve(cached);
+      }
+      return runLayoutRequest(async () => {
         const layouts = await quranRepository.loadSurahLayouts(surah);
         setPages((current) => mergeLayouts(current, layouts));
         return layouts;
-      }),
+      });
+    },
     [runLayoutRequest],
   );
 
