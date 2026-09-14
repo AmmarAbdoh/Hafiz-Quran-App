@@ -1,5 +1,6 @@
 import { ExternalLink, Heart, Landmark } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Panel } from "@/shared/components/Panel";
 
 const dataSources = [
   {
@@ -56,19 +57,19 @@ export function AboutPage() {
         </p>
       </header>
 
-      <section className="editorial-panel flex items-start gap-4">
+      <Panel className="flex items-start gap-4">
         <Heart
           aria-hidden="true"
           className="mt-0.5 h-5 w-5 shrink-0 text-primary"
         />
         <p className="text-sm leading-7">{t("about.gratitude")}</p>
-      </section>
+      </Panel>
 
       <section aria-labelledby="source-list-title">
         <h2 id="source-list-title">{t("about.sourcesTitle")}</h2>
         <div className="mt-4 grid gap-4">
           {dataSources.map((source) => (
-            <article key={source.url} className="editorial-panel">
+            <Panel key={source.url} as="article">
               <h3>
                 <a
                   href={source.url}
@@ -93,7 +94,7 @@ export function AboutPage() {
                   {t(source.licenseKey)}
                 </dd>
               </dl>
-            </article>
+            </Panel>
           ))}
         </div>
       </section>

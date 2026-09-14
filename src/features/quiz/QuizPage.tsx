@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuranData } from "@/domain/quran";
+import { Panel } from "@/shared/components/Panel";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { cn } from "@/shared/lib/utils";
@@ -139,8 +140,8 @@ export function QuizPage() {
 
   if (error) {
     return (
-      <div
-        className="editorial-panel border-destructive/30 bg-destructive/5 text-center"
+      <Panel
+        className="border-destructive/30 bg-destructive/5 text-center"
         role="alert"
       >
         <p className="text-destructive">{error}</p>
@@ -149,7 +150,7 @@ export function QuizPage() {
             {t("actions.retry")}
           </Button>
         )}
-      </div>
+      </Panel>
     );
   }
 
@@ -261,7 +262,7 @@ export function QuizPage() {
         onEditStep={setSetupStep}
       />
 
-      <div className="editorial-panel editorial-panel--flush overflow-hidden">
+      <Panel variant="flush" className="overflow-hidden">
         <SetupStepPanel step={setupStep}>
           {setupStep === "scope" && (
             <QuizScopeStep
@@ -303,14 +304,14 @@ export function QuizPage() {
             </p>
           )}
         </SetupStepPanel>
-      </div>
+      </Panel>
 
-      <div className="editorial-panel">
+      <Panel>
         <h2 className="font-semibold">{t("history.title")}</h2>
         <div className="mt-4">
           <QuizHistoryList history={history} />
         </div>
-      </div>
+      </Panel>
     </section>
   );
 }

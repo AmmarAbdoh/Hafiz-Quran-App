@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatNumber, useLocale } from "@/app/i18n";
+import { Panel } from "@/shared/components/Panel";
 import { Button } from "@/shared/components/ui/button";
 import { DEMO_AYAH_LABEL, useSurahNames } from "@/domain/quran";
 import {
@@ -26,7 +27,7 @@ export function HomePage() {
   return (
     <div className="space-y-8 md:space-y-12">
       {savedPosition ? (
-        <section className="editorial-panel flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Panel className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="editorial-kicker">{t("continue.label")}</p>
             <h1 className="mt-2 text-balance">{t("continue.title")}</h1>
@@ -54,9 +55,9 @@ export function HomePage() {
               />
             </Link>
           </Button>
-        </section>
+        </Panel>
       ) : (
-        <section className="editorial-panel editorial-panel--hero relative isolate overflow-hidden">
+        <Panel variant="hero" className="relative isolate overflow-hidden">
           <div
             aria-hidden="true"
             className="absolute inset-x-[12%] top-0 -z-10 h-px bg-gradient-to-r from-transparent via-accent to-transparent"
@@ -92,14 +93,14 @@ export function HomePage() {
               {t("verseReference")}
             </figcaption>
           </figure>
-        </section>
+        </Panel>
       )}
 
       <section
         aria-label={t("reader.title")}
         className="grid gap-5 md:grid-cols-2"
       >
-        <article className="editorial-panel group flex flex-col">
+        <Panel as="article" className="group flex flex-col">
           <div className="flex items-start gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
               <BookOpenText aria-hidden="true" className="h-6 w-6" />
@@ -121,9 +122,9 @@ export function HomePage() {
               />
             </Link>
           </Button>
-        </article>
+        </Panel>
 
-        <article className="editorial-panel group flex flex-col">
+        <Panel as="article" className="group flex flex-col">
           <div className="flex items-start gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-accent/15 text-[var(--accent-strong)]">
               <GraduationCap aria-hidden="true" className="h-6 w-6" />
@@ -150,10 +151,13 @@ export function HomePage() {
               />
             </Link>
           </Button>
-        </article>
+        </Panel>
       </section>
 
-      <section className="editorial-panel editorial-panel--inset flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-start">
+      <Panel
+        variant="inset"
+        className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-start"
+      >
         <div className="flex items-start gap-3">
           <LockKeyhole
             aria-hidden="true"
@@ -172,7 +176,7 @@ export function HomePage() {
             {t("settingsLink")}
           </Link>
         </Button>
-      </section>
+      </Panel>
     </div>
   );
 }

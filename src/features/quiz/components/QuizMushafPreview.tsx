@@ -7,8 +7,10 @@ import {
   type MushafPageLayout,
   type MushafVerse,
 } from "@/domain/quran";
+import { Panel } from "@/shared/components/Panel";
 import { Button } from "@/shared/components/ui/button";
 import { useTheme } from "@/shared/hooks/use-theme";
+import { cn } from "@/shared/lib/utils";
 import { useTajweedColored } from "@/features/quran-reader/hooks/useTajweedColored";
 const QUIZ_PREVIEW_SKELETON_LINES = 6;
 
@@ -81,11 +83,9 @@ export function QuizMushafPreview({
   );
 
   return (
-    <div
-      className={
-        className ??
-        "quiz-mushaf-preview editorial-panel--inset mx-auto w-full p-2"
-      }
+    <Panel
+      variant="inset"
+      className={cn("quiz-mushaf-preview mx-auto w-full p-2", className)}
       dir="rtl"
       lang="ar"
     >
@@ -126,6 +126,6 @@ export function QuizMushafPreview({
           revealedWordLocations={revealedLocations}
         />
       )}
-    </div>
+    </Panel>
   );
 }

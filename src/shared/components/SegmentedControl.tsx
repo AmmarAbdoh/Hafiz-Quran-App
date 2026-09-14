@@ -26,7 +26,7 @@ export function SegmentedControl<T extends string = string>({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "grid gap-2 rounded-xl bg-muted/70 p-1.5",
+        "grid gap-2 rounded-md bg-surface-sunken p-1.5",
         options.length === 2 && "grid-cols-2",
         options.length === 3 && "grid-cols-3",
         options.length > 3 && "grid-flow-col auto-cols-fr",
@@ -45,9 +45,9 @@ export function SegmentedControl<T extends string = string>({
             tabIndex={selected ? 0 : -1}
             onClick={() => onValueChange(option.value)}
             className={cn(
-              "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-3 text-label font-semibold transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               selected
-                ? "bg-card text-foreground shadow-sm"
+                ? "bg-card text-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >

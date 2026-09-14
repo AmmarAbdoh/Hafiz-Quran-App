@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Panel } from "@/shared/components/Panel";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import type { MushafVerse, VerseInfoRecord } from "@/domain/quran";
@@ -76,7 +77,11 @@ export function ActiveQuiz({
   return (
     <div className="space-y-6">
       {/* One row: where you are, what is being asked, and how to stop. */}
-      <header className="editorial-panel editorial-panel--inset sticky top-0 z-10 rounded-xl shadow-sm backdrop-blur">
+      <Panel
+        as="header"
+        variant="inset"
+        className="sticky top-0 z-sticky shadow-sm backdrop-blur"
+      >
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{progressText}</p>
@@ -128,11 +133,12 @@ export function ActiveQuiz({
             />
           </div>
         )}
-      </header>
+      </Panel>
 
       {error && (
-        <div
-          className="editorial-panel--inset rounded-xl border border-destructive/30 bg-destructive/5 text-center"
+        <Panel
+          variant="inset"
+          className="border-destructive/30 bg-destructive/5 text-center"
           role="alert"
         >
           <p className="text-destructive">{t(`errors.${error}`)}</p>
@@ -146,7 +152,7 @@ export function ActiveQuiz({
               {t("actions.newSetup")}
             </Button>
           </div>
-        </div>
+        </Panel>
       )}
 
       {currentQuestion && !error && (

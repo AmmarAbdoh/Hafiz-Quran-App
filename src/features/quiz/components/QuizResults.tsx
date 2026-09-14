@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Panel } from "@/shared/components/Panel";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
@@ -78,7 +79,7 @@ export function QuizResults({
 
   return (
     <div className="space-y-6">
-      <section className="editorial-panel text-center">
+      <Panel className="text-center">
         <h2 ref={headingRef} tabIndex={-1}>
           {t("results.title")}
         </h2>
@@ -107,7 +108,7 @@ export function QuizResults({
             })}
           </p>
         )}
-      </section>
+      </Panel>
 
       {historySaveFailed && (
         <p

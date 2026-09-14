@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { Mic, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Panel } from "@/shared/components/Panel";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";
 import { usePracticeModel } from "@/features/recitation-practice/hooks/usePracticeModel";
@@ -28,8 +29,10 @@ export function PracticeSettings() {
   };
 
   return (
-    <section
-      className="editorial-panel editorial-panel--flush overflow-hidden"
+    <Panel
+      as="section"
+      variant="flush"
+      className="overflow-hidden"
       aria-labelledby={titleId}
     >
       <header className="flex items-start gap-4 border-b border-border/80 px-5 py-5 sm:px-6">
@@ -79,7 +82,7 @@ export function PracticeSettings() {
           <Trash2 aria-hidden="true" />
         </Button>
       </div>
-    </section>
+    </Panel>
   );
 }
 

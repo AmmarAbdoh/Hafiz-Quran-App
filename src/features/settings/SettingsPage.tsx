@@ -18,11 +18,13 @@ import {
 import { useTranslation } from "react-i18next";
 import { PracticePrivacyDisclosure, PracticeSettings } from "@practice/runtime";
 import { formatNumber, useLocale } from "@/app/i18n";
+import { Panel } from "@/shared/components/Panel";
+import { SegmentedControl } from "@/shared/components/SegmentedControl";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";
 import { DEMO_AYAH_LABEL, RECITERS } from "@/domain/quran";
 import { useReciter, useReciterPreview, useTafseer } from "@/domain/quran";
-import { useTheme, type Theme } from "@/shared/hooks/use-theme";
+import { useTheme } from "@/shared/hooks/use-theme";
 import { cn } from "@/shared/lib/utils";
 import { ReciterSelect } from "./components/ReciterSelect";
 import { WordByWordLegendDialog } from "./components/WordByWordLegendDialog";
@@ -41,8 +43,10 @@ function SettingsSection({
   const titleId = useId();
 
   return (
-    <section
-      className="editorial-panel editorial-panel--flush overflow-hidden"
+    <Panel
+      as="section"
+      variant="flush"
+      className="overflow-hidden"
       aria-labelledby={titleId}
     >
       <header className="flex items-start gap-4 border-b border-border/80 px-5 py-5 sm:px-6">
@@ -57,7 +61,7 @@ function SettingsSection({
         </div>
       </header>
       <div className="space-y-5 px-5 py-5 sm:px-6">{children}</div>
-    </section>
+    </Panel>
   );
 }
 
@@ -84,10 +88,6 @@ export function SettingsPage() {
     useReciterPreview(reciter);
   const [wordByWordGuideOpen, setWordByWordGuideOpen] = useState(false);
 
-  const chooseTheme = (nextTheme: Theme) => {
-    setTheme(nextTheme);
-  };
-
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="mb-8">
@@ -107,66 +107,62 @@ export function SettingsPage() {
           <legend className="mb-3 text-sm font-semibold">
             {t("appearance.languageLabel")}
           </legend>
-          <div
-            className="grid grid-cols-2 gap-2 rounded-xl bg-muted/70 p-1.5"
+          <SegmentedControl
             aria-label={tA11y("chooseLanguage")}
-          >
-            {(["ar", "en"] as const).map((language) => (
-              <button
-                key={language}
-                type="button"
-                onClick={() => setLocale(language)}
-                aria-pressed={locale === language}
-                className={cn(
-                  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition-colors",
-                  locale === language
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Languages aria-hidden="true" className="h-4 w-4" />
-                {language === "ar"
-                  ? tCommon("language.arabic")
-                  : tCommon("language.english")}
-              </button>
-            ))}
-          </div>
+            value={locale}
+            onValueChange={setLocale}
+            options={[
+              {
+                value: "ar",
+                label: (
+                  <>
+                    <Languages aria-hidden="true" className="h-4 w-4" />
+                    {tCommon("language.arabic")}
+                  </>
+                ),
+              },
+              {
+                value: "en",
+                label: (
+                  <>
+                    <Languages aria-hidden="true" className="h-4 w-4" />
+                    {tCommon("language.english")}
+                  </>
+                ),
+              },
+            ]}
+          />
         </fieldset>
 
         <fieldset>
           <legend className="mb-3 text-sm font-semibold">
             {t("appearance.themeLabel")}
           </legend>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => chooseTheme("light")}
-              aria-pressed={theme === "light"}
-              className={cn(
-                "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition-colors",
-                theme === "light"
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card hover:bg-muted",
-              )}
-            >
-              <Sun aria-hidden="true" className="h-4 w-4" />
-              {t("appearance.lightOption")}
-            </button>
-            <button
-              type="button"
-              onClick={() => chooseTheme("dark")}
-              aria-pressed={theme === "dark"}
-              className={cn(
-                "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition-colors",
-                theme === "dark"
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card hover:bg-muted",
-              )}
-            >
-              <Moon aria-hidden="true" className="h-4 w-4" />
-              {t("appearance.darkOption")}
-            </button>
-          </div>
+          <SegmentedControl
+            aria-label={tA11y("chooseTheme")}
+            value={theme}
+            onValueChange={setTheme}
+            options={[
+              {
+                value: "light",
+                label: (
+                  <>
+                    <Sun aria-hidden="true" className="h-4 w-4" />
+                    {t("appearance.lightOption")}
+                  </>
+                ),
+              },
+              {
+                value: "dark",
+                label: (
+                  <>
+                    <Moon aria-hidden="true" className="h-4 w-4" />
+                    {t("appearance.darkOption")}
+                  </>
+                ),
+              },
+            ]}
+          />
         </fieldset>
       </SettingsSection>
 
@@ -267,7 +263,7 @@ export function SettingsPage() {
           <Database aria-hidden="true" className="h-4 w-4" />
           {t("privacy.noAccount")}
         </p>
-        <div className="rounded-xl border border-border bg-muted/40 p-4">
+        <div className="rounded-md border border-border-subtle bg-surface-sunken p-4">
           <h3 className="flex items-center gap-2 font-semibold">
             <Network
               aria-hidden="true"
