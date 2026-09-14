@@ -64,9 +64,10 @@ export function PracticeSettings() {
           {t("practice.localNote")}
         </p>
         <Button
+          size="lg"
           type="button"
           variant="outline"
-          className="min-h-12 w-full justify-between"
+          className="w-full justify-between"
           onClick={() => void clearPracticeModels()}
           disabled={clearingCache}
         >

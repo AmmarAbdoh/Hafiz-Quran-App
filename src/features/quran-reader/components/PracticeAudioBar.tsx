@@ -194,7 +194,6 @@ export function PracticeAudioBar({ pageControls }: PracticeAudioBarProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="min-h-11 min-w-11"
               onClick={practice.toggleHideAyat}
               title={
                 practice.hideAyat
@@ -217,7 +216,6 @@ export function PracticeAudioBar({ pageControls }: PracticeAudioBarProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="min-h-11 min-w-11"
               onClick={practice.stopPractice}
               aria-label={t("practice.stop")}
             >

@@ -122,7 +122,7 @@ export function VerseActionsPopover({
             <Button
               variant="secondary"
               size="sm"
-              className="min-h-11 gap-1.5 text-xs"
+              className="gap-1.5 text-xs"
               onClick={onListenWord}
             >
               <Volume2
@@ -138,7 +138,7 @@ export function VerseActionsPopover({
           <Button
             variant="secondary"
             size="sm"
-            className="min-h-11 gap-1.5 text-xs"
+            className="gap-1.5 text-xs"
             onClick={onListenAyah}
           >
             <Volume2
@@ -153,7 +153,7 @@ export function VerseActionsPopover({
           <Button
             variant="secondary"
             size="sm"
-            className="min-h-11 gap-1.5 text-xs"
+            className="gap-1.5 text-xs"
             onClick={onTafseer}
           >
             <BookOpen className="h-3.5 w-3.5" />
@@ -164,7 +164,7 @@ export function VerseActionsPopover({
             <Button
               variant="secondary"
               size="sm"
-              className="min-h-11 gap-1.5 text-xs"
+              className="gap-1.5 text-xs"
               onClick={onCopy}
             >
               <Copy className="h-3.5 w-3.5" />
@@ -176,7 +176,7 @@ export function VerseActionsPopover({
             <Button
               variant="secondary"
               size="sm"
-              className="min-h-11 gap-1.5 text-xs"
+              className="gap-1.5 text-xs"
               onClick={onShare}
             >
               <Share2 className="h-3.5 w-3.5" />
@@ -188,7 +188,7 @@ export function VerseActionsPopover({
             <Button
               variant={isBookmarked ? "default" : "secondary"}
               size="sm"
-              className="min-h-11 gap-1.5 text-xs"
+              className="gap-1.5 text-xs"
               onClick={onBookmarkToggle}
               aria-pressed={isBookmarked}
             >

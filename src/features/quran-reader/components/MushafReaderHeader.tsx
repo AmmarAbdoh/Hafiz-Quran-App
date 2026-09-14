@@ -50,12 +50,7 @@ export function MushafReaderHeader({
   return (
     <header className="mushaf-reader-header">
       <div className="mx-auto grid max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-1 px-2 py-1 sm:gap-2 sm:px-4 sm:py-2">
-        <Button
-          asChild
-          variant="ghost"
-          size="icon"
-          className="min-h-11 min-w-11 shrink-0"
-        >
+        <Button asChild variant="ghost" size="icon" className="shrink-0">
           <Link to="/" aria-label={t("header.home")} title={t("header.home")}>
             <HomeIcon className="h-5 w-5" aria-hidden />
           </Link>
@@ -87,7 +82,7 @@ export function MushafReaderHeader({
               type="button"
               variant="ghost"
               size="icon"
-              className="min-h-11 min-w-11 justify-self-end"
+              className="justify-self-end"
               aria-label={t("header.more")}
               title={t("header.more")}
             >

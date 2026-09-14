@@ -45,11 +45,7 @@ export function HomePage() {
                     })}
             </p>
           </div>
-          <Button
-            asChild
-            size="lg"
-            className="min-h-11 w-full shrink-0 sm:w-fit"
-          >
+          <Button asChild size="lg" className="w-full shrink-0 sm:w-fit">
             <Link to={readerPath}>
               {t("continue.action")}
               <ArrowUpRight
@@ -170,7 +166,7 @@ export function HomePage() {
             </p>
           </div>
         </div>
-        <Button asChild variant="ghost" className="min-h-11 shrink-0">
+        <Button asChild variant="ghost" className="shrink-0">
           <Link to="/settings">
             <Settings2 aria-hidden="true" />
             {t("settingsLink")}

@@ -290,7 +290,6 @@ export function ListenOptionsDialog({
                   type="button"
                   size="sm"
                   variant={!pageRangeMode ? "default" : "outline"}
-                  className="min-h-11"
                   onClick={() => setPageRangeMode(false)}
                 >
                   {t("listenDialog.onePage")}
@@ -299,7 +298,6 @@ export function ListenOptionsDialog({
                   type="button"
                   size="sm"
                   variant={pageRangeMode ? "default" : "outline"}
-                  className="min-h-11"
                   onClick={() => setPageRangeMode(true)}
                 >
                   {t("listenDialog.pageRange")}
@@ -369,7 +367,6 @@ export function ListenOptionsDialog({
                   type="button"
                   size="sm"
                   variant={!ayahRangeMode ? "default" : "outline"}
-                  className="min-h-11"
                   onClick={() => setAyahRangeMode(false)}
                 >
                   {t("listenDialog.oneAyah")}
@@ -378,7 +375,6 @@ export function ListenOptionsDialog({
                   type="button"
                   size="sm"
                   variant={ayahRangeMode ? "default" : "outline"}
-                  className="min-h-11"
                   onClick={() => setAyahRangeMode(true)}
                 >
                   {t("listenDialog.ayahRange")}
@@ -490,7 +486,6 @@ export function ListenOptionsDialog({
                 type="button"
                 size="sm"
                 variant={plan.repeatMode === "none" ? "default" : "outline"}
-                className="min-h-11"
                 onClick={() => setRepeat("none", 1)}
               >
                 {t("listenDialog.noRepeat")}
@@ -505,7 +500,6 @@ export function ListenOptionsDialog({
                       ? "default"
                       : "outline"
                   }
-                  className="min-h-11"
                   onClick={() => setRepeat("count", count)}
                 >
                   {formatNumber(count, locale)}×
@@ -539,7 +533,7 @@ export function ListenOptionsDialog({
 
         <DialogFooter className="border-t px-4 py-3">
           <Button
-            className="min-h-11 w-full gap-2 sm:w-auto"
+            className="w-full gap-2 sm:w-auto"
             onClick={() => void handleStart()}
             disabled={starting}
           >

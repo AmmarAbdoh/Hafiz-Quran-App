@@ -44,7 +44,7 @@ export function AudioQuestion({
         <Button
           type="button"
           variant="outline"
-          className="min-h-11 gap-2"
+          className="gap-2"
           onClick={play}
           aria-label={statusLabel}
         >

@@ -184,7 +184,7 @@ export function SettingsPage() {
               type="button"
               variant="ghost"
               size="sm"
-              className="min-h-11 px-2 text-sm text-primary"
+              className="px-2 text-sm text-primary"
               onClick={() => setWordByWordGuideOpen(true)}
             >
               <Info aria-hidden="true" />
@@ -200,9 +200,10 @@ export function SettingsPage() {
         </div>
 
         <Button
+          size="lg"
           type="button"
           variant="outline"
-          className="min-h-12 w-full justify-between gap-3"
+          className="w-full justify-between gap-3"
           onClick={preview}
         >
           <span className="flex min-w-0 items-center gap-2">

@@ -227,13 +227,10 @@ export function QuizResults({
       </section>
 
       <div className="flex flex-wrap gap-2">
-        <Button className="min-h-11" onClick={onRetry}>
-          {t("results.retry")}
-        </Button>
+        <Button onClick={onRetry}>{t("results.retry")}</Button>
         {missedVerseKeys.length > 0 && (
           <Button
             variant="secondary"
-            className="min-h-11"
             onClick={() => onReviewMistakes(missedVerseKeys)}
           >
             {t("results.reviewMistakes", {
@@ -242,7 +239,7 @@ export function QuizResults({
             })}
           </Button>
         )}
-        <Button variant="outline" className="min-h-11" onClick={onNewSetup}>
+        <Button variant="outline" onClick={onNewSetup}>
           {t("results.newSetup")}
         </Button>
       </div>

@@ -99,12 +99,7 @@ function ToggleGrid({
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11"
-          onClick={onSelectAll}
-        >
+        <Button type="button" variant="outline" onClick={onSelectAll}>
           {t("actions.selectAll")}
         </Button>
       </div>
@@ -247,7 +242,7 @@ export function QuizScopeStep({
             type="button"
             variant="outline"
             size="sm"
-            className="min-h-11 rounded-full"
+            className="rounded-full"
             onClick={() => applyPreset(preset.scope)}
           >
             {t(`scope.presets.${preset.id}`)}
@@ -448,12 +443,7 @@ export function QuizScopeStep({
                 formattedCount: formatNumber(ayahCount),
               })}
         </p>
-        <Button
-          size="lg"
-          className="min-h-11"
-          disabled={Boolean(error)}
-          onClick={onNext}
-        >
+        <Button size="lg" disabled={Boolean(error)} onClick={onNext}>
           {t("scope.continue")}
         </Button>
       </div>

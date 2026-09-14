@@ -101,7 +101,7 @@ export function QuizFeedback({
       <VerseMetadata items={verseInfo} />
 
       <div className="flex justify-center">
-        <Button size="lg" className="min-h-11" onClick={onNext}>
+        <Button size="lg" onClick={onNext}>
           {t("feedback.next")}
         </Button>
       </div>

@@ -235,7 +235,6 @@ export function IndexPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="min-h-11"
                 onClick={() => navigateToRecent(navigate, entry)}
               >
                 {entry.label}
@@ -363,11 +362,7 @@ export function IndexPage() {
               onChange={(event) => setPageInput(event.target.value)}
               className="min-h-11"
             />
-            <Button
-              type="button"
-              className="min-h-11"
-              onClick={() => handlePageGo()}
-            >
+            <Button type="button" onClick={() => handlePageGo()}>
               {t("navigation.goToPage")}
             </Button>
           </div>
@@ -381,7 +376,7 @@ export function IndexPage() {
             <Button
               type="button"
               variant="outline"
-              className="min-h-11 w-full"
+              className="w-full"
               onClick={() => handlePageGo(search)}
             >
               {t("index.openPageSearch", { query: search })}
@@ -394,7 +389,7 @@ export function IndexPage() {
             <EmptyState
               title={t("index.noBookmarks")}
               action={
-                <Button asChild variant="link" className="min-h-11">
+                <Button asChild variant="link">
                   <Link to={buildQuranReaderPath(1)}>
                     {t("index.openReader")}
                   </Link>

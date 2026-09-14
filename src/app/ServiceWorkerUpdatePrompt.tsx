@@ -27,7 +27,6 @@ export function ServiceWorkerUpdatePrompt() {
         <Button
           type="button"
           size="sm"
-          className="min-h-9"
           onClick={() => window.location.reload()}
         >
           {t("updateReady.reload")}
@@ -36,7 +35,6 @@ export function ServiceWorkerUpdatePrompt() {
           type="button"
           variant="ghost"
           size="sm"
-          className="min-h-9"
           onClick={() => setUpdateReady(false)}
         >
           {t("actions.close")}

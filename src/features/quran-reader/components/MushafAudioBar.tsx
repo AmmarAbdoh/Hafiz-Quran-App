@@ -163,7 +163,7 @@ export function MushafAudioBar({ pageControls }: MushafAudioBarProps) {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="hidden min-h-11 shrink-0 gap-1.5 px-2.5 text-xs lg:inline-flex"
+                  className="hidden shrink-0 gap-1.5 px-2.5 text-xs lg:inline-flex"
                   onClick={goToPlayingVerse}
                   title={t("audio.goToCurrent")}
                 >

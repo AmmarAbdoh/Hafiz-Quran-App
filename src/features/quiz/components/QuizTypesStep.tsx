@@ -168,7 +168,7 @@ export function QuizTypesStep({
               size="sm"
               variant={active ? "default" : "outline"}
               aria-pressed={active}
-              className="min-h-11 rounded-full"
+              className="rounded-full"
               onClick={() =>
                 onTypesChange(getPresetQuestionTypes(preset, coverage))
               }
@@ -198,11 +198,10 @@ export function QuizTypesStep({
           })}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="min-h-11" onClick={onBack}>
+          <Button variant="outline" onClick={onBack}>
             {t("actions.back")}
           </Button>
           <Button
-            className="min-h-11"
             disabled={availableSelectedTypes.length === 0}
             onClick={handleContinue}
           >

@@ -145,11 +145,7 @@ export function QuizPage() {
       >
         <p className="text-destructive">{error}</p>
         {errorRetryable && (
-          <Button
-            className="mt-4 min-h-11"
-            variant="outline"
-            onClick={retryCoreData}
-          >
+          <Button className="mt-4" variant="outline" onClick={retryCoreData}>
             {t("actions.retry")}
           </Button>
         )}
@@ -213,11 +209,7 @@ export function QuizPage() {
             {t("description")}
           </p>
         </div>
-        <Button
-          variant="outline"
-          className="min-h-11"
-          onClick={() => navigate("/")}
-        >
+        <Button variant="outline" onClick={() => navigate("/")}>
           {t("actions.home")}
         </Button>
       </header>

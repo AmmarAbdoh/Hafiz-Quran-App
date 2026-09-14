@@ -135,7 +135,7 @@ export function QuizSessionStep({
               <Button
                 key={count}
                 type="button"
-                className="min-h-11 min-w-11 rounded-full"
+                className="min-w-11 rounded-full"
                 variant={questionCount === count ? "default" : "outline"}
                 aria-pressed={questionCount === count}
                 onClick={() => onQuestionCountChange(count)}
@@ -176,10 +176,10 @@ export function QuizSessionStep({
       )}
 
       <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-        <Button variant="outline" className="min-h-11" onClick={onBack}>
+        <Button variant="outline" onClick={onBack}>
           {t("actions.back")}
         </Button>
-        <Button size="lg" className="min-h-11" onClick={onStart}>
+        <Button size="lg" onClick={onStart}>
           {t("session.start")}
         </Button>
       </div>

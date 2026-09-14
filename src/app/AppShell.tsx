@@ -96,7 +96,6 @@ function ThemeButton() {
       type="button"
       variant="ghost"
       size="icon"
-      className="min-h-11 min-w-11"
       onClick={toggleTheme}
       aria-label={label}
       title={label}
@@ -169,12 +168,7 @@ function ReaderShell({ children }: { children: ReactNode }) {
         // Shown for the moment before the reader publishes its own header, so it
         // leads home like the real one rather than back through history.
         <header className="editorial-topbar editorial-topbar--reader">
-          <Button
-            asChild
-            variant="ghost"
-            size="icon"
-            className="min-h-11 min-w-11"
-          >
+          <Button asChild variant="ghost" size="icon">
             <Link to="/" aria-label={t("navigation.home")}>
               {i18n.dir() === "rtl" ? (
                 <ArrowRight aria-hidden="true" />

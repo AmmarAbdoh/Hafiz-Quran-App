@@ -97,7 +97,6 @@ export function QuizMushafPreview({
           <Button
             type="button"
             variant="outline"
-            className="min-h-11"
             onClick={() => setReloadToken((value) => value + 1)}
           >
             {t("actions.retry")}

@@ -96,7 +96,7 @@ export function ActiveQuiz({
           <Button
             variant="outline"
             size="sm"
-            className="min-h-11 shrink-0"
+            className="shrink-0"
             onClick={onFinish}
           >
             {t("actions.finish")}
@@ -104,7 +104,7 @@ export function ActiveQuiz({
           <Button
             variant="ghost"
             size="icon"
-            className="min-h-11 min-w-11 shrink-0"
+            className="shrink-0"
             onClick={onExit}
             aria-label={t("actions.exit")}
             title={t("actions.exit")}
@@ -138,15 +138,11 @@ export function ActiveQuiz({
           <p className="text-destructive">{t(`errors.${error}`)}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
             {currentQuestion === null && phase === "feedback" ? (
-              <Button
-                className="min-h-11"
-                variant="default"
-                onClick={goToNextQuestion}
-              >
+              <Button variant="default" onClick={goToNextQuestion}>
                 {t("feedback.next")}
               </Button>
             ) : null}
-            <Button className="min-h-11" variant="outline" onClick={onExit}>
+            <Button variant="outline" onClick={onExit}>
               {t("actions.newSetup")}
             </Button>
           </div>
