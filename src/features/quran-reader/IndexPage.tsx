@@ -34,8 +34,8 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { EmptyState } from "@/shared/components/EmptyState";
-import { ListRow } from "@/shared/components/ListRow";
 import { Panel } from "@/shared/components/Panel";
+import { SelectableRow } from "@/shared/components/SelectableRow";
 import {
   Tabs,
   TabsContent,
@@ -251,7 +251,7 @@ export function IndexPage() {
           </h2>
           <div className="overflow-hidden rounded-xl border border-border">
             {ayahMatches.map((result) => (
-              <ListRow
+              <SelectableRow
                 key={`${result.surah}:${result.ayah}`}
                 className="block rounded-none border-b border-border px-3 py-2.5 last:border-b-0"
                 onClick={() => handleAyahSelect(result.surah, result.ayah)}
@@ -271,7 +271,7 @@ export function IndexPage() {
                     })}
                   </p>
                 </span>
-              </ListRow>
+              </SelectableRow>
             ))}
           </div>
         </section>
@@ -306,7 +306,7 @@ export function IndexPage() {
             <EmptyState title={t("navigation.noSurahs")} className="py-8" />
           ) : null}
           {filteredSurahs.map(({ name, number }) => (
-            <ListRow
+            <SelectableRow
               key={number}
               className="justify-between py-2"
               onClick={() => handleSurahSelect(number)}
@@ -324,17 +324,17 @@ export function IndexPage() {
                   ),
                 })}
               </span>
-            </ListRow>
+            </SelectableRow>
           ))}
         </TabsContent>
 
         <TabsContent value="juz" className="mt-4">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {filteredJuz.map(({ name, juz }) => (
-              <button
+              <SelectableRow
                 key={juz}
-                type="button"
-                className="min-h-11 rounded-lg border px-2 py-2 text-start text-xs transition-colors hover:bg-muted"
+                variant="tile"
+                className="text-label"
                 onClick={() => handleJuzSelect(juz)}
               >
                 <span className="block font-semibold">
@@ -347,7 +347,7 @@ export function IndexPage() {
                 >
                   {highlightSearchMatch(name, search)}
                 </span>
-              </button>
+              </SelectableRow>
             ))}
           </div>
         </TabsContent>
@@ -398,7 +398,7 @@ export function IndexPage() {
             />
           ) : (
             bookmarkEntries.map((entry) => (
-              <ListRow
+              <SelectableRow
                 key={entry.verseKey}
                 className="block rounded-lg border border-border px-3 py-2.5"
                 onClick={() => handleAyahSelect(entry.surah, entry.ayah)}
@@ -423,7 +423,7 @@ export function IndexPage() {
                     </p>
                   ) : null}
                 </span>
-              </ListRow>
+              </SelectableRow>
             ))
           )}
         </TabsContent>
