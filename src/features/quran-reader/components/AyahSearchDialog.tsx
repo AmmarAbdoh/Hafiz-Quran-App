@@ -199,15 +199,15 @@ export function AyahSearchDialog({
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => selectResult(result.surah, result.ayah)}
                 className={cn(
-                  "block w-full border-b border-border px-3 py-2.5 text-right transition-colors last:border-b-0",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  index === activeIndex && "bg-accent/70",
+                  "block w-full border-b border-border px-3 py-2.5 text-right transition-colors duration-fast ease-standard last:border-b-0",
+                  "hover:bg-surface-hover",
+                  index === activeIndex && "bg-surface-hover",
                 )}
               >
                 <p className="line-clamp-2 text-sm leading-relaxed">
                   {result.text}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-label text-muted-foreground">
                   {t("search.resultMeta", {
                     surahName: surahName(result.surah),
                     ayah: toArabicNumerals(result.ayah),

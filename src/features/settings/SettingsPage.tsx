@@ -22,6 +22,7 @@ import { Panel } from "@/shared/components/Panel";
 import { SegmentedControl } from "@/shared/components/SegmentedControl";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";
+import { NativeSelect } from "@/shared/components/ui/select";
 import { DEMO_AYAH_LABEL, RECITERS } from "@/domain/quran";
 import { useReciter, useReciterPreview, useTafseer } from "@/domain/quran";
 import { useTheme } from "@/shared/hooks/use-theme";
@@ -238,18 +239,17 @@ export function SettingsPage() {
         description={t("interpretation.description")}
       >
         <Label htmlFor="tafseer-select">{t("interpretation.label")}</Label>
-        <select
+        <NativeSelect
           id="tafseer-select"
           value={tafseerId}
           onChange={(event) => setTafseerId(event.target.value)}
-          className="min-h-12 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring"
         >
           {Object.entries(tafseerTranslationKeys).map(([id, key]) => (
             <option key={id} value={id}>
               {t(key)}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </SettingsSection>
 
       <PracticeSettings />

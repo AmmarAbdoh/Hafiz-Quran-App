@@ -64,7 +64,7 @@ export function PlaybackMiniPlayer() {
         <button
           type="button"
           onClick={goToPlayingVerse}
-          className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-start transition-colors hover:bg-muted"
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-start transition-colors duration-fast ease-standard hover:bg-surface-hover"
           title={t("audio.goToCurrent")}
         >
           <span className="min-w-0 flex-1">
@@ -77,7 +77,7 @@ export function PlaybackMiniPlayer() {
               </bdi>{" "}
               — {t("ayah")} {formatNumber(playback.currentAyah, locale)}
             </span>
-            <span className="block truncate text-xs text-muted-foreground">
+            <span className="block truncate text-label text-muted-foreground">
               {t("audio.goToCurrent")}
             </span>
           </span>

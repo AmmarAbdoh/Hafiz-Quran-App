@@ -83,14 +83,14 @@ export function SurahDrawer({
               <div
                 key={index}
                 className={cn(
-                  "flex items-center gap-1 rounded-lg px-1 py-1 transition-colors hover:bg-muted",
-                  currentSurah === index && "bg-primary/10",
+                  "flex items-center gap-1 rounded-md px-1 py-1 transition-colors duration-fast ease-standard hover:bg-surface-hover",
+                  currentSurah === index && "bg-surface-selected",
                 )}
               >
                 <button
                   type="button"
                   className={cn(
-                    "min-h-11 min-w-0 flex-1 px-2 py-1.5 text-start text-sm",
+                    "min-h-11 min-w-0 flex-1 px-2 py-1.5 text-start text-label",
                     currentSurah === index && "font-medium text-primary",
                   )}
                   onClick={() => onSurahSelect(index)}
@@ -103,7 +103,7 @@ export function SurahDrawer({
                     >
                       <bdi>{formatNumber(index + 1, locale)}</bdi>. {name}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-label text-muted-foreground">
                       {t("metadata.ayahCount", {
                         count: ayahCount,
                         formattedCount: formatNumber(ayahCount, locale),

@@ -264,7 +264,7 @@ export function IndexPage() {
                   >
                     {highlightSearchMatch(result.text, search)}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-label text-muted-foreground">
                     {t("search.resultMeta", {
                       surahName: surahName(result.surah),
                       ayah: formatNumber(result.ayah, locale),
@@ -279,19 +279,16 @@ export function IndexPage() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="grid h-auto w-full grid-cols-4 gap-1 p-1">
-          <TabsTrigger value="surah" className="min-h-11 text-xs sm:text-sm">
+          <TabsTrigger value="surah" className="min-h-11 text-label">
             {t("index.tabs.surah")}
           </TabsTrigger>
-          <TabsTrigger value="juz" className="min-h-11 text-xs sm:text-sm">
+          <TabsTrigger value="juz" className="min-h-11 text-label">
             {t("index.tabs.juz")}
           </TabsTrigger>
-          <TabsTrigger value="page" className="min-h-11 text-xs sm:text-sm">
+          <TabsTrigger value="page" className="min-h-11 text-label">
             {t("index.tabs.page")}
           </TabsTrigger>
-          <TabsTrigger
-            value="bookmarks"
-            className="min-h-11 text-xs sm:text-sm"
-          >
+          <TabsTrigger value="bookmarks" className="min-h-11 text-label">
             {t("index.tabs.bookmarks")}
           </TabsTrigger>
         </TabsList>
@@ -315,7 +312,7 @@ export function IndexPage() {
                 <bdi>{formatNumber(number, locale)}</bdi>.{" "}
                 {highlightSearchMatch(name, search)}
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-label text-muted-foreground">
                 {t("metadata.ayahCount", {
                   count: getSurahAyahCount(mushafData, number),
                   formattedCount: formatNumber(
@@ -366,7 +363,7 @@ export function IndexPage() {
               {t("navigation.goToPage")}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-label text-muted-foreground">
             {t("listenDialog.totalPages", {
               count: TOTAL_MUSHAF_PAGES,
               formattedCount: formatNumber(TOTAL_MUSHAF_PAGES, locale),

@@ -270,7 +270,7 @@ export function WordByWordLegendDialog({
         </ul>
 
         <div className="rounded-xl border bg-background p-4">
-          <p className="mb-3 text-center text-xs text-muted-foreground">
+          <p className="mb-3 text-center text-label text-muted-foreground">
             {t("recitation.guide.example")}: {DEMO_AYAH_LABEL}
           </p>
 
@@ -323,7 +323,7 @@ export function WordByWordLegendDialog({
                 ? t("recitation.guide.stop")
                 : t("recitation.guide.play")}
             </Button>
-            <p className="text-center text-xs text-muted-foreground">
+            <p className="text-center text-label text-muted-foreground">
               {selectedSupports
                 ? t("recitation.guide.selectedVoice", { name: demoReciterName })
                 : t("recitation.guide.fallbackVoice", {
@@ -333,7 +333,9 @@ export function WordByWordLegendDialog({
           </div>
 
           {error && (
-            <p className="mt-2 text-center text-xs text-destructive">{error}</p>
+            <p className="mt-2 text-center text-label text-destructive">
+              {error}
+            </p>
           )}
         </div>
       </DialogContent>

@@ -134,13 +134,13 @@ function Navigation({ mobile = false }: { mobile?: boolean }) {
             to={to}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative inline-flex min-h-11 items-center justify-center rounded-xl text-sm font-semibold transition-colors",
+              "relative inline-flex min-h-11 items-center justify-center rounded-md text-label font-semibold transition-colors duration-fast ease-standard",
               mobile
                 ? "flex-col gap-0.5 px-1 py-1.5 text-[0.68rem]"
                 : "justify-start gap-3 px-3 py-2.5",
               active
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:bg-surface-hover hover:text-foreground",
             )}
           >
             <Icon aria-hidden="true" className="h-5 w-5" />

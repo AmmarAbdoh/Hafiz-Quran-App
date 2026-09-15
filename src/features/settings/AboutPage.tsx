@@ -99,7 +99,7 @@ export function AboutPage() {
         </div>
       </section>
 
-      <p className="rounded-xl border border-border bg-muted/45 px-4 py-3 text-center text-xs leading-6 text-muted-foreground">
+      <p className="rounded-xl border border-border bg-muted/45 px-4 py-3 text-center text-label leading-6 text-muted-foreground">
         {t("about.report")}
       </p>
     </div>

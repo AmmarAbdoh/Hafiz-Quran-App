@@ -40,7 +40,7 @@ const DialogContent = React.forwardRef<
       {children}
       <DialogPrimitive.Close
         aria-label={closeLabel}
-        className="absolute end-2 top-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl opacity-70 ring-offset-background transition-opacity hover:bg-[var(--surface-hover)] hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring disabled:pointer-events-none data-[state=open]:bg-[var(--surface-hover)] data-[state=open]:text-muted-foreground"
+        className="absolute end-2 top-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md opacity-70 transition-opacity hover:bg-surface-hover hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none data-[state=open]:bg-surface-hover data-[state=open]:text-muted-foreground"
       >
         <X aria-hidden="true" className="h-4 w-4" />
       </DialogPrimitive.Close>
@@ -67,9 +67,11 @@ const DialogFooter = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
+  // gap, not space-x: a physical-axis margin would sit on the wrong side
+  // of each button once the interface direction flips.
   <div
     className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
       className,
     )}
     {...props}
@@ -83,10 +85,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
-      className,
-    )}
+    className={cn("text-subheading font-semibold leading-tight", className)}
     {...props}
   />
 ));
@@ -98,7 +97,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-label text-muted-foreground", className)}
     {...props}
   />
 ));
