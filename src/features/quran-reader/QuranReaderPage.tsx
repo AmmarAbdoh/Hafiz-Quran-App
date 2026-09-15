@@ -17,8 +17,7 @@ import { AyahSearchDialog } from "@/features/quran-reader/components/AyahSearchD
 import { ListenOptionsDialog } from "@/features/quran-reader/components/ListenOptionsDialog";
 import { MushafAudioBar } from "@/features/quran-reader/components/MushafAudioBar";
 import { MushafBottomChrome } from "@/features/quran-reader/components/MushafBottomChrome";
-import { MushafControlBar } from "@/features/quran-reader/components/MushafControlBar";
-import { MushafPageProgress } from "@/features/quran-reader/components/MushafPageProgress";
+import { MushafReaderBar } from "@/features/quran-reader/components/MushafReaderBar";
 import { ReadingPreferencesSheet } from "@/features/quran-reader/components/ReadingPreferencesSheet";
 import { MushafSurahViewer } from "@/features/quran-reader/components/MushafSurahViewer";
 import { MushafViewer } from "@/features/quran-reader/components/MushafViewer";
@@ -332,8 +331,11 @@ export function QuranReaderPage() {
       />
     );
 
-  const pageProgress = (
-    <MushafPageProgress
+  // The strip always says where the page sits in the mushaf and, unless the
+  // reader has asked for a bare page, carries its navigation too. Playback and
+  // practice take the strip over entirely and supply their own.
+  let bottomBar: ReactNode = (
+    <MushafReaderBar
       page={statusPage}
       juzNumber={
         typeof metadata.juzNumber === "number" ? metadata.juzNumber : null
@@ -341,26 +343,15 @@ export function QuranReaderPage() {
       hizbNumber={
         typeof metadata.hizbNumber === "number" ? metadata.hizbNumber : null
       }
+      pageControls={pageControls}
+      showControls={readerChrome.controlsVisible}
     />
   );
-
-  // An untouched page states where it sits in the mushaf; a tap trades that row
-  // for page navigation, and playback takes the strip over entirely.
-  let bottomBar: ReactNode = pageProgress;
   if (practiceMode) {
     bottomBar = <PracticeAudioBar pageControls={pageControls} />;
   } else if (active) {
     // The playback row owns the strip and carries page navigation itself.
     bottomBar = <MushafAudioBar pageControls={pageControls} />;
-  } else if (readerChrome.controlsVisible) {
-    bottomBar = (
-      <MushafControlBar
-        pageControls={pageControls}
-        onKeepVisible={readerChrome.keepControlsVisible}
-        onSuspendAutoHide={readerChrome.suspendAutoHide}
-        onResumeAutoHide={readerChrome.resumeAutoHide}
-      />
-    );
   }
 
   const bottomChromeClassName = cn(
@@ -488,6 +479,7 @@ export function QuranReaderPage() {
         onLayoutModeChange={navigation.changeLayoutMode}
         tajweedColored={preferences.tajweedColored}
         onTajweedColoredChange={preferences.changeTajweedColored}
+        onOpenTajweedLegend={overlays.openLegendGuide}
         mushafWarmth={preferences.mushafWarmth}
         onMushafWarmthChange={preferences.changeMushafWarmth}
         mushafScale={preferences.mushafScale}

@@ -1,3 +1,4 @@
+import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocale } from "@/app/i18n";
 import {
@@ -15,6 +16,7 @@ import {
 import { SearchableSelect } from "@/shared/components/SearchableSelect";
 import { Stepper } from "@/shared/components/Stepper";
 import { Switch } from "@/shared/components/Switch";
+import { Button } from "@/shared/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -31,6 +33,7 @@ interface ReadingPreferencesSheetProps {
   onLayoutModeChange: (mode: MushafLayoutMode) => void;
   tajweedColored: boolean;
   onTajweedColoredChange: (value: boolean) => void;
+  onOpenTajweedLegend: () => void;
   mushafWarmth: boolean;
   onMushafWarmthChange: (value: boolean) => void;
   mushafScale: MushafScale;
@@ -44,6 +47,7 @@ export function ReadingPreferencesSheet({
   onLayoutModeChange,
   tajweedColored,
   onTajweedColoredChange,
+  onOpenTajweedLegend,
   mushafWarmth,
   onMushafWarmthChange,
   mushafScale,
@@ -115,9 +119,25 @@ export function ReadingPreferencesSheet({
           </div>
 
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="reader-pref-tajweed">
-              {t("header.tajweedColored")}
-            </Label>
+            <span className="flex min-w-0 items-center gap-1">
+              <Label htmlFor="reader-pref-tajweed">
+                {t("header.tajweedColored")}
+              </Label>
+              {/* The legend explaining what the colours mean had no way in at
+                  all until now; it belongs beside the switch that turns them
+                  on. */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-muted-foreground"
+                onClick={onOpenTajweedLegend}
+                aria-label={t("tajweed.showMeaning")}
+                title={t("tajweed.showMeaning")}
+              >
+                <Info className="h-4 w-4" aria-hidden />
+              </Button>
+            </span>
             <Switch
               id="reader-pref-tajweed"
               pressed={tajweedColored}

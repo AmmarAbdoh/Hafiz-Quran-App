@@ -7,6 +7,7 @@ import {
   Loader2,
   Mic,
   Moon,
+  MoreHorizontal,
   Search,
   Settings,
   SlidersHorizontal,
@@ -86,7 +87,9 @@ export function MushafReaderHeader({
               aria-label={t("header.more")}
               title={t("header.more")}
             >
-              <SlidersHorizontal className="h-5 w-5" aria-hidden />
+              {/* Not SlidersHorizontal: that is the Preferences item's own
+                  icon, one level down inside this very menu. */}
+              <MoreHorizontal className="h-5 w-5" aria-hidden />
             </Button>
           </DropdownMenuTrigger>
 
