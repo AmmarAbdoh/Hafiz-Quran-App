@@ -16,56 +16,6 @@ textarea {
   font: inherit;
 }
 
-/* Preflight gives interactive elements `color: inherit`, which can beat layered
-   text-* utilities on links and buttons (including Button asChild). */
-:is(a, button).text-primary-foreground,
-.text-primary-foreground:is(a, button) {
-  color: var(--primary-foreground);
-}
-
-:is(a, button).text-secondary-foreground,
-.text-secondary-foreground:is(a, button) {
-  color: var(--secondary-foreground);
-}
-
-:is(a, button).text-success-foreground,
-.text-success-foreground:is(a, button) {
-  color: var(--success-foreground);
-}
-
-:is(a, button).text-accent-foreground,
-.text-accent-foreground:is(a, button) {
-  color: var(--accent-foreground);
-}
-
-:is(a, button).text-white {
-  color: #fff;
-}
-
-button[class*="text-primary-foreground"][data-state="checked"] {
-  color: var(--primary-foreground);
-}
-
-:is(a, button).bg-primary,
-.bg-primary:is(a, button) {
-  background-color: var(--primary);
-}
-
-:is(a, button).bg-secondary,
-.bg-secondary:is(a, button) {
-  background-color: var(--secondary);
-}
-
-:is(a, button).bg-destructive,
-.bg-destructive:is(a, button) {
-  background-color: var(--destructive);
-}
-
-:is(a, button).bg-success,
-.bg-success:is(a, button) {
-  background-color: var(--success);
-}
-
 :focus-visible {
   outline: 3px solid color-mix(in srgb, var(--ring) 72%, transparent);
   outline-offset: 3px;

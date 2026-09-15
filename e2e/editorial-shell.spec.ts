@@ -116,10 +116,10 @@ test("localizes the adaptive shell without loading Quran data", async ({
   expect(quranRequests).toEqual([]);
   await expectNoAccessibilityViolations(page);
 
-  const themeChoices = page.locator(
-    'button.min-h-12[aria-pressed="false"]:visible',
-  );
-  await themeChoices.last().click();
+  const themeTablist = page.getByRole("tablist", {
+    name: /Choose appearance|اختيار المظهر/,
+  });
+  await themeTablist.getByRole("tab", { selected: false }).click();
   await expect(page.locator("html")).toHaveClass(/dark/);
 
   const reciterSelect = page.locator("#reciter-select");
@@ -136,7 +136,7 @@ test("localizes the adaptive shell without loading Quran data", async ({
 
   const nextLocale = locale === "ar" ? "en" : "ar";
   await page
-    .getByRole("button", {
+    .getByRole("tab", {
       name: locale === "ar" ? "English" : "العربية",
     })
     .click();
