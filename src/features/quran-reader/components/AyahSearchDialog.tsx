@@ -15,7 +15,7 @@ import {
   buildAyahSearchIndex,
   searchAyahsByText,
 } from "@/features/quran-reader/model/ayahTextSearch";
-import { toArabicNumerals } from "@/shared/lib/arabic-numerals";
+import { formatNumber, useLocale } from "@/app/i18n";
 import { cn } from "@/shared/lib/utils";
 import { useSurahNames } from "@/domain/quran";
 import type { MushafVerse } from "@/domain/quran";
@@ -35,6 +35,7 @@ export function AyahSearchDialog({
 }: AyahSearchDialogProps) {
   const { t } = useTranslation("reader");
   const { t: tCommon } = useTranslation("common");
+  const { locale } = useLocale();
   const { surahName } = useSurahNames();
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -122,6 +123,7 @@ export function AyahSearchDialog({
     }
   };
 
+  const activeResult = results[activeIndex];
   const trimmedQuery = query.trim();
   const showMinLengthHint =
     trimmedQuery.length > 0 && trimmedQuery.length < 2 && results.length === 0;
@@ -142,13 +144,16 @@ export function AyahSearchDialog({
               <Input
                 id="ayah-text-search"
                 ref={inputRef}
-                dir="rtl"
-                lang="ar"
+                /* Not rtl/ar: the field accepts an Arabic ayah, a surah name
+                   in either script, and a reference like 2:255, so it cannot
+                   be one language. "auto" takes its direction from what is
+                   actually typed, a character at a time. */
+                dir="auto"
                 placeholder={t("search.placeholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="ps-9 text-right"
+                className="ps-9"
                 autoComplete="off"
                 role="combobox"
                 aria-autocomplete="list"
@@ -199,18 +204,24 @@ export function AyahSearchDialog({
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => selectResult(result.surah, result.ayah)}
                 className={cn(
-                  "block w-full border-b border-border px-3 py-2.5 text-right transition-colors duration-fast ease-standard last:border-b-0",
+                  "block w-full border-b border-border px-3 py-2.5 text-start transition-colors duration-fast ease-standard last:border-b-0",
                   "hover:bg-surface-hover",
                   index === activeIndex && "bg-surface-hover",
                 )}
               >
-                <p className="line-clamp-2 text-sm leading-relaxed">
+                {/* The ayah is Arabic whatever the interface language is, so
+                    it carries its own direction rather than inheriting one. */}
+                <p
+                  dir="rtl"
+                  lang="ar"
+                  className="line-clamp-2 text-sm leading-relaxed"
+                >
                   {result.text}
                 </p>
                 <p className="mt-1 text-label text-muted-foreground">
                   {t("search.resultMeta", {
                     surahName: surahName(result.surah),
-                    ayah: toArabicNumerals(result.ayah),
+                    ayah: formatNumber(result.ayah, locale),
                   })}
                 </p>
               </button>
@@ -222,18 +233,20 @@ export function AyahSearchDialog({
           {t("search.resultCount", { count: results.length })}
         </p>
 
-        {results.length > 0 && (
+        {activeResult && (
           <Button
             type="button"
             className="w-full sm:w-auto"
-            onClick={() =>
-              selectResult(
-                results[activeIndex]!.surah,
-                results[activeIndex]!.ayah,
-              )
-            }
+            onClick={() => selectResult(activeResult.surah, activeResult.ayah)}
           >
-            {t("search.go")}
+            {/* The key has always taken a label. Nothing passed one, so the
+                button read "Go to" and named nothing. */}
+            {t("search.go", {
+              label: t("search.resultMeta", {
+                surahName: surahName(activeResult.surah),
+                ayah: formatNumber(activeResult.ayah, locale),
+              }),
+            })}
           </Button>
         )}
       </DialogContent>

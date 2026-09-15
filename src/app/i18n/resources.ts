@@ -351,9 +351,9 @@ const ar = {
     },
     search: {
       title: "البحث في القرآن",
-      description: "ابحث عن سورة أو عن كلمات من نص الآية.",
+      description: "اكتب اسم سورة، أو كلمات من آية، أو مرجعًا مثل ٢:٢٥٥.",
       label: "عبارة البحث",
-      placeholder: "اكتب اسم سورة أو كلمات من آية…",
+      placeholder: "اسم سورة، أو كلمات من آية، أو ٢:٢٥٥…",
       results: "نتائج البحث",
       resultCount: "{{count}} نتيجة",
       resultCount_one: "نتيجة واحدة",
@@ -365,7 +365,9 @@ const ar = {
       empty: "لا توجد نتائج مطابقة.",
       start: "ابدأ بكتابة اسم سورة أو جزء من آية.",
       go: "الانتقال إلى {{label}}",
-      resultMeta: "سورة {{surah}}، الآية {{ayah}}",
+      // {{surahName}}, not {{surah}}: both call sites pass the name, so the
+      // old placeholder was never filled and rendered as itself.
+      resultMeta: "سورة {{surahName}}، الآية {{ayah}}",
     },
   },
   quiz: {
@@ -1199,9 +1201,10 @@ const en: StringTree<typeof ar> = {
     },
     search: {
       title: "Search the Quran",
-      description: "Search by surah name or words from an ayah.",
+      description:
+        "Enter a surah name, words from an ayah, or a reference like 2:255.",
       label: "Search text",
-      placeholder: "Enter a surah name or words from an ayah…",
+      placeholder: "Surah name, words from an ayah, or 2:255…",
       results: "Search results",
       resultCount: "{{count}} results",
       resultCount_one: "{{count}} result",
@@ -1213,7 +1216,7 @@ const en: StringTree<typeof ar> = {
       empty: "No matching results.",
       start: "Start by entering a surah name or part of an ayah.",
       go: "Go to {{label}}",
-      resultMeta: "Surah {{surah}}, ayah {{ayah}}",
+      resultMeta: "Surah {{surahName}}, ayah {{ayah}}",
     },
   },
   quiz: {
