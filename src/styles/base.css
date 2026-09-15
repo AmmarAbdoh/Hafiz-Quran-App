@@ -98,14 +98,24 @@ textarea {
   backdrop-filter: blur(16px);
 }
 
-.editorial-topbar--reader {
-  display: flex;
-}
-
 .editorial-main {
-  width: min(100%, 76rem);
+  width: min(100%, var(--content-max));
   margin-inline: auto;
   padding: var(--space-panel) 1rem 6.5rem;
+}
+
+/*
+ * The reader owns its own scrolling (the mushaf stage), so it must never
+ * grow the column: a fixed flex box with hidden overflow, not the padded,
+ * width-capped, natural-height box every other route uses.
+ */
+.editorial-main--reader {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--mushaf-page, var(--background));
 }
 
 .editorial-dock {
@@ -229,7 +239,7 @@ textarea {
     display: flex;
   }
 
-  .editorial-topbar:not(.editorial-topbar--reader) {
+  .editorial-topbar {
     display: none;
   }
 

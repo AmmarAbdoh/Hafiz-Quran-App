@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuranData } from "@/domain/quran";
+import { PageContainer } from "@/shared/components/PageContainer";
 import { Panel } from "@/shared/components/Panel";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
@@ -156,9 +157,10 @@ export function QuizPage() {
 
   if (engine.phase === "active" || engine.phase === "feedback") {
     return (
-      <section
+      <PageContainer
+        as="section"
         aria-labelledby="active-quiz-title"
-        className="mx-auto w-full max-w-5xl space-y-4"
+        className="space-y-4"
       >
         <h1 id="active-quiz-title" className="sr-only">
           {t("active.title")}
@@ -170,15 +172,16 @@ export function QuizPage() {
           onFinish={engine.finishQuiz}
           onExit={openNewSetup}
         />
-      </section>
+      </PageContainer>
     );
   }
 
   if (engine.phase === "results" && engine.sessionSummary) {
     return (
-      <section
+      <PageContainer
+        as="section"
         aria-labelledby="quiz-results-title"
-        className="mx-auto w-full max-w-4xl space-y-6"
+        className="space-y-6"
       >
         <h1 id="quiz-results-title">{t("title")}</h1>
         <QuizResults
@@ -190,15 +193,16 @@ export function QuizPage() {
           onReviewMistakes={reviewMistakes}
           onNewSetup={openNewSetup}
         />
-      </section>
+      </PageContainer>
     );
   }
 
   const currentStepIndex = SETUP_STEPS.indexOf(setupStep);
   return (
-    <section
+    <PageContainer
+      as="section"
       aria-labelledby="quiz-setup-title"
-      className="mx-auto w-full max-w-4xl space-y-5"
+      className="space-y-5"
     >
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -312,6 +316,6 @@ export function QuizPage() {
           <QuizHistoryList history={history} />
         </div>
       </Panel>
-    </section>
+    </PageContainer>
   );
 }

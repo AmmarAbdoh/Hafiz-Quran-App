@@ -30,14 +30,16 @@ export function PlaybackMiniPlayer() {
   const OpenIcon = i18n.dir() === "rtl" ? ChevronLeft : ChevronRight;
 
   return (
-    <div className="playback-mini relative border-t border-border bg-card/95 shadow-[var(--shadow-dock)] backdrop-blur-md md:pb-[max(0px,env(safe-area-inset-bottom))]">
+    <div className="playback-mini relative border-t border-border bg-card/95 pb-[max(0px,env(safe-area-inset-bottom))] shadow-dock backdrop-blur-md">
+      {/* Unconditional, not md: and up - a notch is a phone concern, not a
+          desktop one, and the original breakpoint had that backwards. */}
       <div
         className="absolute start-0 top-0 h-0.5 bg-primary transition-[width] duration-200"
         style={{ inlineSize: `${progress}%` }}
         aria-hidden
       />
 
-      <div className="mx-auto flex max-w-6xl items-center gap-1 px-2 py-1 sm:px-4">
+      <div className="mx-auto flex max-w-content items-center gap-1 px-2 py-1 sm:px-4">
         <Button
           variant="ghost"
           size="icon"

@@ -34,6 +34,7 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { EmptyState } from "@/shared/components/EmptyState";
+import { PageContainer } from "@/shared/components/PageContainer";
 import { Panel } from "@/shared/components/Panel";
 import { SelectableRow } from "@/shared/components/SelectableRow";
 import {
@@ -194,7 +195,7 @@ export function IndexPage() {
     (tab === "surah" || tab === "bookmarks");
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+    <PageContainer className="flex flex-col gap-6">
       <Panel as="header" variant="flush" className="space-y-2">
         <h1>{t("index.title")}</h1>
         <p className="text-body text-muted-foreground">
@@ -425,6 +426,6 @@ export function IndexPage() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContainer>
   );
 }

@@ -1,5 +1,6 @@
 import { ExternalLink, Heart, Landmark } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { PageContainer } from "@/shared/components/PageContainer";
 import { Panel } from "@/shared/components/Panel";
 
 const dataSources = [
@@ -46,7 +47,7 @@ export function AboutPage() {
   const { t: tA11y } = useTranslation("a11y");
 
   return (
-    <div className="mx-auto max-w-3xl space-y-7">
+    <PageContainer className="space-y-7">
       <header className="text-center">
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
           <Landmark aria-hidden="true" className="h-7 w-7" />
@@ -99,9 +100,9 @@ export function AboutPage() {
         </div>
       </section>
 
-      <p className="rounded-xl border border-border bg-muted/45 px-4 py-3 text-center text-label leading-6 text-muted-foreground">
+      <p className="rounded-xl border border-border bg-surface-sunken px-4 py-3 text-center text-label leading-6 text-muted-foreground">
         {t("about.report")}
       </p>
-    </div>
+    </PageContainer>
   );
 }

@@ -152,95 +152,105 @@ function Navigation({ mobile = false }: { mobile?: boolean }) {
   );
 }
 
-function ReaderShell({ children }: { children: ReactNode }) {
-  const { header } = useMushafReader();
+/**
+ * Shown for the moment before the reader publishes its own header, styled
+ * identically to the real one so nothing visibly swaps in. It leads home
+ * like the real header rather than back through history.
+ */
+function ReaderHeaderFallback() {
   const { t, i18n } = useTranslation("common");
-  const { t: tA11y } = useTranslation("a11y");
+  const HomeIcon = i18n.dir() === "rtl" ? ArrowRight : ArrowLeft;
 
   return (
-    <div className="reader-shell">
-      <a className="skip-link" href="#app-content">
-        {tA11y("skipToContent")}
-      </a>
-      {header ? (
-        <MushafReaderHeader {...header} />
-      ) : (
-        // Shown for the moment before the reader publishes its own header, so it
-        // leads home like the real one rather than back through history.
-        <header className="editorial-topbar editorial-topbar--reader">
-          <Button asChild variant="ghost" size="icon">
-            <Link to="/" aria-label={t("navigation.home")}>
-              {i18n.dir() === "rtl" ? (
-                <ArrowRight aria-hidden="true" />
-              ) : (
-                <ArrowLeft aria-hidden="true" />
-              )}
-            </Link>
-          </Button>
-          <span className="font-bold">{t("navigation.reader")}</span>
-          <ThemeButton />
-        </header>
-      )}
-      <main id="app-content" tabIndex={-1}>
+    <header className="mushaf-reader-header">
+      <div className="mx-auto flex max-w-content items-center justify-between gap-2 px-2 py-1 sm:px-4 sm:py-2">
+        <Button asChild variant="ghost" size="icon">
+          <Link to="/" aria-label={t("navigation.home")}>
+            <HomeIcon aria-hidden="true" className="h-5 w-5" />
+          </Link>
+        </Button>
+        <span className="font-bold">{t("navigation.reader")}</span>
+        <ThemeButton />
+      </div>
+    </header>
+  );
+}
+
+/**
+ * The reader owns its content column but not the shell around it: the
+ * sidebar keeps navigation reachable on desktop the same as every other
+ * route, and the reader supplies only its own header and a full-bleed main
+ * that manages its own scrolling.
+ */
+function ReaderContent({ children }: { children: ReactNode }) {
+  const { header } = useMushafReader();
+
+  return (
+    <>
+      {header ? <MushafReaderHeader {...header} /> : <ReaderHeaderFallback />}
+      <main id="app-content" tabIndex={-1} className="editorial-main--reader">
         {children}
       </main>
-    </div>
+    </>
   );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const { t: tA11y } = useTranslation("a11y");
-
-  if (isQuranReaderPath(pathname)) {
-    return (
-      <MushafReaderProvider>
-        <ServiceWorkerUpdatePrompt />
-        <ReaderShell>{children}</ReaderShell>
-      </MushafReaderProvider>
-    );
-  }
+  const isReader = isQuranReaderPath(pathname);
 
   return (
-    <div className="editorial-shell">
-      <ServiceWorkerUpdatePrompt />
-      <a className="skip-link" href="#app-content">
-        {tA11y("skipToContent")}
-      </a>
+    <MushafReaderProvider>
+      <div className="editorial-shell">
+        <ServiceWorkerUpdatePrompt />
+        <a className="skip-link" href="#app-content">
+          {tA11y("skipToContent")}
+        </a>
 
-      <aside className="editorial-sidebar">
-        <Brand />
-        <Navigation />
-        <div className="mt-auto flex items-center justify-end border-t border-border pt-4">
-          <ThemeButton />
-        </div>
-      </aside>
-
-      <div className="editorial-content-column">
-        <header className="editorial-topbar">
+        <aside className="editorial-sidebar">
           <Brand />
-          <ThemeButton />
-        </header>
-
-        <main
-          id="app-content"
-          tabIndex={-1}
-          className="editorial-main app-main-scroll"
-        >
-          {children}
-        </main>
-
-        {/*
-          The mini player and the mobile nav share one fixed dock so the player
-          stacks above the nav without either needing to know its height.
-        */}
-        <div className="editorial-dock">
-          <PlaybackMiniPlayer />
-          <div className="editorial-bottom-nav">
-            <Navigation mobile />
+          <Navigation />
+          <div className="mt-auto flex items-center justify-end border-t border-border pt-4">
+            <ThemeButton />
           </div>
+        </aside>
+
+        <div className="editorial-content-column">
+          {isReader ? (
+            <ReaderContent>{children}</ReaderContent>
+          ) : (
+            <>
+              <header className="editorial-topbar">
+                <Brand />
+                <ThemeButton />
+              </header>
+
+              <main
+                id="app-content"
+                tabIndex={-1}
+                className="editorial-main app-main-scroll"
+              >
+                {children}
+              </main>
+
+              {/*
+                The mini player and the mobile nav share one fixed dock so the
+                player stacks above the nav without either needing to know its
+                height. The reader has no dock of its own here: its playback
+                bar already covers this while reading, and phones keep the
+                reader immersive without the app's own bottom nav crowding it.
+              */}
+              <div className="editorial-dock">
+                <PlaybackMiniPlayer />
+                <div className="editorial-bottom-nav">
+                  <Navigation mobile />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
-    </div>
+    </MushafReaderProvider>
   );
 }

@@ -18,6 +18,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { PracticePrivacyDisclosure, PracticeSettings } from "@practice/runtime";
 import { formatNumber, useLocale } from "@/app/i18n";
+import { PageContainer } from "@/shared/components/PageContainer";
 import { Panel } from "@/shared/components/Panel";
 import { SegmentedControl } from "@/shared/components/SegmentedControl";
 import { Button } from "@/shared/components/ui/button";
@@ -90,7 +91,7 @@ export function SettingsPage() {
   const [wordByWordGuideOpen, setWordByWordGuideOpen] = useState(false);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <PageContainer className="space-y-6">
       <header className="mb-8">
         <p className="editorial-kicker">{tCommon("appName")}</p>
         <h1 className="mt-3 tracking-tight">{t("title")}</h1>
@@ -300,6 +301,6 @@ export function SettingsPage() {
         onOpenChange={setWordByWordGuideOpen}
         reciterId={reciter.id}
       />
-    </div>
+    </PageContainer>
   );
 }
