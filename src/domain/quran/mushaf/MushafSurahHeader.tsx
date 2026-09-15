@@ -16,7 +16,16 @@ export function MushafSurahHeader({
     : `سورة ${surahName}`,
   showBismillah = false,
 }: MushafSurahHeaderProps) {
-  const spacerLines = Math.max(0, headerLines - 1);
+  /*
+   * `headerLines` is how many line slots the Madani grid leaves blank for this
+   * surah opening, and the name band and bismillah are what fill them - so the
+   * spacer is only whatever those two do not use. Counting the name band as
+   * additional to the reserved slots made 88 pages a full line taller than the
+   * grid they are laid out on, which is what pushed surah-opening pages past
+   * the bottom of the screen.
+   */
+  const occupiedLines = 1 + (showBismillah ? 1 : 0);
+  const spacerLines = Math.max(0, headerLines - occupiedLines);
 
   return (
     <div

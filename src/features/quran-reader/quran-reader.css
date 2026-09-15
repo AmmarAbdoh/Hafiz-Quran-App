@@ -6,6 +6,14 @@
   .mushaf-reader-layout {
     --mushaf-dock-offset: 0px;
     --mushaf-dock-reserve: 64px;
+    /*
+     * The page is scaled to fit this box. The container sits here rather than
+     * on the stage because this element's height never changes: the header is
+     * its sibling and the dock is positioned out of flow, so starting a
+     * recitation cannot resize it - and therefore cannot resize the text.
+     */
+    container-type: size;
+    container-name: mushaf-stage;
     display: flex;
     min-height: 0;
     flex: 1;
