@@ -16,6 +16,7 @@ function renderHeader(
   const onOpenListenOptions = vi.fn();
   const onOpenSurahDrawer = vi.fn();
   const onOpenAyahSearch = vi.fn();
+  const onLayoutModeChange = vi.fn();
   render(
     <MemoryRouter initialEntries={["/quran/page/5"]}>
       <LocaleProvider>
@@ -28,8 +29,10 @@ function renderHeader(
                 <MushafReaderHeader
                   surahLabel="البقرة"
                   page={5}
+                  layoutMode="page"
                   practiceActive={false}
                   practiceLoading={false}
+                  onLayoutModeChange={onLayoutModeChange}
                   onOpenSurahDrawer={onOpenSurahDrawer}
                   onOpenAyahSearch={onOpenAyahSearch}
                   onOpenListenOptions={onOpenListenOptions}
@@ -49,6 +52,7 @@ function renderHeader(
     onOpenListenOptions,
     onOpenSurahDrawer,
     onOpenAyahSearch,
+    onLayoutModeChange,
   };
 }
 
@@ -102,6 +106,47 @@ describe("MushafReaderHeader", () => {
     fireEvent.click(preferences);
 
     expect(onOpenReadingPreferences).toHaveBeenCalled();
+  });
+
+  /*
+   * Layout decides whether a swipe turns the page or the reader scrolls, and
+   * it used to sit three levels down inside the preferences sheet, saying only
+   * "surah" or "page". Opening the menu has to answer both which one is in
+   * force and what each one does.
+   */
+  it("states the current layout and what each one does", async () => {
+    renderHeader({ layoutMode: "page" });
+
+    await openMenu();
+
+    const pageOption = await screen.findByRole("menuitemradio", {
+      name: /صفحة/,
+    });
+    const surahOption = await screen.findByRole("menuitemradio", {
+      name: /سورة/,
+    });
+
+    expect(pageOption).toHaveAttribute("aria-checked", "true");
+    expect(surahOption).toHaveAttribute("aria-checked", "false");
+    expect(pageOption).toHaveTextContent("اسحب لتقليب الصفحات");
+    expect(surahOption).toHaveTextContent("تمرير متواصل");
+
+    // The name and its hint are separate blocks, and the name computed from
+    // them alone runs the two together - "صفحةصفحة كاملة" - which is what a
+    // screen reader would read out.
+    expect(pageOption).toHaveAttribute(
+      "aria-label",
+      "صفحة. صفحة كاملة، اسحب لتقليب الصفحات",
+    );
+  });
+
+  it("changes the layout from the overflow menu", async () => {
+    const { onLayoutModeChange } = renderHeader({ layoutMode: "page" });
+
+    await openMenu();
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: /سورة/ }));
+
+    expect(onLayoutModeChange).toHaveBeenCalledWith("surah");
   });
 
   it("exposes listen, surahs, and search from the overflow menu", async () => {

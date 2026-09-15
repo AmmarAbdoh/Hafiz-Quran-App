@@ -279,8 +279,10 @@ export function QuranReaderPage() {
     setHeader,
     surahLabel: statusSurahLabel,
     page: statusPage,
+    layoutMode: route.layoutMode,
     practiceActive,
     practiceLoading,
+    onLayoutModeChange: navigation.changeLayoutMode,
     onOpenSurahDrawer: overlays.openSurahDrawer,
     onOpenAyahSearch: overlays.openAyahSearch,
     onOpenListenOptions: overlays.openListenOptions,
@@ -475,8 +477,6 @@ export function QuranReaderPage() {
       <ReadingPreferencesSheet
         open={overlays.readingPreferencesOpen}
         onOpenChange={overlays.setReadingPreferencesOpen}
-        layoutMode={route.layoutMode}
-        onLayoutModeChange={navigation.changeLayoutMode}
         tajweedColored={preferences.tajweedColored}
         onTajweedColoredChange={preferences.changeTajweedColored}
         onOpenTajweedLegend={overlays.openLegendGuide}

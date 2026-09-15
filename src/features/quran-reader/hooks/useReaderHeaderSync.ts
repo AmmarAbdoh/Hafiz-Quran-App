@@ -6,8 +6,10 @@ interface UseReaderHeaderSyncOptions {
   setHeader: (header: MushafReaderHeaderState | null) => void;
   surahLabel: string;
   page: number;
+  layoutMode: MushafReaderHeaderState["layoutMode"];
   practiceActive: boolean;
   practiceLoading: boolean;
+  onLayoutModeChange: MushafReaderHeaderState["onLayoutModeChange"];
   onOpenSurahDrawer: MushafReaderHeaderState["onOpenSurahDrawer"];
   onOpenAyahSearch: MushafReaderHeaderState["onOpenAyahSearch"];
   onOpenListenOptions: MushafReaderHeaderState["onOpenListenOptions"];
@@ -20,8 +22,10 @@ export function useReaderHeaderSync({
   setHeader,
   surahLabel,
   page,
+  layoutMode,
   practiceActive,
   practiceLoading,
+  onLayoutModeChange,
   onOpenSurahDrawer,
   onOpenAyahSearch,
   onOpenListenOptions,
@@ -29,6 +33,7 @@ export function useReaderHeaderSync({
   onTogglePractice,
 }: UseReaderHeaderSyncOptions): void {
   const callbacksRef = useRef({
+    onLayoutModeChange,
     onOpenSurahDrawer,
     onOpenAyahSearch,
     onOpenListenOptions,
@@ -36,6 +41,7 @@ export function useReaderHeaderSync({
     onTogglePractice,
   });
   callbacksRef.current = {
+    onLayoutModeChange,
     onOpenSurahDrawer,
     onOpenAyahSearch,
     onOpenListenOptions,
@@ -53,8 +59,10 @@ export function useReaderHeaderSync({
     setHeader({
       surahLabel,
       page,
+      layoutMode,
       practiceActive,
       practiceLoading,
+      onLayoutModeChange: (mode) => callbacks.onLayoutModeChange(mode),
       onOpenSurahDrawer: callbacks.onOpenSurahDrawer,
       onOpenAyahSearch: callbacks.onOpenAyahSearch,
       onOpenListenOptions: callbacks.onOpenListenOptions,
@@ -63,7 +71,15 @@ export function useReaderHeaderSync({
         void callbacks.onTogglePractice();
       },
     });
-  }, [enabled, page, practiceActive, practiceLoading, setHeader, surahLabel]);
+  }, [
+    enabled,
+    layoutMode,
+    page,
+    practiceActive,
+    practiceLoading,
+    setHeader,
+    surahLabel,
+  ]);
 
   useEffect(() => () => setHeader(null), [setHeader]);
 }

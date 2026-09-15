@@ -5,8 +5,6 @@ import {
   MUSHAF_SCALE_STEPS,
   type MushafScale,
 } from "@/features/quran-reader/model/mushafScale";
-import { MushafLayoutSwitcher } from "@/features/quran-reader/components/MushafLayoutSwitcher";
-import type { MushafLayoutMode } from "@/features/quran-reader/model/quranReaderRoutes";
 import {
   RECITERS,
   TAFSEER_OPTIONS,
@@ -29,8 +27,6 @@ import { Label } from "@/shared/components/ui/label";
 interface ReadingPreferencesSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  layoutMode: MushafLayoutMode;
-  onLayoutModeChange: (mode: MushafLayoutMode) => void;
   tajweedColored: boolean;
   onTajweedColoredChange: (value: boolean) => void;
   onOpenTajweedLegend: () => void;
@@ -43,8 +39,6 @@ interface ReadingPreferencesSheetProps {
 export function ReadingPreferencesSheet({
   open,
   onOpenChange,
-  layoutMode,
-  onLayoutModeChange,
   tajweedColored,
   onTajweedColoredChange,
   onOpenTajweedLegend,
@@ -93,14 +87,9 @@ export function ReadingPreferencesSheet({
         </SheetHeader>
 
         <div className="space-y-5">
-          <div className="space-y-2">
-            <Label>{t("layout.label")}</Label>
-            <MushafLayoutSwitcher
-              layoutMode={layoutMode}
-              onLayoutModeChange={onLayoutModeChange}
-            />
-          </div>
-
+          {/* Layout is not here: it decides how the reader is moved through,
+              so it belongs in the header menu where it can be seen without
+              opening anything. */}
           <div className="space-y-2">
             <Label>{t("preferences.textSize")}</Label>
             <Stepper

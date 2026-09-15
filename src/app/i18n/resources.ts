@@ -118,6 +118,10 @@ const ar = {
       label: "طريقة العرض",
       surah: "سورة",
       page: "صفحة",
+      // The choice changes how the reader is moved through, which is the one
+      // thing its two words never said.
+      surahHint: "السورة كاملة، تمرير متواصل",
+      pageHint: "صفحة كاملة، اسحب لتقليب الصفحات",
     },
     status: {
       page: "صفحة {{page}}",
@@ -962,6 +966,8 @@ const en: StringTree<typeof ar> = {
       label: "Reader layout",
       surah: "Surah",
       page: "Page",
+      surahHint: "The whole surah, scrolling",
+      pageHint: "One mushaf page, swipe to turn",
     },
     status: {
       page: "Page {{page}}",
