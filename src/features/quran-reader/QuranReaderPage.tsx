@@ -40,7 +40,7 @@ import { useReaderMetadata } from "@/features/quran-reader/hooks/useReaderMetada
 import { useReaderNavigation } from "@/features/quran-reader/hooks/useReaderNavigation";
 import { useReaderChrome } from "@/features/quran-reader/hooks/useReaderChrome";
 import { useReaderPositionPersistence } from "@/features/quran-reader/hooks/useReaderPositionPersistence";
-import { useSwipePageTurn } from "@/features/quran-reader/hooks/useSwipePageTurn";
+import { useReaderGestures } from "@/features/quran-reader/hooks/useReaderGestures";
 import { useReaderPreferences } from "@/features/quran-reader/hooks/useReaderPreferences";
 import { useSurahPageNavigation } from "@/features/quran-reader/hooks/useSurahPageNavigation";
 import { useVerseHighlight } from "@/features/quran-reader/hooks/useVerseHighlight";
@@ -221,28 +221,19 @@ export function QuranReaderPage() {
     swipeNavigationRef.current.onPrevious();
   }, []);
 
-  useSwipePageTurn({
-    enabled: !practiceMode && route.layoutMode === "page" && !loading && !error,
-    containerRef: mushafStageRef,
-    onNext: handleSwipeNext,
-    onPrevious: handleSwipePrevious,
-  });
+  const handleStageTap = useCallback(() => {
+    readerChrome.toggleControls();
+  }, [readerChrome]);
 
-  const handleStagePointerUp = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (practiceMode) return;
-      const target = event.target as HTMLElement;
-      if (
-        target.closest(
-          "button, a, input, textarea, [data-verse-actions], [role='dialog']",
-        )
-      ) {
-        return;
-      }
-      readerChrome.toggleControls();
-    },
-    [practiceMode, readerChrome],
-  );
+  useReaderGestures({
+    containerRef: mushafStageRef,
+    swipeEnabled:
+      !practiceMode && route.layoutMode === "page" && !loading && !error,
+    tapEnabled: !practiceMode,
+    onTap: handleStageTap,
+    onSwipeNext: handleSwipeNext,
+    onSwipePrevious: handleSwipePrevious,
+  });
 
   const togglePractice = useCallback(async () => {
     if (!RECITATION_PRACTICE_ENABLED || !currentPageLayout) return;
@@ -435,11 +426,9 @@ export function QuranReaderPage() {
         preferences.mushafWarmth && "mushaf-reader-layout--sepia",
       )}
     >
-      <div
-        ref={mushafStageRef}
-        className="mushaf-stage"
-        onPointerUp={handleStagePointerUp}
-      >
+      {/* Pointer handling lives in useReaderGestures, which decides in one
+          place whether a press was a tap or a page turn. */}
+      <div ref={mushafStageRef} className="mushaf-stage">
         <div
           className={cn(
             "mushaf-stage-inner",
