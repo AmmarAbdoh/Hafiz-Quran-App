@@ -18,7 +18,7 @@ export function ServiceWorkerUpdatePrompt() {
   return (
     <div
       role="status"
-      className="fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-[100] flex justify-center px-4"
+      className="fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-toast flex justify-center px-4"
     >
       <div className="flex max-w-lg flex-wrap items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm shadow-lg">
         <p className="font-medium text-foreground">

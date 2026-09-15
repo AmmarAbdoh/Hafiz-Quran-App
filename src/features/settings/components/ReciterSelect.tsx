@@ -310,7 +310,7 @@ export function ReciterSelect({
           id={listboxId}
           role="listbox"
           aria-label={tA11y("reciterList")}
-          className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl"
+          className="absolute z-overlay mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl"
         >
           <div className="app-main-scroll max-h-[min(22rem,55vh)] overflow-y-auto p-1.5">
             {previewError ? (
