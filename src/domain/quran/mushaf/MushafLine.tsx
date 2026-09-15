@@ -1,7 +1,11 @@
-import type { MouseEvent, PointerEvent } from "react";
+import type { KeyboardEvent } from "react";
 import type { MushafWord } from "../model";
 import { MushafLineHighlight } from "./MushafLineHighlight";
 import { MushafWordGlyph } from "./MushafWordGlyph";
+import type {
+  MushafWordActivateHandler,
+  MushafWordPointerHandler,
+} from "./wordActivation";
 import { cn } from "@/shared/lib/utils";
 
 interface MushafLineProps {
@@ -25,14 +29,8 @@ interface MushafLineProps {
   incorrectWordLocation?: string | null;
   incorrectWordLabel?: string;
   bookmarkedVerseKeys?: ReadonlySet<string>;
-  onWordActivate?: (
-    word: MushafWord,
-    event: MouseEvent<HTMLButtonElement>,
-  ) => void;
-  onWordPointerDown?: (
-    word: MushafWord,
-    event: PointerEvent<HTMLButtonElement>,
-  ) => void;
+  onWordActivate?: MushafWordActivateHandler;
+  onWordPointerDown?: MushafWordPointerHandler;
   onWordPointerUp?: () => void;
   onWordPointerCancel?: () => void;
 }
@@ -150,12 +148,44 @@ export function MushafLine({
     const verseKey = run[0]?.verse_key ?? "";
     const verseText = verseTextByKey.get(verseKey);
     const runKey = run.map((word) => word.location).join("-");
+    /*
+     * Any word of the run can stand in for it: the reader treats a keyboard
+     * activation as ayah-level whichever one arrives, because an ayah running
+     * over several lines carries its end marker only on the last of them.
+     */
+    const representativeWord = run[0];
+
+    /*
+     * On a full page the run itself is `display: contents` - it has to be, so
+     * the word groups become flex items of the line and justify across the
+     * whole measure - which leaves it with no box and makes it impossible to
+     * focus. The ayah's first word group is a real box in the same place, so
+     * that is what carries the keyboard affordance there.
+     */
+    const keyboardTarget =
+      verseInteractive && verseText && representativeWord
+        ? {
+            role: "button" as const,
+            "aria-label": verseText,
+            "aria-haspopup": "dialog" as const,
+            tabIndex: 0,
+            onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              event.preventDefault();
+              onWordActivate?.(representativeWord, event);
+            },
+          }
+        : null;
 
     const content = spreadLayout
-      ? groupWordsForSpread(run).map((group) => (
+      ? groupWordsForSpread(run).map((group, groupIndex) => (
           <span
             key={group.map((word) => word.location).join("-")}
-            className="mushaf-word-group"
+            className={cn(
+              "mushaf-word-group",
+              groupIndex === 0 && keyboardTarget && "mushaf-word-group--ayah",
+            )}
+            {...(groupIndex === 0 ? keyboardTarget : null)}
           >
             {group.map(renderWord)}
           </span>
@@ -174,16 +204,25 @@ export function MushafLine({
       );
     }
 
+    /*
+     * The ayah is the only thing on the page a keyboard reaches: the glyphs are
+     * aria-hidden and kept out of the tab order, because announcing a page one
+     * glyph at a time would be unusable. Where the run has a box of its own it
+     * carries the affordance; on a full page its first word group does, which
+     * is why the run is left as a plain group there.
+     */
+    const wordGroupIsTheControl = spreadLayout && Boolean(keyboardTarget);
+
     return (
       <span
         key={runKey}
         role="group"
         className="mushaf-ayah-run"
         data-verse-key={verseKey}
-        aria-label={verseText}
-        // Verse-level focus carries plain Arabic text for screen readers.
-        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- intentional verse target
-        tabIndex={verseInteractive ? 0 : undefined}
+        // The control carries the ayah text. Repeating it on the group that
+        // wraps it would read every ayah out twice.
+        aria-label={wordGroupIsTheControl ? undefined : verseText}
+        {...(spreadLayout ? null : keyboardTarget)}
       >
         {content}
       </span>

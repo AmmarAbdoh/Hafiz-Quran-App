@@ -1,5 +1,5 @@
-import { useMemo, type MouseEvent, type PointerEvent } from "react";
-import type { MushafPageLayout, MushafWord } from "../model";
+import { useMemo } from "react";
+import type { MushafPageLayout } from "../model";
 import {
   buildMushafPageItems,
   buildMushafPageItemsForSurah,
@@ -8,6 +8,10 @@ import {
 } from "../model";
 import { MushafLine } from "./MushafLine";
 import { MushafSurahHeader } from "./MushafSurahHeader";
+import type {
+  MushafWordActivateHandler,
+  MushafWordPointerHandler,
+} from "./wordActivation";
 import { cn } from "@/shared/lib/utils";
 import "./mushaf.css";
 
@@ -34,14 +38,8 @@ interface MushafPageProps {
   getSurahAccessibleLabel?: (surahName: string) => string;
   verseTextByKey?: ReadonlyMap<string, string>;
   bookmarkedVerseKeys?: ReadonlySet<string>;
-  onWordActivate?: (
-    word: MushafWord,
-    event: MouseEvent<HTMLButtonElement>,
-  ) => void;
-  onWordPointerDown?: (
-    word: MushafWord,
-    event: PointerEvent<HTMLButtonElement>,
-  ) => void;
+  onWordActivate?: MushafWordActivateHandler;
+  onWordPointerDown?: MushafWordPointerHandler;
   onWordPointerUp?: () => void;
   onWordPointerCancel?: () => void;
   className?: string;

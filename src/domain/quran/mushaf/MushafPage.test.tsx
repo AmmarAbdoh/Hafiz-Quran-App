@@ -46,6 +46,38 @@ const layout: MushafPageLayout = {
 
 const verseTextByKey = buildVerseTextIndex([mushafVerse]);
 
+/*
+ * Pages 1 and 2 are centre-aligned; every other page is a "spread" that
+ * justifies its words across the full measure, which moves the keyboard
+ * affordance off the ayah run and onto its first word group.
+ */
+const spreadWord: MushafWord = {
+  ...interactiveWord,
+  verse_key: "2:6",
+  sura: 2,
+  aya: 6,
+  location: "2:6:1",
+  page: 3,
+};
+
+const spreadVerseText = "إِنَّ ٱلَّذِينَ كَفَرُوا۟";
+
+const spreadVerseTextByKey = buildVerseTextIndex([
+  {
+    ...mushafVerse,
+    id: 13,
+    sura_no: 2,
+    aya_no: 6,
+    aya_text: spreadVerseText,
+    page: 3,
+  },
+]);
+
+const spreadLayoutPage: MushafPageLayout = {
+  page: 3,
+  lines: [{ line: 2, words: [spreadWord] }],
+};
+
 describe("MushafPage", () => {
   it("renders passive Arabic content without requiring callbacks", () => {
     const { container } = render(
@@ -63,7 +95,7 @@ describe("MushafPage", () => {
     expect(screen.getByLabelText("سورة الفَاتِحَة")).toBeInTheDocument();
   });
 
-  it("exposes plain ayah text on verse groups and keeps glyph buttons out of tab order", () => {
+  it("exposes plain ayah text on the verse and keeps glyph buttons out of tab order", () => {
     const onWordActivate = vi.fn();
     render(
       <MushafPage
@@ -75,21 +107,103 @@ describe("MushafPage", () => {
       />,
     );
 
-    expect(screen.getByRole("group", { name: verseText })).toBeInTheDocument();
+    // The ayah is the page's one keyboard target; per-glyph announcements
+    // would be unusable, so the glyphs stay hidden from assistive tech.
+    const ayah = screen.getByRole("button", { name: verseText });
+    expect(ayah).toHaveAttribute("tabindex", "0");
 
-    const glyphButton = document.querySelector(
+    const glyph = document.querySelector(
       "[data-location='1:1:1']",
-    ) as HTMLButtonElement;
-    expect(glyphButton.tagName).toBe("BUTTON");
-    expect(glyphButton).toHaveAttribute("tabindex", "-1");
-    expect(glyphButton).toHaveAttribute("aria-hidden", "true");
-    expect(glyphButton).toHaveAttribute("aria-pressed", "true");
+    ) as HTMLElement;
+    // Not a button: nesting one inside the ayah's own control is a serious
+    // accessibility fault, and the glyph was never exposed to assistive
+    // technology anyway - it only ever had to catch pointer events.
+    expect(glyph.tagName).toBe("SPAN");
+    expect(glyph).toHaveAttribute("aria-hidden", "true");
+    expect(glyph).toHaveAttribute("data-selected", "true");
 
-    fireEvent.click(glyphButton);
+    fireEvent.click(glyph);
     expect(onWordActivate).toHaveBeenCalledWith(
       interactiveWord,
       expect.objectContaining({ type: "click" }),
     );
+  });
+
+  /**
+   * The verse actions - listen, tafsir, copy, share, bookmark - could only be
+   * reached with a pointer: the ayah was focusable but answered no key, so a
+   * keyboard or screen reader had no way to them at all (INVARIANT #4).
+   */
+  it.each(["Enter", " "])("activates the ayah on %s", (key) => {
+    const onWordActivate = vi.fn();
+    render(
+      <MushafPage
+        pageLayout={layout}
+        fontFamily="Test Mushaf"
+        verseTextByKey={verseTextByKey}
+        onWordActivate={onWordActivate}
+      />,
+    );
+
+    fireEvent.keyDown(screen.getByRole("button", { name: verseText }), { key });
+
+    expect(onWordActivate).toHaveBeenCalledTimes(1);
+    const [word, event] = onWordActivate.mock.calls[0] as [
+      { verse_key: string },
+      { type: string },
+    ];
+    expect(word.verse_key).toBe(interactiveWord.verse_key);
+    // No coordinates: what tells the reader to open the whole ayah rather
+    // than resolve a single glyph under a finger.
+    expect(event).not.toHaveProperty("clientX");
+    expect(event.type).toBe("keydown");
+  });
+
+  it("leaves other keys to the page", () => {
+    const onWordActivate = vi.fn();
+    render(
+      <MushafPage
+        pageLayout={layout}
+        fontFamily="Test Mushaf"
+        verseTextByKey={verseTextByKey}
+        onWordActivate={onWordActivate}
+      />,
+    );
+
+    fireEvent.keyDown(screen.getByRole("button", { name: verseText }), {
+      key: "ArrowLeft",
+    });
+
+    expect(onWordActivate).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The run is `display: contents` on a spread page - it has to be, for the
+   * word groups to justify across the measure - so it has no box and cannot be
+   * focused. The affordance moves to the first word group, and the run must
+   * stop repeating the ayah text or every ayah is announced twice.
+   */
+  it("moves the keyboard target onto the first word group on a spread page", () => {
+    const onWordActivate = vi.fn();
+    render(
+      <MushafPage
+        pageLayout={spreadLayoutPage}
+        fontFamily="Test Mushaf"
+        verseTextByKey={spreadVerseTextByKey}
+        onWordActivate={onWordActivate}
+      />,
+    );
+
+    const target = screen.getByRole("button", { name: spreadVerseText });
+    expect(target).toHaveClass("mushaf-word-group--ayah");
+    expect(target).toHaveAttribute("tabindex", "0");
+
+    expect(
+      screen.queryByRole("group", { name: spreadVerseText }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.keyDown(target, { key: "Enter" });
+    expect(onWordActivate).toHaveBeenCalledTimes(1);
   });
 
   it("renders glyph data as text instead of HTML", () => {

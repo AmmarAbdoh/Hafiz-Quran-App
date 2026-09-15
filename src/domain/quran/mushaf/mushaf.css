@@ -10,9 +10,20 @@
     -webkit-touch-callout: none;
   }
 
-  .mushaf-ayah-run[role="group"] {
+  /* Matches the run whether it is an inert group or, once the page is
+     interactive, the button that opens the verse actions. */
+  .mushaf-ayah-run[role] {
     -webkit-user-select: text;
     user-select: text;
+  }
+
+  /* Keyboard focus lands on an ayah, whether the run itself carries it or,
+     on a full page, the first word group standing in for it. */
+  .mushaf-ayah-run[role="button"]:focus-visible,
+  .mushaf-word-group--ayah:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--ring) 72%, transparent);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
   }
 
   .mushaf-surah-header-block {

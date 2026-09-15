@@ -184,7 +184,7 @@ test("loads only the requested reader chunks and preserves legacy links", async 
   await page.goto("/quran/surah/1/ayah/2");
   await expect(page).toHaveURL(/\/quran\/surah\/1\/ayah\/2$/);
   await expect(
-    page.locator('button.mushaf-word[data-verse-key="1:2"]').first(),
+    page.locator('.mushaf-word[data-verse-key="1:2"]').first(),
   ).toBeVisible({ timeout: 30_000 });
 });
 
@@ -205,7 +205,7 @@ test("loads a surah and its selected tafsir on demand", async ({ page }) => {
   ).toBe(true);
   expect(quranRequests.some((url) => url.includes("/tafsir/"))).toBe(false);
 
-  await page.locator("button.mushaf-word").first().click();
+  await page.locator(".mushaf-word").first().click();
   await page.getByRole("button", { name: /Open tafsir|فتح التفسير/i }).click();
   await expect(
     page.getByRole("heading", { name: /Ayah tafsir|تفسير الآية/i }),
@@ -281,10 +281,10 @@ test("replaces active reader playback with a newly selected ayah", async ({
 
   await page.goto("/quran/page/1");
   const firstAyahWord = page
-    .locator('button.mushaf-word[data-location^="1:1:"]')
+    .locator('.mushaf-word[data-location^="1:1:"]')
     .first();
   const secondAyahWord = page
-    .locator('button.mushaf-word[data-location^="1:2:"]')
+    .locator('.mushaf-word[data-location^="1:2:"]')
     .first();
   await expect(firstAyahWord).toBeVisible({ timeout: 30_000 });
 
