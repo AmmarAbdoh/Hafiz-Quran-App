@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useListNavigation } from "@/shared/hooks/useListNavigation";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
@@ -38,7 +39,6 @@ export function AyahSearchDialog({
   const { locale } = useLocale();
   const { surahName } = useSurahNames();
   const [query, setQuery] = useState("");
-  const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const searchIndex = useMemo(
@@ -59,71 +59,34 @@ export function AyahSearchDialog({
 
     if (!open) {
       setQuery("");
-      setActiveIndex(0);
     }
   }, [open]);
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
-
-  useEffect(() => {
-    const activeResult = results[activeIndex];
-    if (!activeResult) return;
-    document
-      .getElementById(
-        `ayah-search-result-${activeResult.surah}-${activeResult.ayah}`,
-      )
-      ?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex, results]);
 
   const selectResult = (surah: number, ayah: number) => {
     onAyahSelect(surah, ayah);
     onOpenChange(false);
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onOpenChange(false);
-      return;
-    }
-
-    if (event.key === "Home" && results.length > 0) {
-      event.preventDefault();
-      setActiveIndex(0);
-      return;
-    }
-
-    if (event.key === "End" && results.length > 0) {
-      event.preventDefault();
-      setActiveIndex(results.length - 1);
-      return;
-    }
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      if (results.length === 0) return;
-      setActiveIndex((current) => (current + 1) % results.length);
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      if (results.length === 0) return;
-      setActiveIndex(
-        (current) => (current - 1 + results.length) % results.length,
-      );
-      return;
-    }
-
-    if (event.key === "Enter" && results[activeIndex]) {
-      event.preventDefault();
-      selectResult(results[activeIndex].surah, results[activeIndex].ayah);
-    }
-  };
+  const { activeIndex, setActiveIndex, onKeyDown } = useListNavigation({
+    count: results.length,
+    onSelect: (index) => {
+      const result = results[index];
+      if (result) selectResult(result.surah, result.ayah);
+    },
+    onDismiss: () => onOpenChange(false),
+    resetKey: query,
+  });
 
   const activeResult = results[activeIndex];
+
+  useEffect(() => {
+    if (!activeResult) return;
+    document
+      .getElementById(
+        `ayah-search-result-${activeResult.surah}-${activeResult.ayah}`,
+      )
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeResult]);
   const trimmedQuery = query.trim();
   const showMinLengthHint =
     trimmedQuery.length > 0 && trimmedQuery.length < 2 && results.length === 0;
@@ -152,7 +115,7 @@ export function AyahSearchDialog({
                 placeholder={t("search.placeholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onKeyDown={onKeyDown}
                 className="ps-9"
                 autoComplete="off"
                 role="combobox"

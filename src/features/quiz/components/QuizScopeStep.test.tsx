@@ -79,6 +79,26 @@ describe("QuizScopeStep", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(/صفحات/);
   });
 
+  /*
+   * Both page fields obey one rule, so there is one message and both point at
+   * it. Rendering a copy under each field announced the same sentence three
+   * times over for one mistake.
+   */
+  it("ties the one error to both fields that caused it", () => {
+    renderStep({ mode: "page" });
+
+    const alerts = screen.getAllByRole("alert");
+    expect(alerts).toHaveLength(1);
+    const errorId = alerts[0]!.id;
+
+    for (const id of ["quiz-page-from", "quiz-page-to"]) {
+      const input = document.querySelector<HTMLInputElement>(`#${id}`);
+      expect(input).not.toBeNull();
+      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(input!.getAttribute("aria-describedby")).toContain(errorId);
+    }
+  });
+
   it("frees the nav again once the scope can be committed", () => {
     const { onValidityChange } = renderStep({ mode: "page" });
     expect(onValidityChange).toHaveBeenLastCalledWith(false);

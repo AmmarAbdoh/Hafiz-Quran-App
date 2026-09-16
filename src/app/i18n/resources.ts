@@ -24,6 +24,7 @@ const ar = {
       stop: "إيقاف",
       retry: "إعادة المحاولة",
       close: "إغلاق",
+      done: "تم",
       search: "بحث",
     },
     select: {
@@ -938,6 +939,7 @@ const en: StringTree<typeof ar> = {
       stop: "Stop",
       retry: "Try again",
       close: "Close",
+      done: "Done",
       search: "Search",
     },
     select: {

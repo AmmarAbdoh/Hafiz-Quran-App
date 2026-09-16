@@ -1,4 +1,5 @@
-import { useId, useMemo, useState, type KeyboardEvent } from "react";
+import { useId, useMemo, useState } from "react";
+import { useListNavigation } from "@/shared/hooks/useListNavigation";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -23,14 +24,11 @@ export function QuizChoiceSearch({
   const listboxId = `${inputId}-results`;
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-
   const filtered = useMemo(
     () => filterQuizSearchChoices(choices, searchTerm, requiredChoiceId),
     [choices, requiredChoiceId, searchTerm],
   );
   const selected = choices.find((choice) => choice.id === selectedId);
-  const activeChoice = filtered[activeIndex];
   const showResults = !selected;
 
   function selectChoice(choice: QuizChoice): void {
@@ -39,24 +37,20 @@ export function QuizChoiceSearch({
     setActiveIndex(0);
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
-    if (!showResults || filtered.length === 0) return;
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setActiveIndex((index) => (index + 1) % filtered.length);
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setActiveIndex(
-        (index) => (index - 1 + filtered.length) % filtered.length,
-      );
-    } else if (event.key === "Enter" && activeChoice) {
-      event.preventDefault();
-      selectChoice(activeChoice);
-    } else if (event.key === "Escape") {
+  const { activeIndex, setActiveIndex, onKeyDown } = useListNavigation({
+    count: showResults ? filtered.length : 0,
+    onSelect: (index) => {
+      const choice = filtered[index];
+      if (choice) selectChoice(choice);
+    },
+    onDismiss: () => {
       setSearchTerm("");
       setSelectedId(null);
-    }
-  }
+    },
+    resetKey: searchTerm,
+  });
+
+  const activeChoice = filtered[activeIndex];
 
   return (
     <div className="relative mx-auto mt-6 max-w-xl">
@@ -76,7 +70,7 @@ export function QuizChoiceSearch({
         value={searchTerm}
         disabled={disabled}
         autoComplete="off"
-        onKeyDown={handleKeyDown}
+        onKeyDown={onKeyDown}
         onChange={(event) => {
           setSearchTerm(event.target.value);
           setSelectedId(null);

@@ -11,6 +11,7 @@ import {
   useReciter,
   useTafseer,
 } from "@/domain/quran";
+import { Field } from "@/shared/components/Field";
 import { SearchableSelect } from "@/shared/components/SearchableSelect";
 import { Stepper } from "@/shared/components/Stepper";
 import { Switch } from "@/shared/components/Switch";
@@ -19,6 +20,7 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/shared/components/ui/Sheet";
@@ -147,36 +149,47 @@ export function ReadingPreferencesSheet({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="reader-pref-reciter">
-              {t("preferences.reciter")}
-            </Label>
-            <SearchableSelect
-              id="reader-pref-reciter"
-              value={reciter.id}
-              options={reciterOptions}
-              onValueChange={setReciterId}
-              placeholder={tSettings("recitation.searchPlaceholder")}
-              searchPlaceholder={tCommon("select.search")}
-              emptyMessage={tSettings("recitation.empty")}
-            />
-          </div>
+          <Field id="reader-pref-reciter" label={t("preferences.reciter")}>
+            {({ id }) => (
+              <SearchableSelect
+                id={id}
+                value={reciter.id}
+                options={reciterOptions}
+                onValueChange={setReciterId}
+                placeholder={tSettings("recitation.searchPlaceholder")}
+                searchPlaceholder={tCommon("select.search")}
+                emptyMessage={tSettings("recitation.empty")}
+              />
+            )}
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="reader-pref-tafseer">
-              {t("preferences.tafseer")}
-            </Label>
-            <SearchableSelect
-              id="reader-pref-tafseer"
-              value={tafseerId}
-              options={tafseerOptions}
-              onValueChange={setTafseerId}
-              placeholder={tSettings("interpretation.label")}
-              searchPlaceholder={tCommon("select.search")}
-              emptyMessage={tCommon("select.empty")}
-            />
-          </div>
+          <Field id="reader-pref-tafseer" label={t("preferences.tafseer")}>
+            {({ id }) => (
+              <SearchableSelect
+                id={id}
+                value={tafseerId}
+                options={tafseerOptions}
+                onValueChange={setTafseerId}
+                placeholder={tSettings("interpretation.label")}
+                searchPlaceholder={tCommon("select.search")}
+                emptyMessage={tCommon("select.empty")}
+              />
+            )}
+          </Field>
         </div>
+
+        {/* The only way out was the small X in the corner, which on a phone is
+            the hardest thing on the sheet to hit. */}
+        <SheetFooter>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full sm:w-auto"
+            onClick={() => onOpenChange(false)}
+          >
+            {tCommon("actions.done")}
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

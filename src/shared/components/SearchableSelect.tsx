@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Input } from "@/shared/components/ui/input";
+import { useListNavigation } from "@/shared/hooks/useListNavigation";
 import { normalizeArabicForMatch } from "@/shared/lib/arabic-normalize";
 import { cn } from "@/shared/lib/utils";
 
@@ -34,7 +35,7 @@ export function SearchableSelect({
   const { t, i18n } = useTranslation("common");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [activeIndex, setActiveIndex] = useState(0);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
@@ -85,7 +86,23 @@ export function SearchableSelect({
     inputRef.current?.focus();
   };
 
+  const {
+    activeIndex,
+    setActiveIndex,
+    onKeyDown: listKeyDown,
+  } = useListNavigation({
+    count: filteredOptions.length,
+    onSelect: (index) => {
+      const option = filteredOptions[index];
+      if (option) handleSelect(option.value);
+    },
+    onDismiss: closeDropdown,
+    resetKey: query,
+  });
+
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    // Closed, the field is a button: the same two keys that open a native
+    // select open this one, and nothing else applies until it is open.
     if (!open) {
       if (event.key === "ArrowDown" || event.key === "Enter") {
         event.preventDefault();
@@ -94,46 +111,7 @@ export function SearchableSelect({
       return;
     }
 
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeDropdown();
-      return;
-    }
-
-    if (filteredOptions.length === 0) return;
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setActiveIndex((current) => (current + 1) % filteredOptions.length);
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setActiveIndex(
-        (current) =>
-          (current - 1 + filteredOptions.length) % filteredOptions.length,
-      );
-      return;
-    }
-
-    if (event.key === "Home") {
-      event.preventDefault();
-      setActiveIndex(0);
-      return;
-    }
-
-    if (event.key === "End") {
-      event.preventDefault();
-      setActiveIndex(filteredOptions.length - 1);
-      return;
-    }
-
-    if (event.key === "Enter") {
-      event.preventDefault();
-      const activeOption = filteredOptions[activeIndex];
-      if (activeOption) handleSelect(activeOption.value);
-    }
+    listKeyDown(event);
   };
 
   return (

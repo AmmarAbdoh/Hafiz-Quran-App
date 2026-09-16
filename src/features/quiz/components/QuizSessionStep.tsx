@@ -115,7 +115,7 @@ export function QuizSessionStep({
                   ? t("session.fixedTitle")
                   : t("session.endlessTitle")}
               </span>
-              <span className="mt-1 block text-xs text-muted-foreground">
+              <span className="mt-1 block text-label text-muted-foreground">
                 {mode === "fixed"
                   ? t("session.fixedDescription")
                   : t("session.endlessDescription")}
@@ -161,7 +161,7 @@ export function QuizSessionStep({
           </div>
           {repeats && (
             <p
-              className="flex items-start gap-2 rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground"
+              className="flex items-start gap-2 rounded-xl bg-muted/40 p-3 text-label text-muted-foreground"
               role="status"
             >
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />

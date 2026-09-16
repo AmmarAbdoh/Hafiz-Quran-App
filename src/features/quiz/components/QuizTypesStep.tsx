@@ -111,14 +111,14 @@ export function QuizTypesStep({
                       {formatQuestionType(type)}
                     </span>
                   </span>
-                  <span className="mt-1 block text-xs text-muted-foreground">
+                  <span className="mt-1 block text-label text-muted-foreground">
                     {t(`types.descriptions.${type}`)}
                   </span>
-                  <span className="mt-1 block text-xs italic text-muted-foreground">
+                  <span className="mt-1 block text-label italic text-muted-foreground">
                     {t(`types.examples.${type}`)}
                   </span>
                   {!availability.available && (
-                    <span className="mt-1.5 block text-xs font-medium text-destructive">
+                    <span className="mt-1.5 block text-label font-medium text-destructive">
                       {t(`types.unavailable.${availability.reason}`)}
                     </span>
                   )}

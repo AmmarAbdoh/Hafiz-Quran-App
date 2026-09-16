@@ -277,25 +277,25 @@ export function ListenOptionsDialog({
               <TabsList className="mb-4 grid h-auto w-full grid-cols-4 gap-1 p-1">
                 <TabsTrigger
                   value="surah"
-                  className="min-h-11 text-xs sm:text-sm"
+                  className="min-h-11 text-label sm:text-sm"
                 >
                   {t("listenDialog.tabs.surah")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="juz"
-                  className="min-h-11 text-xs sm:text-sm"
+                  className="min-h-11 text-label sm:text-sm"
                 >
                   {t("listenDialog.tabs.juz")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="page"
-                  className="min-h-11 text-xs sm:text-sm"
+                  className="min-h-11 text-label sm:text-sm"
                 >
                   {t("listenDialog.tabs.page")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="ayah"
-                  className="min-h-11 text-xs sm:text-sm"
+                  className="min-h-11 text-label sm:text-sm"
                 >
                   {t("listenDialog.tabs.ayah")}
                 </TabsTrigger>
@@ -340,7 +340,7 @@ export function ListenOptionsDialog({
                       >
                         <bdi>{formatNumber(number, locale)}</bdi>. {name}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-label text-muted-foreground">
                         {t("metadata.ayahCount", {
                           count: getSurahAyahCount(mushafData, number),
                           formattedCount: formatNumber(
@@ -382,7 +382,7 @@ export function ListenOptionsDialog({
                         key={juz}
                         type="button"
                         className={cn(
-                          "min-h-11 rounded-lg border px-2 py-2 text-start text-xs transition-colors hover:bg-muted",
+                          "min-h-11 rounded-lg border px-2 py-2 text-start text-label transition-colors hover:bg-muted",
                           plan.juz === juz &&
                             "border-primary bg-primary/10 text-primary",
                         )}
@@ -473,7 +473,7 @@ export function ListenOptionsDialog({
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-label text-muted-foreground">
                   {t("listenDialog.totalPages", {
                     count: totalPages,
                     formattedCount: formatNumber(totalPages, locale),
@@ -639,7 +639,7 @@ export function ListenOptionsDialog({
                   <Infinity className="h-4 w-4" aria-hidden />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-label text-muted-foreground">
                 {tab === "ayah" && !ayahRangeMode
                   ? t("listenDialog.repeatAyah")
                   : t("listenDialog.repeatRange")}

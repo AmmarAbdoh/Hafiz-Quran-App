@@ -33,7 +33,7 @@ export function QuizHistoryList({ history }: QuizHistoryListProps) {
               <p className="font-medium">
                 {formatScopeSnapshot(session.scope, session.legacyScopeSummary)}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-label text-muted-foreground">
                 {formatDate(session.completedAt)} ·{" "}
                 {session.sessionMode === "endless"
                   ? t("history.endless")

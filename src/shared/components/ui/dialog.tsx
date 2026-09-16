@@ -21,18 +21,28 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
-const DialogContent = React.forwardRef<
+/**
+ * The parts every modal surface shares: the portal, the scrim, the panel and
+ * its close button. Only where the panel sits differs - centred for a dialog,
+ * against the bottom edge for a sheet - so that is the one thing a caller
+ * supplies. Sheet used to restate all of the rest, including a byte-identical
+ * close button.
+ */
+const DialogSurface = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     closeLabel: string;
+    positionClassName: string;
   }
->(({ className, children, closeLabel, ...props }, ref) => (
+>(({ className, children, closeLabel, positionClassName, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-overlay grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-xl",
+        "fixed z-overlay grid w-full gap-4 border bg-background p-6 shadow-lg duration-200 motion-reduce:transition-none motion-reduce:animate-none",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        positionClassName,
         className,
       )}
       {...props}
@@ -46,6 +56,19 @@ const DialogContent = React.forwardRef<
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
+));
+DialogSurface.displayName = "DialogSurface";
+
+const DIALOG_POSITION =
+  "left-[50%] top-[50%] max-w-lg translate-x-[-50%] translate-y-[-50%] data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-xl";
+
+const DialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    closeLabel: string;
+  }
+>((props, ref) => (
+  <DialogSurface ref={ref} positionClassName={DIALOG_POSITION} {...props} />
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
@@ -106,6 +129,7 @@ DialogDescription.displayName = DialogPrimitive.Description.displayName;
 export {
   Dialog,
   DialogContent,
+  DialogSurface,
   DialogHeader,
   DialogFooter,
   DialogTitle,

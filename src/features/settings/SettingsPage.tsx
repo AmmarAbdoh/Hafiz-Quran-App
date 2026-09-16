@@ -181,8 +181,7 @@ export function SettingsPage() {
             <Button
               type="button"
               variant="ghost"
-              size="sm"
-              className="px-2 text-sm text-primary"
+              className="px-2 text-label text-primary"
               onClick={() => setWordByWordGuideOpen(true)}
             >
               <Info aria-hidden="true" />

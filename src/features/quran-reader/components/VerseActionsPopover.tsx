@@ -117,11 +117,13 @@ export function VerseActionsPopover({
           </Button>
         </div>
 
+        {/* Full-size, not compact: these are how an ayah is acted on and a
+            finger aims at them directly. */}
         <div className="flex flex-wrap items-center justify-center gap-1">
           {mode === "word" && onListenWord && (
             <Button
               variant="secondary"
-              size="sm"
+              size="default"
               className="gap-1.5"
               onClick={onListenWord}
             >
@@ -137,7 +139,7 @@ export function VerseActionsPopover({
 
           <Button
             variant="secondary"
-            size="sm"
+            size="default"
             className="gap-1.5"
             onClick={onListenAyah}
           >
@@ -152,7 +154,7 @@ export function VerseActionsPopover({
 
           <Button
             variant="secondary"
-            size="sm"
+            size="default"
             className="gap-1.5"
             onClick={onTafseer}
           >
@@ -163,7 +165,7 @@ export function VerseActionsPopover({
           {onCopy ? (
             <Button
               variant="secondary"
-              size="sm"
+              size="default"
               className="gap-1.5"
               onClick={onCopy}
             >
@@ -175,7 +177,7 @@ export function VerseActionsPopover({
           {onShare ? (
             <Button
               variant="secondary"
-              size="sm"
+              size="default"
               className="gap-1.5"
               onClick={onShare}
             >
@@ -187,7 +189,7 @@ export function VerseActionsPopover({
           {onBookmarkToggle ? (
             <Button
               variant={isBookmarked ? "default" : "secondary"}
-              size="sm"
+              size="default"
               className="gap-1.5"
               onClick={onBookmarkToggle}
               aria-pressed={isBookmarked}

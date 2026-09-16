@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Field } from "@/shared/components/Field";
 import { SearchableSelect } from "@/shared/components/SearchableSelect";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -223,6 +224,13 @@ export function QuizScopeStep({
   }
 
   const error = validateScope({ ...draft, mode }, mushafData);
+  /*
+   * Both page fields obey one rule, so there is one message. They point at it
+   * rather than each rendering a copy - three alerts for one mistake is three
+   * announcements of the same sentence.
+   */
+  const SCOPE_ERROR_ID = "quiz-scope-error";
+  const pageRangeError = mode === "page" && error ? SCOPE_ERROR_ID : undefined;
 
   /*
    * Continue is disabled while the scope is invalid, but the step nav above it
@@ -350,41 +358,54 @@ export function QuizScopeStep({
         </TabsContent>
 
         <TabsContent value="page" className="mt-4 space-y-4">
+          {/* The error is attached to the fields that caused it, so it is
+              announced when the field is reached rather than sitting in a red
+              sentence elsewhere on the screen. */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="quiz-page-from">{t("scope.fromPage")}</Label>
-              <Input
-                id="quiz-page-from"
-                className="min-h-11"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={TOTAL_MUSHAF_PAGES}
-                value={draft.pageFrom ?? ""}
-                onChange={(event) =>
-                  update({
-                    pageFrom: Number.parseInt(event.target.value, 10),
-                    pageTo:
-                      draft.pageTo ?? Number.parseInt(event.target.value, 10),
-                  })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="quiz-page-to">{t("scope.toPage")}</Label>
-              <Input
-                id="quiz-page-to"
-                className="min-h-11"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={TOTAL_MUSHAF_PAGES}
-                value={draft.pageTo ?? ""}
-                onChange={(event) =>
-                  update({ pageTo: Number.parseInt(event.target.value, 10) })
-                }
-              />
-            </div>
+            <Field
+              id="quiz-page-from"
+              label={t("scope.fromPage")}
+              errorId={pageRangeError}
+            >
+              {(field) => (
+                <Input
+                  {...field}
+                  className="min-h-11"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={TOTAL_MUSHAF_PAGES}
+                  value={draft.pageFrom ?? ""}
+                  onChange={(event) =>
+                    update({
+                      pageFrom: Number.parseInt(event.target.value, 10),
+                      pageTo:
+                        draft.pageTo ?? Number.parseInt(event.target.value, 10),
+                    })
+                  }
+                />
+              )}
+            </Field>
+            <Field
+              id="quiz-page-to"
+              label={t("scope.toPage")}
+              errorId={pageRangeError}
+            >
+              {(field) => (
+                <Input
+                  {...field}
+                  className="min-h-11"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={TOTAL_MUSHAF_PAGES}
+                  value={draft.pageTo ?? ""}
+                  onChange={(event) =>
+                    update({ pageTo: Number.parseInt(event.target.value, 10) })
+                  }
+                />
+              )}
+            </Field>
           </div>
         </TabsContent>
 
@@ -440,6 +461,7 @@ export function QuizScopeStep({
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <p
+          id={SCOPE_ERROR_ID}
           className={
             error
               ? "text-sm font-medium text-destructive"
