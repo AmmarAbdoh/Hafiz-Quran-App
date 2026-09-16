@@ -172,10 +172,21 @@
    * against the colour it now sat on.
    *
    * It is a complete variant now: every surface, every border and both
-   * foregrounds, warmed together. surface-hover and surface-selected are
-   * derived from --card upstream, so they follow on their own.
+   * foregrounds, warmed together - including the tokens derived from --card.
+   * Those do NOT follow on their own: a custom property that references
+   * another is substituted where it is declared, so --mushaf-header,
+   * --surface-hover, --accent and --input were all frozen against the cool
+   * --card they saw on :root and had to be re-derived here.
+   *
+   * The tokens are declared on the content column rather than on the reader
+   * layout that carries the flag. Custom properties only cascade downwards,
+   * and the layout is the wrong side of everything that had to warm:
+   * .editorial-main--reader paints the paper from --mushaf-page and is its
+   * parent, while the reader header and the surah rail are its siblings. So
+   * the warm hex reached the rules inside the mushaf and nothing else - warm
+   * borders drawn on cool paper, under a cool header, beside a cool rail.
    */
-  .mushaf-reader-layout--sepia {
+  .editorial-content-column:has(.mushaf-reader-layout--sepia) {
     --mushaf-page: #f4ecd8;
     --background: #efe6d2;
     --card: #faf3e3;
@@ -188,9 +199,17 @@
     --border-subtle: #e4dac2;
     --border: #d5c7a6;
     --border-strong: #b9a77e;
+    --surface-hover: color-mix(in srgb, var(--primary) 6%, var(--card));
+    --surface-selected: color-mix(in srgb, var(--primary) 12%, var(--card));
+    --accent: color-mix(in srgb, var(--primary) 8%, var(--card));
+    --accent-foreground: var(--foreground);
+    --input: var(--border-strong);
+    --mushaf-header: color-mix(in srgb, var(--card) 92%, transparent);
+    --mushaf-header-panel: var(--muted);
+    --mushaf-footer: color-mix(in srgb, var(--card) 92%, transparent);
   }
 
-  .dark .mushaf-reader-layout--sepia {
+  .dark .editorial-content-column:has(.mushaf-reader-layout--sepia) {
     --mushaf-page: #1c1914;
     --background: #141210;
     --card: #1f1b15;
@@ -203,6 +222,14 @@
     --border-subtle: #262118;
     --border: #363023;
     --border-strong: #4a4132;
+    --surface-hover: color-mix(in srgb, var(--primary) 10%, var(--card));
+    --surface-selected: color-mix(in srgb, var(--primary) 18%, var(--card));
+    --accent: color-mix(in srgb, var(--primary) 14%, var(--card));
+    --accent-foreground: var(--foreground);
+    --input: var(--border-strong);
+    --mushaf-header: color-mix(in srgb, var(--card) 94%, transparent);
+    --mushaf-header-panel: var(--muted);
+    --mushaf-footer: color-mix(in srgb, var(--card) 94%, transparent);
   }
 
   .mushaf-bottom-chrome--controls {

@@ -650,6 +650,7 @@ const ar = {
       searchToggle: "لا أرى الإجابة",
       searchHint: "ابحث في آيات السورة كلها",
     },
+    mushafPreviewLabel: "صفحة المصحف",
     prompts: {
       fillBlank: "اختر النص المناسب للموضع المخفي.",
       completeAyah: "اختر التكملة الصحيحة للآية.",
@@ -1566,6 +1567,7 @@ const en: StringTree<typeof ar> = {
       searchToggle: "I don't see it",
       searchHint: "Search every ayah in the surah",
     },
+    mushafPreviewLabel: "Mushaf page",
     prompts: {
       fillBlank: "Choose the text that belongs in the hidden position.",
       completeAyah: "Choose the correct completion for this ayah.",

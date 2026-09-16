@@ -3,13 +3,23 @@
 @layer theme, base, components, utilities;
 
 @layer utilities {
+  /*
+   * Fill-in-the-blank is the only question that shows a whole mushaf page, and
+   * at its natural height it pushed the verdict and "next question" off the
+   * bottom of the screen - on a 829px viewport the button landed at 816-864px,
+   * so answering meant scrolling to carry on. The page scrolls within its own
+   * box instead, which keeps the question, the options and the button on
+   * screen together the way every other question type already does.
+   */
   .quiz-mushaf-preview {
     direction: rtl;
     width: 100%;
     max-width: min(100%, 42rem);
     margin-inline: auto;
+    max-block-size: max(14rem, calc(100dvh - 24rem));
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .quiz-mushaf-preview .mushaf-page--full {

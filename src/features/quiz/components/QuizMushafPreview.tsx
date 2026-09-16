@@ -88,6 +88,15 @@ export function QuizMushafPreview({
       className={cn("quiz-mushaf-preview mx-auto w-full p-2", className)}
       dir="rtl"
       lang="ar"
+      /*
+       * The preview scrolls within itself when the page is taller than the
+       * room left for it, and a region that scrolls has to be reachable by
+       * keyboard or it is content only a mouse can see. Naming it keeps the
+       * tab stop meaningful rather than an unexplained halt.
+       */
+      role="group"
+      aria-label={t("mushafPreviewLabel")}
+      tabIndex={0}
     >
       {loadError ? (
         <div className="space-y-3 px-2 py-6 text-center">

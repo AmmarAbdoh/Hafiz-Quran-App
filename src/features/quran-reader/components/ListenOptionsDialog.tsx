@@ -45,7 +45,8 @@ interface ListenOptionsDialogProps {
   preset?: ListenPreset | null;
   /** Where the reader is, so listening can start there without being asked. */
   currentPage: number;
-  currentSurah: number;
+  /** The surah's number, 1-114 - not its index in the surah list. */
+  currentSurahNumber: number;
   layoutMode: "page" | "surah";
 }
 
@@ -65,7 +66,7 @@ export function ListenOptionsDialog({
   totalPages,
   preset,
   currentPage,
-  currentSurah,
+  currentSurahNumber,
   layoutMode,
 }: ListenOptionsDialogProps) {
   const { t } = useTranslation("reader");
@@ -167,7 +168,7 @@ export function ListenOptionsDialog({
       : layoutMode === "surah"
         ? {
             scope: "surah",
-            surah: currentSurah,
+            surah: currentSurahNumber,
             ayah: 1,
             repeatMode: "none",
             repeatCount: 1,

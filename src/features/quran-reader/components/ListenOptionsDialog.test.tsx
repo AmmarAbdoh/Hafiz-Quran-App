@@ -44,7 +44,7 @@ function renderDialog(overrides: Record<string, unknown> = {}) {
         mushafData={mushafData}
         totalPages={604}
         currentPage={7}
-        currentSurah={2}
+        currentSurahNumber={2}
         layoutMode="page"
         {...overrides}
       />

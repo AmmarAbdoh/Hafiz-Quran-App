@@ -506,7 +506,7 @@ export function QuranReaderPage() {
         totalPages={totalPages}
         preset={overlays.listenPreset}
         currentPage={route.currentPage}
-        currentSurah={route.currentSurahIndex}
+        currentSurahNumber={route.currentSurahNumber}
         layoutMode={route.layoutMode}
       />
       <SurahDrawer
