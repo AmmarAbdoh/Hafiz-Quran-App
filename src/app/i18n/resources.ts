@@ -553,7 +553,7 @@ const ar = {
       page: "الصفحة {{count}}",
       pages: "الصفحات {{from}}–{{to}}",
       ayahRange: "{{surah}}، الآيات {{from}}–{{to}}",
-      legacy: "نطاق من جلسة سابقة",
+      legacy: "من جلسة سابقة",
     },
     types: {
       title: "اختر أنواع الأسئلة",
@@ -580,9 +580,9 @@ const ar = {
           "تختبر معرفتك بمكان الآية في المصحف: السورة والجزء والحزب والصفحة.",
       },
       unavailable: {
-        tooFewAyahs: "يحتاج نطاقاً أوسع لبناء خيارات مقنعة.",
-        singleValue: "نطاقك كله في قيمة واحدة، فالإجابة معروفة مسبقاً.",
-        noHizbData: "بيانات الحزب غير متوفرة لهذا النطاق.",
+        tooFewAyahs: "يحتاج آيات أكثر لبناء إجابات خاطئة مقنعة.",
+        singleValue: "كل الآيات هنا لها الإجابة نفسها، فالسؤال يكشف نفسه.",
+        noHizbData: "أرقام الحزب لهذه الآيات غير متوفرة.",
       },
       examples: {
         fill_blank: "مثال: تُخفى آية من الصفحة وتبحث عن نصها.",
@@ -729,11 +729,11 @@ const ar = {
       scoreLabel: "{{correct}} من {{total}}",
     },
     errors: {
-      scopeEmpty: "اختر نطاقاً واحداً على الأقل.",
+      scopeEmpty: "اختر ما تريد مراجعته أولاً.",
       noTypes: "اختر نوع سؤال واحداً على الأقل.",
-      questionUnavailable: "تعذر إنشاء سؤال لهذا النطاق.",
+      questionUnavailable: "تعذر تكوين سؤال من هذه الآيات.",
       poolTooSmall:
-        "النطاق المختار صغير جداً لأسئلة الاختيار. وسّع النطاق أو استخدم ملء الفراغ فقط.",
+        "هذه الآيات قليلة جداً لتكوين اختيارات معقولة. اختر سورة أطول أو أضف المزيد.",
       mushafPreviewLoadFailed: "تعذر تحميل معاينة المصحف.",
       startFailed: "تعذر بدء الاختبار. حاول مجدداً.",
       storage: "تعذر حفظ سجل الاختبار على هذا الجهاز.",
@@ -1458,7 +1458,7 @@ const en: StringTree<typeof ar> = {
       page: "Page {{count}}",
       pages: "Pages {{from}}–{{to}}",
       ayahRange: "{{surah}}, ayahs {{from}}–{{to}}",
-      legacy: "Scope from an earlier session",
+      legacy: "From an earlier session",
     },
     types: {
       title: "Choose question types",
@@ -1486,10 +1486,10 @@ const en: StringTree<typeof ar> = {
           "These test where an ayah sits in the Mushaf: surah, juz, hizb, and page.",
       },
       unavailable: {
-        tooFewAyahs: "Needs a wider scope to build convincing options.",
+        tooFewAyahs: "Needs more ayahs to build believable wrong answers.",
         singleValue:
-          "Your whole scope shares one value, so the answer is given away.",
-        noHizbData: "Hizb data is not available for this scope.",
+          "Every ayah here has the same answer, so the question would give itself away.",
+        noHizbData: "The hizb numbers for these ayahs are not available.",
       },
       examples: {
         fill_blank:
@@ -1642,11 +1642,11 @@ const en: StringTree<typeof ar> = {
       scoreLabel: "{{correct}} out of {{total}}",
     },
     errors: {
-      scopeEmpty: "Choose at least one review scope.",
+      scopeEmpty: "Choose what to review first.",
       noTypes: "Choose at least one question type.",
-      questionUnavailable: "A question could not be created for this scope.",
+      questionUnavailable: "No question could be built from these ayahs.",
       poolTooSmall:
-        "The selected scope is too small for choice-based questions. Widen the scope or use fill-in-the-blank only.",
+        "There are too few ayahs here to build believable options. Pick a longer surah, or add more to review.",
       mushafPreviewLoadFailed: "The Mushaf preview could not be loaded.",
       startFailed: "The quiz could not start. Try again.",
       storage: "Quiz history could not be saved on this device.",
