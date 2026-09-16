@@ -18,18 +18,6 @@ export interface UthmaniVerse {
   text_uthmani: string;
 }
 
-export interface SimpleVerse {
-  id: number;
-  verse_key: string;
-  text_uthmani_simple: string;
-}
-
-export interface ImlaeiVerse {
-  id: number;
-  verse_key: string;
-  text_imlaei: string;
-}
-
 export interface VerseInfoRecord {
   id: number;
   verse_number: number;

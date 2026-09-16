@@ -11,11 +11,9 @@ export {
   MUSHAF_LINES_PER_PAGE,
 } from "./mushafLayout";
 export type {
-  ImlaeiVerse,
   MushafPageLayout,
   MushafVerse,
   MushafWord,
-  SimpleVerse,
   UthmaniVerse,
   VerseInfoItem,
   VerseInfoKey,

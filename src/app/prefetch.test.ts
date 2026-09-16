@@ -8,11 +8,6 @@ const core: QuranCoreData = {
   schemaVersion: 1,
   mushafVerses: [],
   verseInfo: [],
-  uthmaniVerses: [],
-  simpleVerses: [],
-  chapterSimpleVerses: [],
-  imlaeiVerses: [],
-  imlaeiCleanedVerses: [],
 };
 
 function reportConnection(value: unknown) {

@@ -25,11 +25,6 @@ const core = {
   schemaVersion: 1,
   mushafVerses: [verse],
   verseInfo: [],
-  uthmaniVerses: [],
-  simpleVerses: [],
-  chapterSimpleVerses: [],
-  imlaeiVerses: [],
-  imlaeiCleanedVerses: [],
 } satisfies QuranCoreData;
 
 function DataProbe() {

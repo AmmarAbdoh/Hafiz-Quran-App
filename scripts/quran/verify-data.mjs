@@ -80,17 +80,31 @@ function verifyInvariants(invariants, label) {
   }
 }
 
-function quranTextHash(core) {
+/**
+ * The fidelity hash over every Quran text value.
+ *
+ * The mushaf text comes from what was shipped, because proving that survived
+ * migration intact is the point. The four other orthographies come from the
+ * source: they are cross-check material for this hash and nothing reads them
+ * at runtime, so they are no longer shipped - 56% of the runtime core was
+ * those arrays, downloaded, decompressed and parsed on every cold load for
+ * nothing.
+ *
+ * Composing the list in the same order keeps the hash identical to the one
+ * recorded in the source manifest, so the existing fidelity record still
+ * applies.
+ */
+function quranTextHash(runtimeCore, sourceCore) {
   const texts = [];
-  for (const verse of core.mushafVerses) {
+  for (const verse of runtimeCore.mushafVerses) {
     texts.push(verse.aya_text, verse.aya_text_emlaey);
   }
   for (const [records, field] of [
-    [core.uthmaniVerses, "text_uthmani"],
-    [core.simpleVerses, "text_uthmani_simple"],
-    [core.chapterSimpleVerses, "text_uthmani_simple"],
-    [core.imlaeiVerses, "text_imlaei"],
-    [core.imlaeiCleanedVerses, "text_imlaei"],
+    [sourceCore.uthmaniVerses, "text_uthmani"],
+    [sourceCore.simpleVerses, "text_uthmani_simple"],
+    [sourceCore.chapterSimpleVerses, "text_uthmani_simple"],
+    [sourceCore.imlaeiVerses, "text_imlaei"],
+    [sourceCore.imlaeiCleanedVerses, "text_imlaei"],
   ]) {
     texts.push(...records.map((record) => record[field]));
   }
@@ -158,9 +172,26 @@ async function main() {
     readGzipJson(join(legacyDataRoot, manifest.core.path)),
     readGzipJson(join(sourceDataRoot, sourceManifest.packs.layout.path)),
   ]);
+  /*
+   * The runtime core is the two arrays the app reads, taken from the source
+   * unchanged. It is no longer a copy of the whole source core - the five
+   * cross-check orthographies are not shipped - so the two are compared field
+   * by field on what is shipped rather than whole.
+   */
   assert(
-    JSON.stringify(runtimeCore) === JSON.stringify(sourceCore),
-    "Runtime Quran core differs from the consolidated source",
+    JSON.stringify(runtimeCore.mushafVerses) ===
+      JSON.stringify(sourceCore.mushafVerses),
+    "Runtime mushaf verses differ from the consolidated source",
+  );
+  assert(
+    JSON.stringify(runtimeCore.verseInfo) ===
+      JSON.stringify(sourceCore.verseInfo),
+    "Runtime verse info differs from the consolidated source",
+  );
+  assert(
+    Object.keys(runtimeCore).sort().join(",") ===
+      "mushafVerses,schemaVersion,verseInfo",
+    "Runtime Quran core ships something the app does not read",
   );
   assert(
     runtimeCore.mushafVerses.length === EXPECTED.verses,
@@ -181,7 +212,8 @@ async function main() {
     "Wrong verse-info count",
   );
   assert(
-    quranTextHash(runtimeCore) === sourceManifest.fidelity.quranTextSha256,
+    quranTextHash(runtimeCore, sourceCore) ===
+      sourceManifest.fidelity.quranTextSha256,
     "A Quran text value changed during migration",
   );
 

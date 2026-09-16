@@ -56,11 +56,6 @@ const core: QuranCoreData = {
     },
   ],
   verseInfo: [],
-  uthmaniVerses: [],
-  simpleVerses: [],
-  chapterSimpleVerses: [],
-  imlaeiVerses: [],
-  imlaeiCleanedVerses: [],
 };
 
 const pageOne: MushafPageLayout = { page: 1, lines: [] };

@@ -1,11 +1,4 @@
-import type {
-  ImlaeiVerse,
-  MushafPageLayout,
-  MushafVerse,
-  SimpleVerse,
-  UthmaniVerse,
-  VerseInfoRecord,
-} from "../model";
+import type { MushafPageLayout, MushafVerse, VerseInfoRecord } from "../model";
 
 export type {
   MushafPageLayout,
@@ -16,15 +9,16 @@ export type {
 
 export type QuranDataLocale = "ar" | "en";
 
+/**
+ * Only what the app reads. The source carries five further orthographies of
+ * the whole Quran; they are cross-check material for the build's fidelity
+ * hash and are no longer shipped, because they were 56% of this payload and
+ * nothing here ever dereferenced them.
+ */
 export interface QuranCoreData {
   schemaVersion: 1;
   mushafVerses: MushafVerse[];
   verseInfo: VerseInfoRecord[];
-  uthmaniVerses: UthmaniVerse[];
-  simpleVerses: SimpleVerse[];
-  chapterSimpleVerses: SimpleVerse[];
-  imlaeiVerses: ImlaeiVerse[];
-  imlaeiCleanedVerses: ImlaeiVerse[];
 }
 
 export interface QuranDataAsset {

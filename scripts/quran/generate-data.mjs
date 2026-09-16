@@ -54,16 +54,24 @@ function verifySourceManifest(manifest) {
   }
 }
 
+/**
+ * Only what the app reads.
+ *
+ * The source carries seven full copies of the Quran in different
+ * orthographies. Two are used: mushafVerses draws the pages and verseInfo
+ * supplies juz and hizb. The other five - uthmani, simple, chapter-simple,
+ * imlaei and imlaei-cleaned - are cross-check material for the fidelity hash
+ * in verify-data.mjs, which now reads them from the source instead.
+ *
+ * They were 4.2 of the 7.5 million characters in the shipped core: 56% of it
+ * downloaded, decompressed and parsed on every cold load, then held in memory
+ * for the life of the tab, with nothing in the app ever dereferencing them.
+ */
 function buildRuntimeCore(sourceCore) {
   return {
     schemaVersion: DATA_SCHEMA_VERSION,
     mushafVerses: sourceCore.mushafVerses,
     verseInfo: sourceCore.verseInfo,
-    uthmaniVerses: sourceCore.uthmaniVerses,
-    simpleVerses: sourceCore.simpleVerses,
-    chapterSimpleVerses: sourceCore.chapterSimpleVerses,
-    imlaeiVerses: sourceCore.imlaeiVerses,
-    imlaeiCleanedVerses: sourceCore.imlaeiCleanedVerses,
   };
 }
 

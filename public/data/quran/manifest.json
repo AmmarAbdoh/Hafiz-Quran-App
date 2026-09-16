@@ -53,10 +53,10 @@
   },
   "core": {
     "path": "v1/core.json.gz",
-    "bytes": 2024085,
-    "uncompressedBytes": 10829793,
-    "sha256": "e31ae129f01b79d25c1d8ac34a7391500bf6738958f655bfe1fabd5b4754ebf8",
-    "contentSha256": "b0ec7a1921569497e67d4d9a03a308193b2ed7f852cd07e931e6aec0a7ca8008"
+    "bytes": 691738,
+    "uncompressedBytes": 4360238,
+    "sha256": "0921339e3d5cba630b264995ec4becd3e8ca6075718f44c90b0f8392e796bb5f",
+    "contentSha256": "7e1fd367ce25e4d4d7f8c2b385ba3c0b58a2307ae601730a01e8f108938a67c0"
   },
   "layouts": {
     "count": 604,
@@ -10723,5 +10723,5 @@
     },
     "compressedBytes": 26633410
   },
-  "compressedBytes": 29807115
+  "compressedBytes": 28474768
 }
