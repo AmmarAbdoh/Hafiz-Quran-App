@@ -358,9 +358,21 @@ test("starts a quiz from a goal in one tap", async ({ page }) => {
     .getByRole("button", { name: /Review what you read|راجع ما قرأته/i })
     .click();
 
+  // The progress is the header's status line; the heading is the question
+  // itself, whichever type the generator picked.
   await expect(
-    page.getByRole("heading", { name: /Question 1 of|السؤال ١ من/i }),
+    page.getByText(/Question 1 of|السؤال ١ من/i).first(),
   ).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.locator('section[aria-labelledby="current-quiz-question"] h2'),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(
+        'section[aria-labelledby="current-quiz-question"] button[aria-pressed]',
+      )
+      .first(),
+  ).toBeVisible();
   await expectNoAccessibilityViolations(page);
 });
 

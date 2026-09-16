@@ -630,6 +630,13 @@ const ar = {
       questionProgressEndless: "السؤال {{current}}",
       progressLabel: "تقدم الاختبار",
     },
+    discard: {
+      title: "إنهاء الجلسة دون حفظ؟",
+      description:
+        "ستفقد إجابات هذه الجلسة ولن تُضاف إلى سجلك. يمكنك بدلاً من ذلك إنهاء الجلسة وحفظ نتيجتها.",
+      confirm: "اخرج دون حفظ",
+      cancel: "تابع الاختبار",
+    },
     prompts: {
       fillBlank: "اختر النص المناسب للموضع المخفي.",
       completeAyah: "اختر التكملة الصحيحة للآية.",
@@ -1525,6 +1532,13 @@ const en: StringTree<typeof ar> = {
       questionProgress: "Question {{current}} of {{total}}",
       questionProgressEndless: "Question {{current}}",
       progressLabel: "Quiz progress",
+    },
+    discard: {
+      title: "Leave without saving?",
+      description:
+        "This session's answers will be lost and will not be added to your history. You can finish the session instead and keep its result.",
+      confirm: "Leave without saving",
+      cancel: "Keep going",
     },
     prompts: {
       fillBlank: "Choose the text that belongs in the hidden position.",
