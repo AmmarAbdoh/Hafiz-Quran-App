@@ -645,6 +645,10 @@ const ar = {
       confirm: "اخرج دون حفظ",
       cancel: "تابع الاختبار",
     },
+    fillBlank: {
+      searchToggle: "لا أرى الإجابة",
+      searchHint: "ابحث في آيات السورة كلها",
+    },
     prompts: {
       fillBlank: "اختر النص المناسب للموضع المخفي.",
       completeAyah: "اختر التكملة الصحيحة للآية.",
@@ -1555,6 +1559,10 @@ const en: StringTree<typeof ar> = {
         "This session's answers will be lost and will not be added to your history. You can finish the session instead and keep its result.",
       confirm: "Leave without saving",
       cancel: "Keep going",
+    },
+    fillBlank: {
+      searchToggle: "I don't see it",
+      searchHint: "Search every ayah in the surah",
     },
     prompts: {
       fillBlank: "Choose the text that belongs in the hidden position.",

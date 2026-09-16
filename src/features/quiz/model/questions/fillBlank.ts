@@ -1,6 +1,6 @@
 import type { MushafVerse } from "@/domain/quran";
 import { generateHiddenIndex } from "../questionTypes";
-import type { FillBlankQuizQuestion } from "../types";
+import type { FillBlankQuizQuestion, QuizChoice } from "../types";
 import {
   getAdjacentVersesInSurah,
   shuffleArray,
@@ -35,6 +35,43 @@ function buildSearchOptions(
   return [...candidates.values()];
 }
 
+const CHOICE_COUNT = 4;
+
+/**
+ * A handful of options to pick from, so answering is a tap like every other
+ * question type. The full list stays on the question as searchOptions, for the
+ * learner who wants to look for something specific.
+ *
+ * Distractors avoid the ayahs printed around the blank: those are visible on
+ * the page, so offering them is offering answers the learner can rule out by
+ * looking rather than by remembering.
+ */
+function buildChoices(
+  options: MushafVerse[],
+  hiddenVerse: MushafVerse,
+  visibleKeys: Set<string>,
+  verseRef: VerseRefFormatter,
+): QuizChoice[] {
+  const hiddenKey = toVerseKey(hiddenVerse);
+  const others = options.filter((item) => toVerseKey(item) !== hiddenKey);
+  const unseen = others.filter((item) => !visibleKeys.has(toVerseKey(item)));
+
+  /*
+   * Only unseen ayahs. Topping the list up with a visible neighbour looked
+   * like a kindness when the surah is short, but an option printed on the page
+   * beside the blank is one the learner rules out by looking - and with two
+   * options, one of them visible, the answer is simply given away. Better to
+   * offer no grid at all and let them search.
+   */
+  const distractors = shuffleArray(unseen).slice(0, CHOICE_COUNT - 1);
+  if (distractors.length === 0) return [];
+
+  return shuffleArray([hiddenVerse, ...distractors]).map((item) => ({
+    id: toVerseKey(item),
+    label: buildSearchLabel(item, verseRef),
+  }));
+}
+
 export function generateFillBlankQuestion(
   verse: MushafVerse,
   pool: MushafVerse[],
@@ -52,6 +89,13 @@ export function generateFillBlankQuestion(
   const options = buildSearchOptions(pool, mushafData, hiddenVerse);
   if (options.length < 2) return null;
 
+  // What the page shows around the blank, so the options do not repeat it.
+  const visibleKeys = new Set(
+    [previous, verse, next]
+      .filter((item): item is MushafVerse => Boolean(item))
+      .map(toVerseKey),
+  );
+
   return {
     id: createQuestionId(),
     type: "fill_blank",
@@ -61,6 +105,7 @@ export function generateFillBlankQuestion(
     hiddenVerse,
     hiddenVerseKey: toVerseKey(hiddenVerse),
     page: hiddenVerse.page,
+    choices: buildChoices(options, hiddenVerse, visibleKeys, verseRef),
     searchOptions: shuffleArray(
       options.map((item) => ({
         id: toVerseKey(item),
