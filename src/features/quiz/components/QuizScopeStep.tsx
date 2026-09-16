@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SearchableSelect } from "@/shared/components/SearchableSelect";
@@ -28,6 +28,8 @@ interface QuizScopeStepProps {
   mushafData: MushafVerse[];
   scope: QuizScope;
   ayahCount: number;
+  /** Reported upward so the step nav cannot walk past an invalid scope. */
+  onValidityChange?: (valid: boolean) => void;
   onScopeChange: (scope: QuizScope) => void;
   onNext: () => void;
 }
@@ -189,6 +191,7 @@ export function QuizScopeStep({
   mushafData,
   scope,
   ayahCount,
+  onValidityChange,
   onScopeChange,
   onNext,
 }: QuizScopeStepProps) {
@@ -220,6 +223,17 @@ export function QuizScopeStep({
   }
 
   const error = validateScope({ ...draft, mode }, mushafData);
+
+  /*
+   * Continue is disabled while the scope is invalid, but the step nav above it
+   * was not - so the learner could switch to the Page tab, leave it empty, jump
+   * straight to Questions, and be quizzed on the surah they had chosen before,
+   * which is not what the last screen they saw showed them.
+   */
+  useEffect(() => {
+    onValidityChange?.(error === null);
+    return () => onValidityChange?.(true);
+  }, [error, onValidityChange]);
 
   return (
     <div className="space-y-5">

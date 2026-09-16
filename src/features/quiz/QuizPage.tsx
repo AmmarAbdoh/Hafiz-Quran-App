@@ -89,6 +89,8 @@ export function QuizPage() {
    */
   const [showManualSetup, setShowManualSetup] = useState(false);
   const [goalSurah, setGoalSurah] = useState(1);
+  // False only while the scope step holds something it cannot commit.
+  const [scopeValid, setScopeValid] = useState(true);
   const [setupStep, setSetupStep] = useState<SetupStep>("scope");
   const [scope, setScope] = useState<QuizScope>(DEFAULT_SCOPE);
   // Null means "not chosen yet", which is not the same as choosing nothing.
@@ -305,11 +307,16 @@ export function QuizPage() {
                   <li key={step} aria-current={current ? "step" : undefined}>
                     <button
                       type="button"
+                      /* Continue is disabled while the scope is invalid, and
+                         this was not - so the learner could leave the Page tab
+                         empty, jump to Questions, and be quizzed on the surah
+                         chosen before, which is not what they were looking at. */
+                      disabled={!scopeValid && step !== "scope"}
                       onClick={() =>
                         step === "types" ? openTypesStep() : setSetupStep(step)
                       }
                       className={cn(
-                        "flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        "flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
                         current
                           ? "border-primary bg-primary/10 font-semibold text-primary"
                           : "border-border hover:bg-muted/40",
@@ -343,6 +350,7 @@ export function QuizPage() {
                   mushafData={mushafData}
                   scope={scope}
                   ayahCount={pool.length}
+                  onValidityChange={setScopeValid}
                   onScopeChange={changeScope}
                   onNext={openTypesStep}
                 />
