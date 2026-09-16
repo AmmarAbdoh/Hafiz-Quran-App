@@ -170,7 +170,9 @@ function ReaderHeaderFallback() {
             <HomeIcon aria-hidden="true" className="h-5 w-5" />
           </Link>
         </Button>
-        <span className="font-bold">{t("navigation.reader")}</span>
+        {/* The heading is here while the reader's own header is still coming,
+            so the page is never without one. */}
+        <h1 className="text-body font-bold">{t("navigation.reader")}</h1>
         <ThemeButton />
       </div>
     </header>

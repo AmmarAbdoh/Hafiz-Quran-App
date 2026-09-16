@@ -71,9 +71,16 @@ export function MushafReaderHeader({
           </Link>
         </Button>
 
-        {/* Names the reading; the juz, hizb and progress sit in the folio line
-            at the foot of the page so neither line is crowded. */}
-        <p className="flex min-w-0 items-center justify-center gap-1.5 text-label text-muted-foreground">
+        {/*
+          Names the reading; the juz, hizb and progress sit in the folio line
+          at the foot of the page so neither line is crowded.
+
+          It is the page's h1. The reader had no heading of any level, so the
+          app's main surface gave a screen reader nothing to orient by and
+          nothing to jump to - and what it should say was already here, being
+          said by a paragraph.
+        */}
+        <h1 className="flex min-w-0 items-center justify-center gap-1.5 text-label font-normal text-muted-foreground">
           {surahLabel ? (
             <>
               <bdi
@@ -89,7 +96,7 @@ export function MushafReaderHeader({
           <span className="shrink-0">
             {t("status.page", { page: formatNumber(page, locale) })}
           </span>
-        </p>
+        </h1>
 
         <DropdownMenu dir={i18n.dir()}>
           <DropdownMenuTrigger asChild>
