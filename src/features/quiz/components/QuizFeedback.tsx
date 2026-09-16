@@ -101,7 +101,11 @@ export function QuizFeedback({
         </Button>
       </div>
 
-      <QuizAnswerExplanation explanation={explanation} isCorrect={isCorrect} />
+      <QuizAnswerExplanation
+        explanation={explanation}
+        isCorrect={isCorrect}
+        quranScript={question.type === "complete_ayah"}
+      />
 
       {showMushaf && (
         <QuizMushafPreview

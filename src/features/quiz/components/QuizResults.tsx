@@ -231,14 +231,20 @@ export function QuizResults({
                       <span className="font-semibold">
                         {t("feedback.correctAnswer")}
                       </span>{" "}
-                      <QuizAnswerLabel label={answer.correctLabel} />
+                      <QuizAnswerLabel
+                        label={answer.correctLabel}
+                        quranScript={answer.questionType === "complete_ayah"}
+                      />
                     </p>
                     {!answer.isCorrect && (
                       <p className="text-sm">
                         <span className="font-semibold">
                           {t("feedback.yourAnswer")}
                         </span>{" "}
-                        <QuizAnswerLabel label={answer.selectedLabel} />
+                        <QuizAnswerLabel
+                          label={answer.selectedLabel}
+                          quranScript={answer.questionType === "complete_ayah"}
+                        />
                       </p>
                     )}
                     {renderPreview(answer.testedVerseKey)}

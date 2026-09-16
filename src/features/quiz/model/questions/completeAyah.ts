@@ -1,3 +1,4 @@
+import { stripAyahMarker } from "@/domain/quran";
 import type { MushafVerse } from "@/domain/quran";
 import type { CompleteAyahQuizQuestion } from "../types";
 import { shuffleArray, toVerseKey } from "../versePool";
@@ -28,11 +29,18 @@ export function generateCompleteAyahQuestion(
     .slice(0, 12)
     .map((item) => ({
       id: `${toVerseKey(item)}-continuation`,
-      label: splitAyahForCompletion(item.aya_text).continuation,
+      label: stripAyahMarker(
+        splitAyahForCompletion(item.aya_text).continuation,
+      ),
     }));
 
+  /*
+   * Without the ayah number. It is an ornament rather than a word, it is the
+   * same distance from being the answer on every option, and outside the
+   * mushaf font it renders as a pair of Arabic letters.
+   */
   const choices = buildChoices(
-    { id: correctChoiceId, label: continuation },
+    { id: correctChoiceId, label: stripAyahMarker(continuation) },
     distractors,
   );
   if (choices.length < DEFAULT_CHOICE_COUNT) return null;

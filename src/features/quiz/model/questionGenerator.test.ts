@@ -271,6 +271,39 @@ describe("question generation", () => {
     });
   });
 
+  /*
+   * The mushaf text ends each ayah with its number as a single codepoint from
+   * U+FC00 upward. Outside the Quran font those are Arabic ligatures - U+FC00
+   * is BEH WITH JEEM - so an option carrying one read "جب" where the number
+   * belonged, on a screen a memorizer sees ten times a session.
+   */
+  it("offers ayah continuations without the ayah-number ornament", () => {
+    const marked = surah.map((verse, index) => ({
+      ...verse,
+      aya_text: `${verse.aya_text} ${String.fromCodePoint(0xfc00 + index)}`,
+    }));
+
+    const question = generateQuizQuestion({
+      verse: marked[0]!,
+      questionType: "complete_ayah",
+      pool: marked,
+      mushafData: marked,
+      verseInfoRecords: records,
+      surahName,
+      verseRef,
+    });
+
+    expect(question?.type).toBe("complete_ayah");
+    if (question?.type !== "complete_ayah") return;
+
+    for (const choice of question.choices) {
+      expect(
+        /[ﰀ-ﴝ]/.test(choice.label),
+        `option "${choice.label}" still carries a marker`,
+      ).toBe(false);
+    }
+  });
+
   it("names the chosen and correct options for review", () => {
     const question = generateQuizQuestion({
       verse: surah[0]!,

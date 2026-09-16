@@ -43,3 +43,4 @@ export {
   TOTAL_MUSHAF_PAGES,
 } from "./constants";
 export { findSurahsByName, searchSurahNumbers } from "./surahSearch";
+export { stripAyahMarker } from "./ayahMarker";

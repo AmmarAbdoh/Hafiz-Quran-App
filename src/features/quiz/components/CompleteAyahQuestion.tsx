@@ -32,6 +32,7 @@ export function CompleteAyahQuestion({
       </div>
 
       <QuizChoiceGrid
+        quranScript
         choices={question.choices}
         selectedId={selectedChoiceId}
         correctId={answered ? question.correctChoiceId : null}

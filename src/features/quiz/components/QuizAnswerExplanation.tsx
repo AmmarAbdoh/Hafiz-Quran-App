@@ -9,6 +9,8 @@ import { QuizAnswerLabel } from "./QuizAnswerLabel";
 interface QuizAnswerExplanationProps {
   explanation: AnswerExplanation;
   isCorrect: boolean;
+  /** True when the answers are mushaf text rather than interface text. */
+  quranScript?: boolean;
 }
 
 /**
@@ -18,6 +20,7 @@ interface QuizAnswerExplanationProps {
 export function QuizAnswerExplanation({
   explanation,
   isCorrect,
+  quranScript = false,
 }: QuizAnswerExplanationProps) {
   const { t } = useTranslation("quiz");
   const { formatNumber } = useQuizFormatters();
@@ -40,7 +43,10 @@ export function QuizAnswerExplanation({
           <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
           <span>
             <span className="font-semibold">{t("feedback.correctAnswer")}</span>{" "}
-            <QuizAnswerLabel label={explanation.correctLabel} />
+            <QuizAnswerLabel
+              label={explanation.correctLabel}
+              quranScript={quranScript}
+            />
           </span>
         </p>
         {!isCorrect && (
@@ -51,7 +57,10 @@ export function QuizAnswerExplanation({
             />
             <span>
               <span className="font-semibold">{t("feedback.yourAnswer")}</span>{" "}
-              <QuizAnswerLabel label={explanation.selectedLabel} />
+              <QuizAnswerLabel
+                label={explanation.selectedLabel}
+                quranScript={quranScript}
+              />
             </span>
           </p>
         )}

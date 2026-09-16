@@ -9,6 +9,8 @@ interface QuizChoiceGridProps {
   selectedId?: string | null;
   correctId?: string | null;
   disabled?: boolean;
+  /** True when the options are mushaf text rather than interface text. */
+  quranScript?: boolean;
   onSelect: (choiceId: string) => void;
 }
 
@@ -17,6 +19,7 @@ export function QuizChoiceGrid({
   selectedId = null,
   correctId = null,
   disabled = false,
+  quranScript = false,
   onSelect,
 }: QuizChoiceGridProps) {
   const { t } = useTranslation("quiz");
@@ -54,7 +57,11 @@ export function QuizChoiceGrid({
             )}
           >
             <span className="flex items-start gap-2">
-              <QuizAnswerLabel className="flex-1" label={choice.label} />
+              <QuizAnswerLabel
+                className="flex-1"
+                label={choice.label}
+                quranScript={quranScript}
+              />
               {isCorrect && (
                 <span className="inline-flex shrink-0 items-center gap-1">
                   <Check className="h-4 w-4" aria-hidden />
