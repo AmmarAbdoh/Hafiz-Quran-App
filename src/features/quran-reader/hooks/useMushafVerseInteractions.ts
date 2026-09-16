@@ -6,6 +6,7 @@ import {
   type RefObject,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { formatNumber, useLocale } from "@/app/i18n";
 import { useToast } from "@/shared/components/Toast";
 import { useQuranPlaybackActions } from "@/features/quran-reader/context/QuranPlaybackContext";
 import { useQuranPlaybackState } from "@/features/quran-reader/context/QuranPlaybackContext";
@@ -18,7 +19,11 @@ import {
   shareVerseText,
 } from "@/features/quran-reader/services/verseShare";
 import { getWordAudioUrl } from "@/domain/quran";
-import { findMushafVerse } from "@/domain/quran";
+import {
+  findMushafVerse,
+  stripAyahMarker,
+  useSurahNames,
+} from "@/domain/quran";
 import type {
   MushafActivationEvent,
   MushafVerse as MushafVerseType,
@@ -59,6 +64,8 @@ export function useMushafVerseInteractions({
   const { play, stop, playing } = useQuranAudio();
   const { isBookmarked, toggleBookmark, bookmarkedSet } = useBookmarks();
   const { t } = useTranslation("reader");
+  const { locale } = useLocale();
+  const { surahName } = useSurahNames();
   const { toast } = useToast();
 
   const clearSelection = useCallback(() => {
@@ -155,11 +162,18 @@ export function useMushafVerseInteractions({
     return () => document.removeEventListener("click", handleClickOutside);
   }, [clearSelection, mushafRef]);
 
+  /*
+   * Without the ayah-number ornament. It is a glyph the Quran font draws, and
+   * anywhere else - a message, a note, a search box - it is U+FC00 and up,
+   * which Unicode calls ARABIC LIGATURE BEH WITH JEEM. Copied text was
+   * arriving with "جب" on the end of it. This is the one path where the text
+   * leaves the app, so it is the one that has to be clean.
+   */
   const handleCopyVerse = useCallback(async () => {
     if (!selection) return;
     const verse = getVerseForKey(selection.verseKey);
     if (!verse) return;
-    await copyVerseText(verse.aya_text);
+    await copyVerseText(stripAyahMarker(verse.aya_text));
     toast(t("actions.copied"));
     clearSelection();
   }, [clearSelection, getVerseForKey, selection, t, toast]);
@@ -168,9 +182,16 @@ export function useMushafVerseInteractions({
     if (!selection) return;
     const verse = getVerseForKey(selection.verseKey);
     if (!verse) return;
-    await shareVerseText(verse.aya_text, verse.aya_text);
+    // The title said the ayah over again. It names where the ayah is from.
+    await shareVerseText(
+      stripAyahMarker(verse.aya_text),
+      t("actions.shareTitle", {
+        surahName: surahName(verse.sura_no),
+        ayah: formatNumber(verse.aya_no, locale),
+      }),
+    );
     clearSelection();
-  }, [clearSelection, getVerseForKey, selection]);
+  }, [clearSelection, getVerseForKey, locale, selection, surahName, t]);
 
   const openSelection = useCallback(
     (word: MushafWordType, element: HTMLElement, mode: "word" | "ayah") => {

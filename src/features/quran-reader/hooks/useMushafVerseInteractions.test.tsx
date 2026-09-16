@@ -39,7 +39,12 @@ vi.mock("@/features/quran-reader/hooks/useBookmarks", () => ({
 }));
 
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  // The share title names the surah, so the hook resolves surah names, which
+  // reads the resolved language off i18n.
+  useTranslation: () => ({
+    t: (key: string) => key,
+    i18n: { resolvedLanguage: "ar", language: "ar", dir: () => "rtl" },
+  }),
 }));
 
 // The popover formats its repeat counts in the reader's numerals, and the

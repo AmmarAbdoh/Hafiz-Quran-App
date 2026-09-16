@@ -1,3 +1,4 @@
+import { stripAyahMarker } from "./ayahMarker";
 import { SURAH_NAMES } from "./constants";
 import type { MushafPageLayout, MushafVerse, MushafWordLine } from "./types";
 
@@ -170,13 +171,22 @@ export function buildSurahNameIndex(
   return names;
 }
 
-/** Plain Arabic ayah text keyed by `surah:ayah` for screen readers and copy. */
+/**
+ * Plain Arabic ayah text keyed by `surah:ayah`, for screen readers and copy.
+ *
+ * Without the ayah-number ornament. It is a glyph the Quran font draws, not a
+ * word, so a screen reader announcing the raw text read the ligature letters
+ * aloud at the end of every ayah.
+ */
 export function buildVerseTextIndex(
   mushafVerses: MushafVerse[],
 ): ReadonlyMap<string, string> {
   const texts = new Map<string, string>();
   for (const verse of mushafVerses) {
-    texts.set(`${verse.sura_no}:${verse.aya_no}`, verse.aya_text);
+    texts.set(
+      `${verse.sura_no}:${verse.aya_no}`,
+      stripAyahMarker(verse.aya_text),
+    );
   }
   return texts;
 }
