@@ -1,67 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
-const AUTO_HIDE_MS = 4000;
-
+/**
+ * Whether the reader shows its page navigation.
+ *
+ * This used to be a timer: a tap revealed the controls and four seconds later
+ * they left again on their own. Combined with a tap handler that fired on any
+ * pointer release, that is what made the reader's chrome feel like it appeared
+ * and vanished at random. Now the controls are simply on, and stay on until
+ * the reader asks for a bare page.
+ */
 export function useReaderChrome(enabled: boolean) {
-  const [controlsVisible, setControlsVisible] = useState(false);
-  const hideTimerRef = useRef<number | null>(null);
-  const autoHideSuspendedRef = useRef(false);
-
-  const clearHideTimer = useCallback(() => {
-    if (hideTimerRef.current !== null) {
-      window.clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = null;
-    }
-  }, []);
-
-  const scheduleHide = useCallback(() => {
-    if (autoHideSuspendedRef.current) return;
-    clearHideTimer();
-    hideTimerRef.current = window.setTimeout(() => {
-      setControlsVisible(false);
-    }, AUTO_HIDE_MS);
-  }, [clearHideTimer]);
-
-  const showControls = useCallback(() => {
-    if (!enabled) return;
-    setControlsVisible(true);
-    scheduleHide();
-  }, [enabled, scheduleHide]);
+  const [controlsVisible, setControlsVisible] = useState(true);
 
   const toggleControls = useCallback(() => {
     if (!enabled) return;
-    setControlsVisible((visible) => {
-      const next = !visible;
-      if (next) scheduleHide();
-      else clearHideTimer();
-      return next;
-    });
-  }, [clearHideTimer, enabled, scheduleHide]);
+    setControlsVisible((visible) => !visible);
+  }, [enabled]);
 
-  const hideControls = useCallback(() => {
-    clearHideTimer();
-    setControlsVisible(false);
-  }, [clearHideTimer]);
-
-  const suspendAutoHide = useCallback(() => {
-    autoHideSuspendedRef.current = true;
-    clearHideTimer();
-  }, [clearHideTimer]);
-
-  const resumeAutoHide = useCallback(() => {
-    autoHideSuspendedRef.current = false;
-    scheduleHide();
-  }, [scheduleHide]);
-
-  useEffect(() => () => clearHideTimer(), [clearHideTimer]);
-
-  return {
-    controlsVisible,
-    showControls,
-    toggleControls,
-    hideControls,
-    keepControlsVisible: scheduleHide,
-    suspendAutoHide,
-    resumeAutoHide,
-  };
+  return { controlsVisible, toggleControls };
 }

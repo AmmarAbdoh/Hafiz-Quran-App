@@ -6,8 +6,13 @@ interface UseReaderHeaderSyncOptions {
   setHeader: (header: MushafReaderHeaderState | null) => void;
   surahLabel: string;
   page: number;
+  layoutMode: MushafReaderHeaderState["layoutMode"];
+  currentSurah: MushafReaderHeaderState["currentSurah"];
+  mushafData: MushafReaderHeaderState["mushafData"];
   practiceActive: boolean;
   practiceLoading: boolean;
+  onLayoutModeChange: MushafReaderHeaderState["onLayoutModeChange"];
+  onSurahSelect: MushafReaderHeaderState["onSurahSelect"];
   onOpenSurahDrawer: MushafReaderHeaderState["onOpenSurahDrawer"];
   onOpenAyahSearch: MushafReaderHeaderState["onOpenAyahSearch"];
   onOpenListenOptions: MushafReaderHeaderState["onOpenListenOptions"];
@@ -20,8 +25,13 @@ export function useReaderHeaderSync({
   setHeader,
   surahLabel,
   page,
+  layoutMode,
+  currentSurah,
+  mushafData,
   practiceActive,
   practiceLoading,
+  onLayoutModeChange,
+  onSurahSelect,
   onOpenSurahDrawer,
   onOpenAyahSearch,
   onOpenListenOptions,
@@ -29,6 +39,8 @@ export function useReaderHeaderSync({
   onTogglePractice,
 }: UseReaderHeaderSyncOptions): void {
   const callbacksRef = useRef({
+    onLayoutModeChange,
+    onSurahSelect,
     onOpenSurahDrawer,
     onOpenAyahSearch,
     onOpenListenOptions,
@@ -36,6 +48,8 @@ export function useReaderHeaderSync({
     onTogglePractice,
   });
   callbacksRef.current = {
+    onLayoutModeChange,
+    onSurahSelect,
     onOpenSurahDrawer,
     onOpenAyahSearch,
     onOpenListenOptions,
@@ -53,8 +67,13 @@ export function useReaderHeaderSync({
     setHeader({
       surahLabel,
       page,
+      layoutMode,
+      currentSurah,
+      mushafData,
       practiceActive,
       practiceLoading,
+      onLayoutModeChange: (mode) => callbacks.onLayoutModeChange(mode),
+      onSurahSelect: (index) => callbacks.onSurahSelect(index),
       onOpenSurahDrawer: callbacks.onOpenSurahDrawer,
       onOpenAyahSearch: callbacks.onOpenAyahSearch,
       onOpenListenOptions: callbacks.onOpenListenOptions,
@@ -63,7 +82,17 @@ export function useReaderHeaderSync({
         void callbacks.onTogglePractice();
       },
     });
-  }, [enabled, page, practiceActive, practiceLoading, setHeader, surahLabel]);
+  }, [
+    currentSurah,
+    enabled,
+    mushafData,
+    layoutMode,
+    page,
+    practiceActive,
+    practiceLoading,
+    setHeader,
+    surahLabel,
+  ]);
 
   useEffect(() => () => setHeader(null), [setHeader]);
 }

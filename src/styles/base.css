@@ -16,56 +16,6 @@ textarea {
   font: inherit;
 }
 
-/* Preflight gives interactive elements `color: inherit`, which can beat layered
-   text-* utilities on links and buttons (including Button asChild). */
-:is(a, button).text-primary-foreground,
-.text-primary-foreground:is(a, button) {
-  color: var(--primary-foreground);
-}
-
-:is(a, button).text-secondary-foreground,
-.text-secondary-foreground:is(a, button) {
-  color: var(--secondary-foreground);
-}
-
-:is(a, button).text-success-foreground,
-.text-success-foreground:is(a, button) {
-  color: var(--success-foreground);
-}
-
-:is(a, button).text-accent-foreground,
-.text-accent-foreground:is(a, button) {
-  color: var(--accent-foreground);
-}
-
-:is(a, button).text-white {
-  color: #fff;
-}
-
-button[class*="text-primary-foreground"][data-state="checked"] {
-  color: var(--primary-foreground);
-}
-
-:is(a, button).bg-primary,
-.bg-primary:is(a, button) {
-  background-color: var(--primary);
-}
-
-:is(a, button).bg-secondary,
-.bg-secondary:is(a, button) {
-  background-color: var(--secondary);
-}
-
-:is(a, button).bg-destructive,
-.bg-destructive:is(a, button) {
-  background-color: var(--destructive);
-}
-
-:is(a, button).bg-success,
-.bg-success:is(a, button) {
-  background-color: var(--success);
-}
-
 :focus-visible {
   outline: 3px solid color-mix(in srgb, var(--ring) 72%, transparent);
   outline-offset: 3px;
@@ -75,7 +25,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
   position: fixed;
   inset-block-start: 0.75rem;
   inset-inline-start: 0.75rem;
-  z-index: 100;
+  z-index: var(--z-skip-link);
   translate: 0 -180%;
   border-radius: 0.5rem;
   background: var(--foreground);
@@ -137,7 +87,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
 .editorial-topbar {
   position: sticky;
   inset-block-start: 0;
-  z-index: 30;
+  z-index: var(--z-header);
   display: flex;
   min-height: 4rem;
   align-items: center;
@@ -148,21 +98,58 @@ button[class*="text-primary-foreground"][data-state="checked"] {
   backdrop-filter: blur(16px);
 }
 
-.editorial-topbar--reader {
-  display: flex;
-}
-
 .editorial-main {
-  width: min(100%, 76rem);
+  width: min(100%, var(--content-max));
   margin-inline: auto;
   padding: var(--space-panel) 1rem 6.5rem;
+}
+
+/*
+ * The reader owns its own scrolling (the mushaf stage), so it must never
+ * grow the column: a fixed flex box with hidden overflow, not the padded,
+ * width-capped, natural-height box every other route uses.
+ */
+.editorial-main--reader {
+  /* Declared here, on the parent of both, so the rail and the padding that
+     makes room for it cannot disagree. */
+  --reader-rail-width: 20rem;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--mushaf-page, var(--background));
+}
+
+/*
+ * Wide screens put the surah rail beside the mushaf rather than under it.
+ *
+ * The rail is taken out of flow rather than made a flex sibling. The reader's
+ * column is a chain of flex: 1 boxes whose heights resolve only because the
+ * mushaf layout carries `contain: size` and contributes no intrinsic height of
+ * its own; a rail in that flow contributes 114 rows of it, and measuring
+ * showed the shell grow to 6107px with the page scaled to match. Out of flow,
+ * the height chain the mushaf is fitted against is untouched.
+ *
+ * The layout is padded by exactly the rail's width, and container query units
+ * resolve against the content box - so 100cqw already excludes the rail and
+ * the page centres in what is left without knowing the rail exists.
+ */
+@media (min-width: 80rem) {
+  .editorial-main--reader {
+    position: relative;
+  }
+
+  .editorial-main--reader > .mushaf-reader-layout {
+    padding-inline-end: var(--reader-rail-width);
+  }
 }
 
 .editorial-dock {
   position: fixed;
   inset-inline: 0;
   inset-block-end: 0;
-  z-index: 40;
+  z-index: var(--z-dock);
 }
 
 /* The dock grows when a recitation is running, so content pads to match. */
@@ -188,7 +175,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
 
 .editorial-panel {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) + 0.25rem);
+  border-radius: var(--radius-lg);
   background: var(--card);
   box-shadow: var(--shadow-panel);
   padding: var(--space-panel);
@@ -216,9 +203,9 @@ button[class*="text-primary-foreground"][data-state="checked"] {
 }
 
 .editorial-panel--inset {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--muted) 55%, var(--card));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
   box-shadow: none;
   padding: var(--space-panel);
 }
@@ -229,7 +216,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
 
 .editorial-kicker {
   color: var(--accent-strong);
-  font-size: var(--text-caption);
+  font-size: var(--text-label);
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -260,7 +247,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
 .mushaf-reader-header {
   position: sticky;
   inset-block-start: 0;
-  z-index: 30;
+  z-index: var(--z-header);
   flex-shrink: 0;
   border-block-end: 1px solid var(--border);
   background: var(--mushaf-header);
@@ -279,7 +266,7 @@ button[class*="text-primary-foreground"][data-state="checked"] {
     display: flex;
   }
 
-  .editorial-topbar:not(.editorial-topbar--reader) {
+  .editorial-topbar {
     display: none;
   }
 

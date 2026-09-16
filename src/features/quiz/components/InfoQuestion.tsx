@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import type { InfoQuizQuestion } from "../model/types";
 import { QuizChoiceGrid } from "./QuizChoiceGrid";
 import { QuizFeedback } from "./QuizFeedback";
@@ -20,13 +19,9 @@ export function InfoQuestion({
   onSubmit,
   onNext,
 }: InfoQuestionProps) {
-  const { t } = useTranslation("quiz");
   return (
     <div className="space-y-6">
       <div className="space-y-3 text-center">
-        <p className="text-sm text-muted-foreground">
-          {t(`prompts.${question.type}`)}
-        </p>
         {/* One surah's lines are enough context and keep the prompt compact. */}
         <QuizMushafPreview
           page={question.verse.page}

@@ -32,7 +32,7 @@ describe("AppShell", () => {
     });
   });
 
-  it("mounts reader-only state around Quran routes", () => {
+  it("keeps the desktop sidebar reachable on Quran routes", () => {
     render(
       <MemoryRouter initialEntries={["/quran/page/1"]}>
         <AppProviders>
@@ -44,6 +44,30 @@ describe("AppShell", () => {
     );
 
     expect(screen.getByRole("main")).toHaveTextContent("Quran page");
-    expect(document.querySelector(".reader-shell")).toBeInTheDocument();
+    // The reader used to fork into a wholly separate shell with no sidebar
+    // and no way back to the rest of the app at desktop widths.
+    expect(
+      screen.getByRole("navigation", { name: "التنقل الرئيسي" }),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector(".editorial-main--reader"),
+    ).toBeInTheDocument();
+  });
+
+  it("mounts the reader's own header before it publishes one, still leading home", () => {
+    render(
+      <MemoryRouter initialEntries={["/quran/page/1"]}>
+        <AppProviders>
+          <AppShell>
+            <h1>Quran page</h1>
+          </AppShell>
+        </AppProviders>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("link", { name: "الرئيسية" })).toHaveAttribute(
+      "href",
+      "/",
+    );
   });
 });

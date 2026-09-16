@@ -88,6 +88,19 @@ export function QuizFeedback({
         </div>
       </div>
 
+      {/*
+        Moving on comes before the reading. This used to be the last thing on
+        the page, under an explanation, an asynchronously loaded mushaf page
+        and a metadata list, so after every single answer the way forward was
+        somewhere below the fold. The verdict above takes focus when it
+        appears, which brings this into view with it.
+      */}
+      <div className="flex justify-center">
+        <Button size="lg" onClick={onNext}>
+          {t("feedback.next")}
+        </Button>
+      </div>
+
       <QuizAnswerExplanation explanation={explanation} isCorrect={isCorrect} />
 
       {showMushaf && (
@@ -99,12 +112,6 @@ export function QuizFeedback({
         />
       )}
       <VerseMetadata items={verseInfo} />
-
-      <div className="flex justify-center">
-        <Button size="lg" className="min-h-11" onClick={onNext}>
-          {t("feedback.next")}
-        </Button>
-      </div>
     </section>
   );
 }

@@ -24,6 +24,7 @@ const ar = {
       stop: "إيقاف",
       retry: "إعادة المحاولة",
       close: "إغلاق",
+      done: "تم",
       search: "بحث",
     },
     select: {
@@ -83,6 +84,17 @@ const ar = {
       surahDescription: "آخر موضع: سورة {{surahName}}",
       ayahDescription: "آخر موضع: {{surahName}} · الآية {{ayah}}",
     },
+    progress: {
+      title: "مراجعتك",
+      streak: "أيام متتالية",
+      streakEmpty: "ابدأ اليوم",
+      accuracy: "دقة آخر المراجعات",
+      percentage: "{{count}}٪",
+      weak: "آية تحتاج مراجعة",
+      weakEmpty: "لا شيء يحتاج مراجعة",
+      review: "راجع ما يحتاج تثبيتاً",
+      empty: "أكمل أول اختبار ليظهر تقدمك هنا.",
+    },
   },
   reader: {
     title: "المصحف",
@@ -118,6 +130,10 @@ const ar = {
       label: "طريقة العرض",
       surah: "سورة",
       page: "صفحة",
+      // The choice changes how the reader is moved through, which is the one
+      // thing its two words never said.
+      surahHint: "السورة كاملة، تمرير متواصل",
+      pageHint: "صفحة كاملة، اسحب لتقليب الصفحات",
     },
     status: {
       page: "صفحة {{page}}",
@@ -260,6 +276,14 @@ const ar = {
     listenDialog: {
       title: "خيارات الاستماع",
       description: "اختر ما تريد سماعه وعدد مرات التكرار",
+      playHere: {
+        page: "شغّل هذه الصفحة",
+        pageHint: "صفحة {{page}}، من أولها",
+        surah: "شغّل هذه السورة",
+        surahHint: "سورة {{surahName}}، من أولها",
+      },
+      moreOptions: "خيارات أخرى",
+      moreOptionsHint: "جزء، نطاق صفحات، آية بعينها، أو تكرار",
       tabs: { surah: "سورة", juz: "جزء", page: "صفحة", ayah: "آية" },
       searchSurah: "ابحث عن السورة…",
       startAyah: "من الآية (اختياري)",
@@ -347,9 +371,9 @@ const ar = {
     },
     search: {
       title: "البحث في القرآن",
-      description: "ابحث عن سورة أو عن كلمات من نص الآية.",
+      description: "اكتب اسم سورة، أو كلمات من آية، أو مرجعًا مثل ٢:٢٥٥.",
       label: "عبارة البحث",
-      placeholder: "اكتب اسم سورة أو كلمات من آية…",
+      placeholder: "اسم سورة، أو كلمات من آية، أو ٢:٢٥٥…",
       results: "نتائج البحث",
       resultCount: "{{count}} نتيجة",
       resultCount_one: "نتيجة واحدة",
@@ -361,7 +385,9 @@ const ar = {
       empty: "لا توجد نتائج مطابقة.",
       start: "ابدأ بكتابة اسم سورة أو جزء من آية.",
       go: "الانتقال إلى {{label}}",
-      resultMeta: "سورة {{surah}}، الآية {{ayah}}",
+      // {{surahName}}, not {{surah}}: both call sites pass the name, so the
+      // old placeholder was never filled and rendered as itself.
+      resultMeta: "سورة {{surahName}}، الآية {{ayah}}",
     },
   },
   quiz: {
@@ -379,6 +405,40 @@ const ar = {
       retry: "إعادة الاختبار",
       newSetup: "إعداد جديد",
       confirm: "تأكيد",
+    },
+    goals: {
+      title: "ما الذي تريد مراجعته؟",
+      description: "اختر هدفاً ويبدأ الاختبار فوراً، أو جهّزه بنفسك.",
+      today: {
+        title: "راجع ما قرأته",
+        page: "صفحة {{page}}",
+        surah: "سورة {{surahName}}",
+        fallback: "ابدأ من الفاتحة",
+      },
+      weak: {
+        title: "ثبّت ما نسيته",
+        // count drives the plural form; formattedCount carries the Arabic
+        // numerals, as the rest of the app does.
+        description: "{{formattedCount}} آية أخطأت فيها من قبل",
+        description_one: "آية واحدة أخطأت فيها من قبل",
+        description_two: "آيتان أخطأت فيهما من قبل",
+        description_few: "{{formattedCount}} آيات أخطأت فيها من قبل",
+        description_many: "{{formattedCount}} آية أخطأت فيها من قبل",
+        description_other: "{{formattedCount}} آية أخطأت فيها من قبل",
+        empty: "لا توجد آيات تحتاج تثبيتاً بعد",
+      },
+      surah: {
+        title: "اختبر سورة",
+        description: "اختر سورة واحدة",
+        picker: "السورة",
+        empty: "لا توجد سورة بهذا الاسم",
+      },
+      manual: {
+        title: "إعداد يدوي",
+        description: "اختر النطاق ونوع الأسئلة وطول الجلسة",
+      },
+      start: "ابدأ",
+      back: "العودة إلى الأهداف",
     },
     steps: {
       label: "خطوات إعداد الاختبار",
@@ -494,7 +554,7 @@ const ar = {
       page: "الصفحة {{count}}",
       pages: "الصفحات {{from}}–{{to}}",
       ayahRange: "{{surah}}، الآيات {{from}}–{{to}}",
-      legacy: "نطاق من جلسة سابقة",
+      legacy: "من جلسة سابقة",
     },
     types: {
       title: "اختر أنواع الأسئلة",
@@ -521,9 +581,9 @@ const ar = {
           "تختبر معرفتك بمكان الآية في المصحف: السورة والجزء والحزب والصفحة.",
       },
       unavailable: {
-        tooFewAyahs: "يحتاج نطاقاً أوسع لبناء خيارات مقنعة.",
-        singleValue: "نطاقك كله في قيمة واحدة، فالإجابة معروفة مسبقاً.",
-        noHizbData: "بيانات الحزب غير متوفرة لهذا النطاق.",
+        tooFewAyahs: "يحتاج آيات أكثر لبناء إجابات خاطئة مقنعة.",
+        singleValue: "كل الآيات هنا لها الإجابة نفسها، فالسؤال يكشف نفسه.",
+        noHizbData: "أرقام الحزب لهذه الآيات غير متوفرة.",
       },
       examples: {
         fill_blank: "مثال: تُخفى آية من الصفحة وتبحث عن نصها.",
@@ -579,6 +639,18 @@ const ar = {
       questionProgressEndless: "السؤال {{current}}",
       progressLabel: "تقدم الاختبار",
     },
+    discard: {
+      title: "إنهاء الجلسة دون حفظ؟",
+      description:
+        "ستفقد إجابات هذه الجلسة ولن تُضاف إلى سجلك. يمكنك بدلاً من ذلك إنهاء الجلسة وحفظ نتيجتها.",
+      confirm: "اخرج دون حفظ",
+      cancel: "تابع الاختبار",
+    },
+    fillBlank: {
+      searchToggle: "لا أرى الإجابة",
+      searchHint: "ابحث في آيات السورة كلها",
+    },
+    mushafPreviewLabel: "صفحة المصحف",
     prompts: {
       fillBlank: "اختر النص المناسب للموضع المخفي.",
       completeAyah: "اختر التكملة الصحيحة للآية.",
@@ -663,11 +735,11 @@ const ar = {
       scoreLabel: "{{correct}} من {{total}}",
     },
     errors: {
-      scopeEmpty: "اختر نطاقاً واحداً على الأقل.",
+      scopeEmpty: "اختر ما تريد مراجعته أولاً.",
       noTypes: "اختر نوع سؤال واحداً على الأقل.",
-      questionUnavailable: "تعذر إنشاء سؤال لهذا النطاق.",
+      questionUnavailable: "تعذر تكوين سؤال من هذه الآيات.",
       poolTooSmall:
-        "النطاق المختار صغير جداً لأسئلة الاختيار. وسّع النطاق أو استخدم ملء الفراغ فقط.",
+        "هذه الآيات قليلة جداً لتكوين اختيارات معقولة. اختر سورة أطول أو أضف المزيد.",
       mushafPreviewLoadFailed: "تعذر تحميل معاينة المصحف.",
       startFailed: "تعذر بدء الاختبار. حاول مجدداً.",
       storage: "تعذر حفظ سجل الاختبار على هذا الجهاز.",
@@ -828,6 +900,7 @@ const ar = {
     activePage: "الصفحة الحالية",
     toggleTheme: "تبديل المظهر",
     chooseLanguage: "اختيار لغة الواجهة",
+    chooseTheme: "اختيار المظهر",
     externalLink: "يفتح في نافذة جديدة",
     goBack: "العودة إلى الصفحة السابقة",
     openSettings: "فتح الإعدادات",
@@ -867,6 +940,7 @@ const en: StringTree<typeof ar> = {
       stop: "Stop",
       retry: "Try again",
       close: "Close",
+      done: "Done",
       search: "Search",
     },
     select: {
@@ -926,6 +1000,17 @@ const en: StringTree<typeof ar> = {
       surahDescription: "Last position: Surah {{surahName}}",
       ayahDescription: "Last position: {{surahName}} · Ayah {{ayah}}",
     },
+    progress: {
+      title: "Your review",
+      streak: "Days in a row",
+      streakEmpty: "Start today",
+      accuracy: "Recent accuracy",
+      percentage: "{{count}}%",
+      weak: "Ayahs needing work",
+      weakEmpty: "Nothing needs work",
+      review: "Review what needs work",
+      empty: "Finish your first quiz and your progress appears here.",
+    },
   },
   reader: {
     title: "Reader",
@@ -961,6 +1046,8 @@ const en: StringTree<typeof ar> = {
       label: "Reader layout",
       surah: "Surah",
       page: "Page",
+      surahHint: "The whole surah, scrolling",
+      pageHint: "One mushaf page, swipe to turn",
     },
     status: {
       page: "Page {{page}}",
@@ -1103,6 +1190,14 @@ const en: StringTree<typeof ar> = {
     listenDialog: {
       title: "Listening options",
       description: "Choose what to hear and how often to repeat it.",
+      playHere: {
+        page: "Play this page",
+        pageHint: "Page {{page}}, from the top",
+        surah: "Play this surah",
+        surahHint: "Surah {{surahName}}, from the beginning",
+      },
+      moreOptions: "Other options",
+      moreOptionsHint: "A juz, a page range, one ayah, or repeats",
       tabs: { surah: "Surah", juz: "Juz", page: "Page", ayah: "Ayah" },
       searchSurah: "Search surahs…",
       startAyah: "Start at ayah (optional)",
@@ -1192,9 +1287,10 @@ const en: StringTree<typeof ar> = {
     },
     search: {
       title: "Search the Quran",
-      description: "Search by surah name or words from an ayah.",
+      description:
+        "Enter a surah name, words from an ayah, or a reference like 2:255.",
       label: "Search text",
-      placeholder: "Enter a surah name or words from an ayah…",
+      placeholder: "Surah name, words from an ayah, or 2:255…",
       results: "Search results",
       resultCount: "{{count}} results",
       resultCount_one: "{{count}} result",
@@ -1206,7 +1302,7 @@ const en: StringTree<typeof ar> = {
       empty: "No matching results.",
       start: "Start by entering a surah name or part of an ayah.",
       go: "Go to {{label}}",
-      resultMeta: "Surah {{surah}}, ayah {{ayah}}",
+      resultMeta: "Surah {{surahName}}, ayah {{ayah}}",
     },
   },
   quiz: {
@@ -1224,6 +1320,38 @@ const en: StringTree<typeof ar> = {
       retry: "Retry quiz",
       newSetup: "New setup",
       confirm: "Confirm",
+    },
+    goals: {
+      title: "What do you want to review?",
+      description: "Pick a goal and start, or set one up yourself.",
+      today: {
+        title: "Review what you read",
+        page: "Page {{page}}",
+        surah: "Surah {{surahName}}",
+        fallback: "Start at Al-Fatihah",
+      },
+      weak: {
+        title: "Work on what you missed",
+        description: "{{formattedCount}} ayahs you have got wrong before",
+        description_one: "{{formattedCount}} ayah you have got wrong before",
+        description_two: "{{formattedCount}} ayahs you have got wrong before",
+        description_few: "{{formattedCount}} ayahs you have got wrong before",
+        description_many: "{{formattedCount}} ayahs you have got wrong before",
+        description_other: "{{formattedCount}} ayahs you have got wrong before",
+        empty: "Nothing needs work yet",
+      },
+      surah: {
+        title: "Test one surah",
+        description: "Choose a single surah",
+        picker: "Surah",
+        empty: "No surah by that name",
+      },
+      manual: {
+        title: "Set it up myself",
+        description: "Choose the scope, question types, and session length",
+      },
+      start: "Start",
+      back: "Back to goals",
     },
     steps: {
       label: "Quiz setup steps",
@@ -1337,7 +1465,7 @@ const en: StringTree<typeof ar> = {
       page: "Page {{count}}",
       pages: "Pages {{from}}–{{to}}",
       ayahRange: "{{surah}}, ayahs {{from}}–{{to}}",
-      legacy: "Scope from an earlier session",
+      legacy: "From an earlier session",
     },
     types: {
       title: "Choose question types",
@@ -1365,10 +1493,10 @@ const en: StringTree<typeof ar> = {
           "These test where an ayah sits in the Mushaf: surah, juz, hizb, and page.",
       },
       unavailable: {
-        tooFewAyahs: "Needs a wider scope to build convincing options.",
+        tooFewAyahs: "Needs more ayahs to build believable wrong answers.",
         singleValue:
-          "Your whole scope shares one value, so the answer is given away.",
-        noHizbData: "Hizb data is not available for this scope.",
+          "Every ayah here has the same answer, so the question would give itself away.",
+        noHizbData: "The hizb numbers for these ayahs are not available.",
       },
       examples: {
         fill_blank:
@@ -1428,6 +1556,18 @@ const en: StringTree<typeof ar> = {
       questionProgressEndless: "Question {{current}}",
       progressLabel: "Quiz progress",
     },
+    discard: {
+      title: "Leave without saving?",
+      description:
+        "This session's answers will be lost and will not be added to your history. You can finish the session instead and keep its result.",
+      confirm: "Leave without saving",
+      cancel: "Keep going",
+    },
+    fillBlank: {
+      searchToggle: "I don't see it",
+      searchHint: "Search every ayah in the surah",
+    },
+    mushafPreviewLabel: "Mushaf page",
     prompts: {
       fillBlank: "Choose the text that belongs in the hidden position.",
       completeAyah: "Choose the correct completion for this ayah.",
@@ -1514,11 +1654,11 @@ const en: StringTree<typeof ar> = {
       scoreLabel: "{{correct}} out of {{total}}",
     },
     errors: {
-      scopeEmpty: "Choose at least one review scope.",
+      scopeEmpty: "Choose what to review first.",
       noTypes: "Choose at least one question type.",
-      questionUnavailable: "A question could not be created for this scope.",
+      questionUnavailable: "No question could be built from these ayahs.",
       poolTooSmall:
-        "The selected scope is too small for choice-based questions. Widen the scope or use fill-in-the-blank only.",
+        "There are too few ayahs here to build believable options. Pick a longer surah, or add more to review.",
       mushafPreviewLoadFailed: "The Mushaf preview could not be loaded.",
       startFailed: "The quiz could not start. Try again.",
       storage: "Quiz history could not be saved on this device.",
@@ -1682,6 +1822,7 @@ const en: StringTree<typeof ar> = {
     activePage: "Current page",
     toggleTheme: "Toggle theme",
     chooseLanguage: "Choose interface language",
+    chooseTheme: "Choose appearance",
     externalLink: "opens in a new window",
     goBack: "Go back to the previous page",
     openSettings: "Open settings",

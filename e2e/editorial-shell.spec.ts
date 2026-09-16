@@ -116,10 +116,10 @@ test("localizes the adaptive shell without loading Quran data", async ({
   expect(quranRequests).toEqual([]);
   await expectNoAccessibilityViolations(page);
 
-  const themeChoices = page.locator(
-    'button.min-h-12[aria-pressed="false"]:visible',
-  );
-  await themeChoices.last().click();
+  const themeTablist = page.getByRole("tablist", {
+    name: /Choose appearance|اختيار المظهر/,
+  });
+  await themeTablist.getByRole("tab", { selected: false }).click();
   await expect(page.locator("html")).toHaveClass(/dark/);
 
   const reciterSelect = page.locator("#reciter-select");
@@ -136,7 +136,7 @@ test("localizes the adaptive shell without loading Quran data", async ({
 
   const nextLocale = locale === "ar" ? "en" : "ar";
   await page
-    .getByRole("button", {
+    .getByRole("tab", {
       name: locale === "ar" ? "English" : "العربية",
     })
     .click();
@@ -184,7 +184,7 @@ test("loads only the requested reader chunks and preserves legacy links", async 
   await page.goto("/quran/surah/1/ayah/2");
   await expect(page).toHaveURL(/\/quran\/surah\/1\/ayah\/2$/);
   await expect(
-    page.locator('button.mushaf-word[data-verse-key="1:2"]').first(),
+    page.locator('.mushaf-word[data-verse-key="1:2"]').first(),
   ).toBeVisible({ timeout: 30_000 });
 });
 
@@ -205,7 +205,7 @@ test("loads a surah and its selected tafsir on demand", async ({ page }) => {
   ).toBe(true);
   expect(quranRequests.some((url) => url.includes("/tafsir/"))).toBe(false);
 
-  await page.locator("button.mushaf-word").first().click();
+  await page.locator(".mushaf-word").first().click();
   await page.getByRole("button", { name: /Open tafsir|فتح التفسير/i }).click();
   await expect(
     page.getByRole("heading", { name: /Ayah tafsir|تفسير الآية/i }),
@@ -281,10 +281,10 @@ test("replaces active reader playback with a newly selected ayah", async ({
 
   await page.goto("/quran/page/1");
   const firstAyahWord = page
-    .locator('button.mushaf-word[data-location^="1:1:"]')
+    .locator('.mushaf-word[data-location^="1:1:"]')
     .first();
   const secondAyahWord = page
-    .locator('button.mushaf-word[data-location^="1:2:"]')
+    .locator('.mushaf-word[data-location^="1:2:"]')
     .first();
   await expect(firstAyahWord).toBeVisible({ timeout: 30_000 });
 
@@ -343,10 +343,50 @@ test("renders an accessible localized 404", async ({ page }) => {
   await expectNoAccessibilityViolations(page);
 });
 
+/**
+ * The point of the goals: a playable session from a cold start in one tap,
+ * where the wizard asked for a scope, a set of question types and a session
+ * length across three steps first.
+ */
+test("starts a quiz from a goal in one tap", async ({ page }) => {
+  await page.goto("/quiz");
+  await expect(page.locator("h1")).toBeVisible({ timeout: 15_000 });
+
+  // The button reads "Start"; its accessible name carries the goal, so three
+  // cards do not offer three buttons all called the same thing.
+  await page
+    .getByRole("button", { name: /Review what you read|راجع ما قرأته/i })
+    .click();
+
+  // The progress is the header's status line; the heading is the question
+  // itself, whichever type the generator picked.
+  await expect(
+    page.getByText(/Question 1 of|السؤال ١ من/i).first(),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.locator('section[aria-labelledby="current-quiz-question"] h2'),
+  ).toBeVisible();
+  // Answerable, whatever type the generator picked: the choice types render
+  // pressable options, fill-blank renders a searchable listbox.
+  await expect(
+    page
+      .locator(
+        'section[aria-labelledby="current-quiz-question"] button[aria-pressed], section[aria-labelledby="current-quiz-question"] [role="option"]',
+      )
+      .first(),
+  ).toBeVisible();
+  await expectNoAccessibilityViolations(page);
+});
+
 test("completes a quiz and persists its semantic history", async ({ page }) => {
   await page.goto("/quiz");
   await expect(page.locator("h1")).toBeVisible({ timeout: 15_000 });
   await expectNoAccessibilityViolations(page);
+
+  // Setup opens on goals now; the wizard is one of them.
+  await page
+    .getByRole("button", { name: /Set it up myself|إعداد يدوي/i })
+    .click();
 
   await page
     .getByRole("button", {

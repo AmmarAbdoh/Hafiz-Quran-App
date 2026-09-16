@@ -24,7 +24,11 @@ import {
   type ReaderRecentEntry,
 } from "@/features/quran-reader/services/readerRecentsStorage";
 import type { MushafVerse } from "@/domain/quran";
-import { findMushafVerse, getSurahAyahCount } from "@/domain/quran";
+import {
+  findMushafVerse,
+  getSurahAyahCount,
+  searchSurahNumbers,
+} from "@/domain/quran";
 import {
   JUZ_NAMES,
   TOTAL_MUSHAF_PAGES,
@@ -34,8 +38,9 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { EmptyState } from "@/shared/components/EmptyState";
-import { ListRow } from "@/shared/components/ListRow";
+import { PageContainer } from "@/shared/components/PageContainer";
 import { Panel } from "@/shared/components/Panel";
+import { SelectableRow } from "@/shared/components/SelectableRow";
 import {
   Tabs,
   TabsContent,
@@ -102,12 +107,17 @@ export function IndexPage() {
     return search.length >= 2 ? searchAyahsByText(searchIndex, search, 12) : [];
   }, [ayahReference, mushafData, search, searchIndex]);
 
+  const surahMatches = searchSurahNumbers(search);
   const filteredSurahs = names
     .map((name, index) => ({ name, number: index + 1 }))
     .filter(
-      ({ name, number }) =>
-        textMatchesSearch(name, search) ||
-        textMatchesSearch(String(number), search),
+      ({ number }) => surahMatches === null || surahMatches.includes(number),
+    )
+    .sort((left, right) =>
+      surahMatches === null
+        ? 0
+        : surahMatches.indexOf(left.number) -
+          surahMatches.indexOf(right.number),
     );
 
   const filteredJuz = JUZ_NAMES.map((name, index) => ({
@@ -194,7 +204,7 @@ export function IndexPage() {
     (tab === "surah" || tab === "bookmarks");
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+    <PageContainer className="flex flex-col gap-6">
       <Panel as="header" variant="flush" className="space-y-2">
         <h1>{t("index.title")}</h1>
         <p className="text-body text-muted-foreground">
@@ -235,7 +245,6 @@ export function IndexPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="min-h-11"
                 onClick={() => navigateToRecent(navigate, entry)}
               >
                 {entry.label}
@@ -252,7 +261,7 @@ export function IndexPage() {
           </h2>
           <div className="overflow-hidden rounded-xl border border-border">
             {ayahMatches.map((result) => (
-              <ListRow
+              <SelectableRow
                 key={`${result.surah}:${result.ayah}`}
                 className="block rounded-none border-b border-border px-3 py-2.5 last:border-b-0"
                 onClick={() => handleAyahSelect(result.surah, result.ayah)}
@@ -265,14 +274,14 @@ export function IndexPage() {
                   >
                     {highlightSearchMatch(result.text, search)}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-label text-muted-foreground">
                     {t("search.resultMeta", {
                       surahName: surahName(result.surah),
                       ayah: formatNumber(result.ayah, locale),
                     })}
                   </p>
                 </span>
-              </ListRow>
+              </SelectableRow>
             ))}
           </div>
         </section>
@@ -280,19 +289,16 @@ export function IndexPage() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="grid h-auto w-full grid-cols-4 gap-1 p-1">
-          <TabsTrigger value="surah" className="min-h-11 text-xs sm:text-sm">
+          <TabsTrigger value="surah" className="min-h-11 text-label">
             {t("index.tabs.surah")}
           </TabsTrigger>
-          <TabsTrigger value="juz" className="min-h-11 text-xs sm:text-sm">
+          <TabsTrigger value="juz" className="min-h-11 text-label">
             {t("index.tabs.juz")}
           </TabsTrigger>
-          <TabsTrigger value="page" className="min-h-11 text-xs sm:text-sm">
+          <TabsTrigger value="page" className="min-h-11 text-label">
             {t("index.tabs.page")}
           </TabsTrigger>
-          <TabsTrigger
-            value="bookmarks"
-            className="min-h-11 text-xs sm:text-sm"
-          >
+          <TabsTrigger value="bookmarks" className="min-h-11 text-label">
             {t("index.tabs.bookmarks")}
           </TabsTrigger>
         </TabsList>
@@ -307,7 +313,7 @@ export function IndexPage() {
             <EmptyState title={t("navigation.noSurahs")} className="py-8" />
           ) : null}
           {filteredSurahs.map(({ name, number }) => (
-            <ListRow
+            <SelectableRow
               key={number}
               className="justify-between py-2"
               onClick={() => handleSurahSelect(number)}
@@ -316,7 +322,7 @@ export function IndexPage() {
                 <bdi>{formatNumber(number, locale)}</bdi>.{" "}
                 {highlightSearchMatch(name, search)}
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-label text-muted-foreground">
                 {t("metadata.ayahCount", {
                   count: getSurahAyahCount(mushafData, number),
                   formattedCount: formatNumber(
@@ -325,17 +331,17 @@ export function IndexPage() {
                   ),
                 })}
               </span>
-            </ListRow>
+            </SelectableRow>
           ))}
         </TabsContent>
 
         <TabsContent value="juz" className="mt-4">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {filteredJuz.map(({ name, juz }) => (
-              <button
+              <SelectableRow
                 key={juz}
-                type="button"
-                className="min-h-11 rounded-lg border px-2 py-2 text-start text-xs transition-colors hover:bg-muted"
+                variant="tile"
+                className="text-label"
                 onClick={() => handleJuzSelect(juz)}
               >
                 <span className="block font-semibold">
@@ -348,7 +354,7 @@ export function IndexPage() {
                 >
                   {highlightSearchMatch(name, search)}
                 </span>
-              </button>
+              </SelectableRow>
             ))}
           </div>
         </TabsContent>
@@ -363,15 +369,11 @@ export function IndexPage() {
               onChange={(event) => setPageInput(event.target.value)}
               className="min-h-11"
             />
-            <Button
-              type="button"
-              className="min-h-11"
-              onClick={() => handlePageGo()}
-            >
+            <Button type="button" onClick={() => handlePageGo()}>
               {t("navigation.goToPage")}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-label text-muted-foreground">
             {t("listenDialog.totalPages", {
               count: TOTAL_MUSHAF_PAGES,
               formattedCount: formatNumber(TOTAL_MUSHAF_PAGES, locale),
@@ -381,7 +383,7 @@ export function IndexPage() {
             <Button
               type="button"
               variant="outline"
-              className="min-h-11 w-full"
+              className="w-full"
               onClick={() => handlePageGo(search)}
             >
               {t("index.openPageSearch", { query: search })}
@@ -394,7 +396,7 @@ export function IndexPage() {
             <EmptyState
               title={t("index.noBookmarks")}
               action={
-                <Button asChild variant="link" className="min-h-11">
+                <Button asChild variant="link">
                   <Link to={buildQuranReaderPath(1)}>
                     {t("index.openReader")}
                   </Link>
@@ -403,7 +405,7 @@ export function IndexPage() {
             />
           ) : (
             bookmarkEntries.map((entry) => (
-              <ListRow
+              <SelectableRow
                 key={entry.verseKey}
                 className="block rounded-lg border border-border px-3 py-2.5"
                 onClick={() => handleAyahSelect(entry.surah, entry.ayah)}
@@ -428,11 +430,11 @@ export function IndexPage() {
                     </p>
                   ) : null}
                 </span>
-              </ListRow>
+              </SelectableRow>
             ))
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContainer>
   );
 }

@@ -10,17 +10,31 @@
     -webkit-touch-callout: none;
   }
 
-  .mushaf-ayah-run[role="group"] {
+  /* Matches the run whether it is an inert group or, once the page is
+     interactive, the button that opens the verse actions. */
+  .mushaf-ayah-run[role] {
     -webkit-user-select: text;
     user-select: text;
   }
 
+  /* Keyboard focus lands on an ayah, whether the run itself carries it or,
+     on a full page, the first word group standing in for it. */
+  .mushaf-ayah-run[role="button"]:focus-visible,
+  .mushaf-word-group--ayah:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--ring) 72%, transparent);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
   .mushaf-surah-header-block {
     --mushaf-header-spacer-lines: 0;
+    /* 1 unless the opening has been given fewer slots than it needs. */
+    --mushaf-header-line-fit: 1;
     display: flex;
     width: 100%;
     flex-direction: column;
-    margin-bottom: 0.45em;
+    /* No outer margin: the block occupies whole line slots of the page grid,
+       and a margin on top of them put the page off its own 15-line rhythm. */
   }
 
   .mushaf-surah-header__spacer {
@@ -38,7 +52,9 @@
   .mushaf-surah-header {
     display: flex;
     width: 100%;
-    min-height: var(--mushaf-line-height, 2.5rem);
+    min-height: calc(
+      var(--mushaf-line-height, 2.5rem) * var(--mushaf-header-line-fit)
+    );
     align-items: center;
     justify-content: center;
     gap: 0.4em;
@@ -54,6 +70,25 @@
   .mushaf-page--full .mushaf-surah-header {
     inline-size: var(--mushaf-line-width);
     margin-inline: auto;
+  }
+
+  /*
+   * A full page is a fixed-proportion artefact scaled to fit its stage, and
+   * the name band was the one part of it that escaped that: its type came from
+   * clamp(..., 3.6vw, ...), so on a wide, short window it was sized off the
+   * width while every line of Quran around it was sized off the height. That
+   * made a surah opening tall out of all proportion to the page carrying it.
+   * It scales with the page now, like the bismillah beneath it.
+   */
+  .mushaf-page--full .mushaf-surah-header__name {
+    font-size: calc(var(--mushaf-font-size, 1rem) * 1.05);
+    line-height: calc(
+      var(--mushaf-line-height, 2.5rem) * var(--mushaf-header-line-fit)
+    );
+  }
+
+  .mushaf-page--full .mushaf-surah-header__bracket {
+    font-size: calc(var(--mushaf-font-size, 1rem) * 1.2);
   }
 
   .mushaf-surah-header__bracket {
@@ -78,7 +113,9 @@
   .mushaf-bismillah {
     margin: 0;
     width: 100%;
-    min-height: var(--mushaf-line-height, 2.5rem);
+    min-height: calc(
+      var(--mushaf-line-height, 2.5rem) * var(--mushaf-header-line-fit)
+    );
     padding-inline: 0.5rem;
     text-align: center;
     font-size: clamp(1rem, 3vw, 1.65rem);
@@ -94,30 +131,73 @@
     inline-size: var(--mushaf-line-width);
     margin-inline: auto;
     font-size: calc(var(--mushaf-font-size, 1rem) * 0.92);
-    line-height: var(--mushaf-line-height, 2.5rem);
+    line-height: calc(
+      var(--mushaf-line-height, 2.5rem) * var(--mushaf-header-line-fit)
+    );
   }
 
+  /*
+   * A mushaf page is a fixed-proportion artefact, so it is scaled to fit the
+   * stage rather than sized from the viewport: the page fits the box it is
+   * given, exactly like `object-fit: contain`.
+   *
+   * Both ratios are the ones the app already used, kept deliberately so no
+   * page becomes denser or sparser than before:
+   *   --mushaf-measure-ratio  17.45 = 64.5vh / 3.7vh  (line width : font size)
+   *   --mushaf-leading-ratio   1.824 = 6.75vh / 3.7vh (line height : font size)
+   * A spread line has a fixed word count, so glyph size is bound to the line
+   * width - the two have to scale together or the surplus spills past the
+   * inline end.
+   *
+   * Height is budgeted for the 15-line Madani grid (`MUSHAF_LINES_PER_PAGE`),
+   * which `buildFullWordLines` pads every page out to. Because the scale
+   * depends only on the stage box and never on page content, every page
+   * renders at the same type size - the thing that previously changed from
+   * page to page as a per-page measuring pass re-fitted each one.
+   */
   .mushaf-page--full {
-    --mushaf-page-fit: 1;
+    --mushaf-measure-ratio: 17.45;
+    --mushaf-leading-ratio: 1.824;
+    --mushaf-page-rows: 15;
+    --mushaf-gutter-inline: 1.5rem;
+    --mushaf-gutter-block: 3rem;
+    /*
+     * A constant, not the dock's measured height: the bottom bar changes
+     * shape when a recitation starts, and letting that feed the fit would
+     * resize every glyph on the page underneath the reader's eyes. Taller
+     * bars are handled by the stage's own scroll padding instead.
+     */
+    --mushaf-dock-allowance: 4.5rem;
+
+    --mushaf-fit-width: calc(
+      (100cqw - var(--mushaf-gutter-inline)) / var(--mushaf-measure-ratio)
+    );
+    /* Replaced inside the @supports below; this value only ever applies where
+       size containers are unavailable, and matches the previous sizing. */
+    --mushaf-fit-height: 3.7vh;
+
     --mushaf-font-size: calc(
-      var(--mushaf-font-size-base, clamp(1rem, 10vw, 1.55rem)) *
+      min(var(--mushaf-fit-width), var(--mushaf-fit-height)) *
         var(--mushaf-scale, 1)
     );
     --mushaf-line-height: calc(
-      var(--mushaf-line-height-base, clamp(2.1rem, 6.75vh, 3.1rem)) *
-        var(--mushaf-scale, 1)
+      var(--mushaf-font-size) * var(--mushaf-leading-ratio)
     );
-    /* A spread line has a fixed word count, so glyph size is bound to the line
-       width: the text scale has to widen the line, not just the font, or the
-       surplus spills past the inline end and is swallowed by `overflow: clip`.
-       The width can never exceed the viewport minus the page wrapper's gutters
-       and room for a thin scrollbar, otherwise the stage clips it instead. */
-    --mushaf-line-width: min(
-      calc(100vw - 1.5rem),
-      calc(64.5vh * var(--mushaf-scale, 1))
+    --mushaf-line-width: calc(
+      var(--mushaf-font-size) * var(--mushaf-measure-ratio)
     );
+
     inline-size: var(--mushaf-line-width);
     margin-inline: auto;
+  }
+
+  @supports (container-type: size) {
+    .mushaf-page--full {
+      --mushaf-fit-height: calc(
+        (100cqh - var(--mushaf-gutter-block) - var(--mushaf-dock-allowance)) /
+          (var(--mushaf-page-rows) * var(--mushaf-leading-ratio))
+      );
+    }
   }
 
   .mushaf-line {
@@ -171,7 +251,7 @@
     justify-content: space-between;
     direction: rtl;
     overflow: clip;
-    font-size: calc(var(--mushaf-font-size) * var(--mushaf-page-fit, 1));
+    font-size: var(--mushaf-font-size);
     line-height: var(--mushaf-line-height);
   }
 
@@ -390,19 +470,10 @@
     }
   }
 
+  /* Only the continuously scrolled surah view still sizes from the viewport;
+     a full page is scaled to fit its stage instead. The 1024px copy of this
+     block set the same two values again and did nothing. */
   @media (min-width: 640px) {
-    .mushaf-line {
-      --mushaf-font-size-base: 3.7vh;
-      --mushaf-line-height-base: 6.75vh;
-    }
-
-    .mushaf-page--full {
-      --mushaf-font-size-base: 3.7vh;
-      --mushaf-line-height-base: 6.75vh;
-    }
-  }
-
-  @media (min-width: 1024px) {
     .mushaf-line {
       --mushaf-font-size-base: 3.7vh;
       --mushaf-line-height-base: 6.75vh;

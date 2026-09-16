@@ -192,6 +192,85 @@ describe("question generation", () => {
     expect(question.searchOptions).toHaveLength(surah.length);
   });
 
+  /*
+   * Answering fill-blank used to mean typing Arabic to filter as many as 286
+   * whole-ayah options, while every other question type is a tap.
+   */
+  describe("fill-blank options", () => {
+    // A long surah, so there is something to draw distractors from that is
+    // not printed around the blank.
+    const longSurah: MushafVerse[] = Array.from({ length: 20 }, (_, index) =>
+      makeVerse(index + 1, `آية رقم ${index + 1} من هذه السورة`, {
+        id: 8000 + index,
+      }),
+    );
+
+    function build(pool: MushafVerse[], data: MushafVerse[]) {
+      const question = generateQuizQuestion({
+        verse: pool[Math.floor(pool.length / 2)]!,
+        questionType: "fill_blank",
+        pool,
+        mushafData: data,
+        verseInfoRecords: records,
+        surahName,
+        verseRef,
+      });
+      return question?.type === "fill_blank" ? question : null;
+    }
+
+    it("offers a few options to tap, with the answer among them", () => {
+      const question = build(longSurah, longSurah);
+
+      expect(question).not.toBeNull();
+      expect(question!.choices).toHaveLength(4);
+      expect(question!.choices.map((choice) => choice.id)).toContain(
+        question!.hiddenVerseKey,
+      );
+    });
+
+    it("keeps the whole surah reachable for searching", () => {
+      const question = build(longSurah, longSurah);
+      expect(question!.searchOptions).toHaveLength(longSurah.length);
+    });
+
+    /*
+     * The ayahs printed around the blank are on the page. Offering them as
+     * options offers answers the learner can rule out by looking rather than
+     * by remembering.
+     */
+    it("does not offer an ayah that is visible around the blank", () => {
+      // The anchor is the middle of the pool, so the page shows it and its two
+      // neighbours; whichever of the three is blanked, the other two are read.
+      const anchorAyah = longSurah[Math.floor(longSurah.length / 2)]!.aya_no;
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        const question = build(longSurah, longSurah);
+        const hidden = question!.hiddenVerseKey;
+        const visible = new Set(
+          [anchorAyah - 1, anchorAyah, anchorAyah + 1]
+            .map((n) => `112:${n}`)
+            .filter((key) => key !== hidden),
+        );
+        const distractors = question!.choices
+          .map((choice) => choice.id)
+          .filter((id) => id !== hidden);
+
+        for (const id of distractors) {
+          expect(visible.has(id), `${id} is printed beside the blank`).toBe(
+            false,
+          );
+        }
+      }
+    });
+
+    it("falls back to search alone when nothing can stand in", () => {
+      // Two ayahs: whichever is hidden, the other one is printed beside it.
+      const pair = [longSurah[0]!, longSurah[1]!];
+      const question = build(pair, pair);
+      expect(question!.choices).toHaveLength(0);
+      expect(question!.searchOptions.length).toBeGreaterThan(0);
+    });
+  });
+
   it("names the chosen and correct options for review", () => {
     const question = generateQuizQuestion({
       verse: surah[0]!,

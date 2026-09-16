@@ -1,16 +1,10 @@
-import type { CSSProperties, MouseEvent, PointerEvent } from "react";
+import type { CSSProperties } from "react";
 import type { MushafWord } from "../model";
 import { cn } from "@/shared/lib/utils";
-
-type MushafWordActivationHandler = (
-  word: MushafWord,
-  event: MouseEvent<HTMLButtonElement>,
-) => void;
-
-type MushafWordPointerHandler = (
-  word: MushafWord,
-  event: PointerEvent<HTMLButtonElement>,
-) => void;
+import type {
+  MushafWordActivateHandler,
+  MushafWordPointerHandler,
+} from "./wordActivation";
 
 interface MushafWordGlyphProps {
   word: MushafWord;
@@ -25,7 +19,7 @@ interface MushafWordGlyphProps {
   bookmarked?: boolean;
   incorrectLabel?: string;
   wordZIndex?: number;
-  onActivate?: MushafWordActivationHandler;
+  onActivate?: MushafWordActivateHandler;
   onPointerDown?: MushafWordPointerHandler;
   onPointerUp?: () => void;
   onPointerCancel?: () => void;
@@ -111,13 +105,20 @@ export function MushafWordGlyph({
     return <span {...contentAttributes}>{word.code_v2}</span>;
   }
 
+  /*
+   * A span, not a button. The glyph is hidden from assistive technology and
+   * kept out of the tab order - a page announced one glyph at a time would be
+   * unusable - so it was never a control in any sense that reached a screen
+   * reader; it existed only to catch pointer events, which a span catches just
+   * as well. As a button it also nested inside the ayah's own control, which
+   * axe rightly rejects: a negative tabindex inside an interactive element
+   * does not stop assistive technology reaching it.
+   */
   return (
-    <button
+    <span
       {...contentAttributes}
-      type="button"
-      tabIndex={-1}
       aria-hidden
-      aria-pressed={selected || undefined}
+      data-selected={selected || undefined}
       onClick={(event) => {
         event.stopPropagation();
         onActivate?.(word, event);
@@ -129,6 +130,6 @@ export function MushafWordGlyph({
       onPointerCancel={onPointerCancel}
     >
       {word.code_v2}
-    </button>
+    </span>
   );
 }

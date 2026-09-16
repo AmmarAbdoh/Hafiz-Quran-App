@@ -57,6 +57,32 @@ describe("quiz choice interactions", () => {
     ).toBeDisabled();
   });
 
+  /*
+   * complete_ayah offers whole ayah continuations as options. line-clamp-3 cut
+   * them off, so the learner could be asked to choose between texts they could
+   * not finish reading - which makes the question unanswerable, not untidy.
+   */
+  it("shows a long option in full rather than truncating it", () => {
+    const longAyah =
+      "الحمد لله الذي أنزل على عبده الكتاب ولم يجعل له عوجا قيما لينذر بأسا شديدا من لدنه ويبشر المؤمنين الذين يعملون الصالحات أن لهم أجرا حسنا";
+
+    const { container } = renderWithTranslations(
+      <QuizChoiceGrid
+        choices={[
+          { id: "long", label: longAyah },
+          { id: "short", label: "قصيرة" },
+        ]}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: longAyah })).toBeInTheDocument();
+    expect(container.querySelector(".line-clamp-3")).toBeNull();
+    // The grid scrolls instead, so a tall set of options cannot push the rest
+    // of the question off the screen.
+    expect(container.querySelector(".overflow-y-auto")).not.toBeNull();
+  });
+
   it("supports keyboard selection in the searchable combobox", () => {
     const onConfirm = vi.fn();
     renderWithTranslations(

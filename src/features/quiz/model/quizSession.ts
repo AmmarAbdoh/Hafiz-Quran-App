@@ -80,3 +80,62 @@ export function collectWeakVerses(
     )
     .slice(0, limit);
 }
+
+/** Sessions counted towards the accuracy shown on the home page. */
+const RECENT_SESSION_COUNT = 5;
+
+export interface QuizProgress {
+  sessions: number;
+  /** Consecutive days ending today, or yesterday if today has no session yet. */
+  streakDays: number;
+  /** Share correct over the most recent sessions; null before any were answered. */
+  recentAccuracy: number | null;
+  weakVerseCount: number;
+}
+
+function localDayKey(date: Date): string {
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+/**
+ * What a learner has to show for their reviews. Every part of this was already
+ * being written to storage after each session and never read back, so the app
+ * asked people to memorize and then told them nothing about how it was going.
+ */
+export function summarizeQuizProgress(
+  sessions: readonly QuizSessionSummaryV3[],
+  now: Date = new Date(),
+): QuizProgress {
+  const days = new Set<string>();
+  for (const session of sessions) {
+    const completed = new Date(session.completedAt);
+    if (!Number.isNaN(completed.getTime())) days.add(localDayKey(completed));
+  }
+
+  /*
+   * A day that has not ended cannot break a streak: someone who reviewed
+   * daily for a week and has not yet opened the app today is still on seven
+   * days, not zero. So counting starts at today when today has a session and
+   * at yesterday when it does not.
+   */
+  const cursor = new Date(now);
+  if (!days.has(localDayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+
+  let streakDays = 0;
+  while (days.has(localDayKey(cursor))) {
+    streakDays += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  // Newest first, as saveQuizSession stores them.
+  const recent = sessions.slice(0, RECENT_SESSION_COUNT);
+  const asked = recent.reduce((total, s) => total + s.questionCount, 0);
+  const correct = recent.reduce((total, s) => total + s.correctCount, 0);
+
+  return {
+    sessions: sessions.length,
+    streakDays,
+    recentAccuracy: asked > 0 ? correct / asked : null,
+    weakVerseCount: collectWeakVerses(sessions, Number.MAX_SAFE_INTEGER).length,
+  };
+}

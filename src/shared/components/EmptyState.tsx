@@ -23,7 +23,7 @@ export function EmptyState({
     >
       <h2 className="text-subheading font-semibold tracking-tight">{title}</h2>
       {description ? (
-        <p className="mt-2 max-w-md text-body-sm text-muted-foreground">
+        <p className="mt-2 max-w-md text-label text-muted-foreground">
           {description}
         </p>
       ) : null}

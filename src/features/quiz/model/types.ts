@@ -58,6 +58,9 @@ export interface FillBlankQuizQuestion extends QuizQuestionBase {
   hiddenVerse: MushafVerse;
   hiddenVerseKey: string;
   page: number;
+  /** A few options to tap. Empty when the surah cannot supply a distractor. */
+  choices: QuizChoice[];
+  /** Every ayah it could be, for the learner who wants to search instead. */
   searchOptions: QuizChoice[];
 }
 

@@ -20,6 +20,7 @@ import {
 import { getWordAudioUrl } from "@/domain/quran";
 import { findMushafVerse } from "@/domain/quran";
 import type {
+  MushafActivationEvent,
   MushafVerse as MushafVerseType,
   MushafWord as MushafWordType,
 } from "@/domain/quran";
@@ -180,7 +181,7 @@ export function useMushafVerseInteractions({
   );
 
   const activateWord = useCallback(
-    (fallbackWord: MushafWordType, event: React.MouseEvent<HTMLElement>) => {
+    (fallbackWord: MushafWordType, event: MushafActivationEvent) => {
       if (longPressTriggeredRef.current) {
         longPressTriggeredRef.current = false;
         return;
@@ -190,9 +191,13 @@ export function useMushafVerseInteractions({
       let element = event.currentTarget;
       let word = fallbackWord;
 
-      const pointerGenerated = event.detail > 0;
-
-      if (line && pointerGenerated) {
+      /*
+       * Only a pointer says *where* it landed, and the glyphs sit close enough
+       * together that the element receiving the event is not always the one
+       * under the finger. A keyboard activation has no coordinates to resolve
+       * and acts on the ayah that held focus.
+       */
+      if (line && event.detail > 0 && "clientX" in event) {
         const resolved = resolveWordElementInLine(
           line as HTMLElement,
           event.clientX,
@@ -204,7 +209,13 @@ export function useMushafVerseInteractions({
         }
       }
 
-      const isEnd = word.char_type === "end";
+      /*
+       * Keyboard focus covers a whole ayah, so Enter always opens the ayah's
+       * actions. Which word stands in for the run cannot decide that: an ayah
+       * running over several lines has its end marker only on the last of
+       * them, and every earlier run would otherwise open word actions.
+       */
+      const isEnd = word.char_type === "end" || !("clientX" in event);
 
       setSelection((prev) => {
         if (isEnd) {

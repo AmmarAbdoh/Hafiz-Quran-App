@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Badge } from "@/shared/components/ui/badge";
+import { Panel } from "@/shared/components/Panel";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 import type { MushafVerse } from "@/domain/quran";
@@ -78,7 +78,7 @@ export function QuizResults({
 
   return (
     <div className="space-y-6">
-      <section className="editorial-panel text-center">
+      <Panel className="text-center">
         <h2 ref={headingRef} tabIndex={-1}>
           {t("results.title")}
         </h2>
@@ -107,7 +107,7 @@ export function QuizResults({
             })}
           </p>
         )}
-      </section>
+      </Panel>
 
       {historySaveFailed && (
         <p
@@ -122,7 +122,12 @@ export function QuizResults({
         <h3 id="quiz-accuracy-title" className="font-semibold">
           {t("results.accuracyTitle")}
         </h3>
-        <div className="flex flex-wrap gap-2">
+        {/*
+          Bars, not a wrapped row of outline badges reading "Label: 3/5 (60%)".
+          The point of this list is which kinds of question went badly, and
+          comparing numbers inside chips is exactly what a bar does for free.
+        */}
+        <ul className="space-y-3">
           {Object.entries(summary.accuracyByType).map(([type, stats]) => {
             const questionType = type as QuestionType;
             const typePercentage =
@@ -130,17 +135,33 @@ export function QuizResults({
                 ? 0
                 : Math.round((stats.correct / stats.total) * 100);
             return (
-              <Badge key={type} variant="outline">
-                {formatQuestionType(questionType)}:{" "}
-                {formatNumber(stats.correct)}/{formatNumber(stats.total)} (
-                {t("results.percentage", {
-                  count: formatNumber(typePercentage),
-                })}
-                )
-              </Badge>
+              <li key={type} className="space-y-1.5">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 truncate text-label font-medium">
+                    {formatQuestionType(questionType)}
+                  </span>
+                  <span className="shrink-0 text-label tabular-nums text-muted-foreground">
+                    {formatNumber(stats.correct)}/{formatNumber(stats.total)}
+                    {" · "}
+                    {t("results.percentage", {
+                      count: formatNumber(typePercentage),
+                    })}
+                  </span>
+                </div>
+                {/* The numbers above are the accessible version of this. */}
+                <div
+                  aria-hidden
+                  className="h-2 overflow-hidden rounded-full bg-surface-sunken"
+                >
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${typePercentage}%` }}
+                  />
+                </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </section>
 
       <section className="space-y-2" aria-labelledby="quiz-review-title">
@@ -165,6 +186,9 @@ export function QuizResults({
                   aria-expanded={expanded}
                   onClick={() => setExpandedId(expanded ? null : rowId)}
                 >
+                  {/* The icon was aria-hidden and a badge at the far end of
+                      the row repeated it in words. One verdict: the icon,
+                      carrying the word for anyone who cannot see it. */}
                   {answer.isCorrect ? (
                     <Check
                       className="h-4 w-4 shrink-0 text-success"
@@ -176,6 +200,11 @@ export function QuizResults({
                       aria-hidden
                     />
                   )}
+                  <span className="sr-only">
+                    {answer.isCorrect
+                      ? t("results.correct")
+                      : t("results.incorrect")}
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">
                       {t("results.questionLabel", {
@@ -183,15 +212,10 @@ export function QuizResults({
                       })}{" "}
                       · {formatQuestionType(answer.questionType)}
                     </span>
-                    <span className="block truncate text-caption text-muted-foreground">
+                    <span className="block truncate text-label text-muted-foreground">
                       {formatVerseKey(answer.testedVerseKey)}
                     </span>
                   </span>
-                  <Badge variant={answer.isCorrect ? "success" : "destructive"}>
-                    {answer.isCorrect
-                      ? t("results.correct")
-                      : t("results.incorrect")}
-                  </Badge>
                   <ChevronDown
                     className={cn(
                       "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
@@ -226,23 +250,25 @@ export function QuizResults({
         </ol>
       </section>
 
+      {/* Reviewing the misses is the reason to have them, so it leads when
+          there are any; repeating the same session is the fallback. */}
       <div className="flex flex-wrap gap-2">
-        <Button className="min-h-11" onClick={onRetry}>
-          {t("results.retry")}
-        </Button>
         {missedVerseKeys.length > 0 && (
-          <Button
-            variant="secondary"
-            className="min-h-11"
-            onClick={() => onReviewMistakes(missedVerseKeys)}
-          >
+          <Button size="lg" onClick={() => onReviewMistakes(missedVerseKeys)}>
             {t("results.reviewMistakes", {
               count: missedVerseKeys.length,
               formattedCount: formatNumber(missedVerseKeys.length),
             })}
           </Button>
         )}
-        <Button variant="outline" className="min-h-11" onClick={onNewSetup}>
+        <Button
+          variant={missedVerseKeys.length > 0 ? "outline" : "default"}
+          size="lg"
+          onClick={onRetry}
+        >
+          {t("results.retry")}
+        </Button>
+        <Button variant="outline" size="lg" onClick={onNewSetup}>
           {t("results.newSetup")}
         </Button>
       </div>

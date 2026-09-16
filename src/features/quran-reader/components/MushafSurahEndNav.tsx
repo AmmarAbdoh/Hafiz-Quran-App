@@ -51,7 +51,7 @@ export function MushafSurahEndNav({
               {prevName}
             </bdi>
             {prevAyahs !== undefined && (
-              <span className="block text-xs text-muted-foreground">
+              <span className="block text-label text-muted-foreground">
                 {t("metadata.ayahCount", {
                   count: prevAyahs,
                   formattedCount: formatNumber(prevAyahs, locale),
@@ -78,7 +78,7 @@ export function MushafSurahEndNav({
               {nextName}
             </bdi>
             {nextAyahs !== undefined && (
-              <span className="block text-xs text-muted-foreground">
+              <span className="block text-label text-muted-foreground">
                 {t("metadata.ayahCount", {
                   count: nextAyahs,
                   formattedCount: formatNumber(nextAyahs, locale),

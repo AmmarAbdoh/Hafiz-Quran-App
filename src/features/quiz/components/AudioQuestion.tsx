@@ -36,15 +36,10 @@ export function AudioQuestion({
   return (
     <div className="space-y-6">
       <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-4 rounded-xl border bg-muted/20 p-6 text-center">
-        <p className="text-sm text-muted-foreground">
-          {question.audioPrompt === "surah"
-            ? t("prompts.audioSurah")
-            : t("prompts.audioNext")}
-        </p>
         <Button
           type="button"
           variant="outline"
-          className="min-h-11 gap-2"
+          className="gap-2"
           onClick={play}
           aria-label={statusLabel}
         >

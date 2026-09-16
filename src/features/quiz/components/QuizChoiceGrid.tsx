@@ -23,7 +23,13 @@ export function QuizChoiceGrid({
   const showResults = correctId !== null && selectedId !== null;
 
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-3 sm:grid-cols-2">
+    /*
+     * The grid scrolls; an option does not truncate. complete_ayah offers whole
+     * ayah continuations, and line-clamp-3 could cut one mid-word - asking the
+     * learner to choose between texts they cannot finish reading, which makes
+     * the question unanswerable rather than merely untidy.
+     */
+    <div className="app-main-scroll mx-auto grid max-h-[min(32rem,60vh)] w-full max-w-2xl gap-3 overflow-y-auto sm:grid-cols-2">
       {choices.map((choice) => {
         const isSelected = selectedId === choice.id;
         const isCorrect = showResults && choice.id === correctId;
@@ -48,10 +54,7 @@ export function QuizChoiceGrid({
             )}
           >
             <span className="flex items-start gap-2">
-              <QuizAnswerLabel
-                className="line-clamp-3 flex-1"
-                label={choice.label}
-              />
+              <QuizAnswerLabel className="flex-1" label={choice.label} />
               {isCorrect && (
                 <span className="inline-flex shrink-0 items-center gap-1">
                   <Check className="h-4 w-4" aria-hidden />

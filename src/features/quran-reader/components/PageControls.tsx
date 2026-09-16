@@ -91,8 +91,8 @@ export function PageControls({
   );
 
   const controlSize = "h-11 w-11";
-  const inputSize = compact ? "h-11 w-14 text-xs" : "h-11 w-16 text-sm";
-  const labelSize = compact ? "text-xs" : "text-sm";
+  const inputSize = compact ? "h-11 w-14 text-label" : "h-11 w-16 text-sm";
+  const labelSize = compact ? "text-label" : "text-sm";
   const iconSize = compact ? "h-3.5 w-3.5" : "h-4 w-4";
   const pillPadding = compact ? "p-0.5" : "p-1";
 
@@ -146,7 +146,8 @@ export function PageControls({
             setEditing(true);
           }}
           className={cn(
-            "flex min-w-[2.5rem] items-center justify-center rounded-full px-2 transition-colors hover:bg-background/80 sm:min-w-[2.75rem]",
+            // A target in its own right, not a label, so it keeps the 44px floor.
+            "flex min-w-11 items-center justify-center rounded-full px-2 transition-colors hover:bg-background/80",
             "min-h-11",
           )}
           aria-label={t("navigation.goToPage")}

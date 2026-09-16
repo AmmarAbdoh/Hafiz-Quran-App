@@ -66,9 +66,7 @@ export function QuizTypesStep({
     return (
       <fieldset className="space-y-2">
         <legend className="text-sm font-semibold">{t(titleKey)}</legend>
-        <p className="text-caption text-muted-foreground">
-          {t(descriptionKey)}
-        </p>
+        <p className="text-label text-muted-foreground">{t(descriptionKey)}</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {types.map((type) => {
             const Icon = TYPE_ICONS[type];
@@ -113,14 +111,14 @@ export function QuizTypesStep({
                       {formatQuestionType(type)}
                     </span>
                   </span>
-                  <span className="mt-1 block text-xs text-muted-foreground">
+                  <span className="mt-1 block text-label text-muted-foreground">
                     {t(`types.descriptions.${type}`)}
                   </span>
-                  <span className="mt-1 block text-xs italic text-muted-foreground">
+                  <span className="mt-1 block text-label italic text-muted-foreground">
                     {t(`types.examples.${type}`)}
                   </span>
                   {!availability.available && (
-                    <span className="mt-1.5 block text-xs font-medium text-destructive">
+                    <span className="mt-1.5 block text-label font-medium text-destructive">
                       {t(`types.unavailable.${availability.reason}`)}
                     </span>
                   )}
@@ -158,7 +156,7 @@ export function QuizTypesStep({
         aria-label={t("types.presetsLabel")}
         className="flex flex-wrap items-center gap-2"
       >
-        <span className="text-caption font-semibold text-muted-foreground">
+        <span className="text-label font-semibold text-muted-foreground">
           {t("types.presetsLabel")}
         </span>
         {QUIZ_PRESETS.map((preset: QuizPreset) => {
@@ -170,7 +168,7 @@ export function QuizTypesStep({
               size="sm"
               variant={active ? "default" : "outline"}
               aria-pressed={active}
-              className="min-h-11 rounded-full"
+              className="rounded-full"
               onClick={() =>
                 onTypesChange(getPresetQuestionTypes(preset, coverage))
               }
@@ -200,11 +198,10 @@ export function QuizTypesStep({
           })}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="min-h-11" onClick={onBack}>
+          <Button variant="outline" onClick={onBack}>
             {t("actions.back")}
           </Button>
           <Button
-            className="min-h-11"
             disabled={availableSelectedTypes.length === 0}
             onClick={handleContinue}
           >

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useListNavigation } from "@/shared/hooks/useListNavigation";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/components/ui/button";
@@ -15,7 +16,7 @@ import {
   buildAyahSearchIndex,
   searchAyahsByText,
 } from "@/features/quran-reader/model/ayahTextSearch";
-import { toArabicNumerals } from "@/shared/lib/arabic-numerals";
+import { formatNumber, useLocale } from "@/app/i18n";
 import { cn } from "@/shared/lib/utils";
 import { useSurahNames } from "@/domain/quran";
 import type { MushafVerse } from "@/domain/quran";
@@ -35,9 +36,9 @@ export function AyahSearchDialog({
 }: AyahSearchDialogProps) {
   const { t } = useTranslation("reader");
   const { t: tCommon } = useTranslation("common");
+  const { locale } = useLocale();
   const { surahName } = useSurahNames();
   const [query, setQuery] = useState("");
-  const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const searchIndex = useMemo(
@@ -58,70 +59,34 @@ export function AyahSearchDialog({
 
     if (!open) {
       setQuery("");
-      setActiveIndex(0);
     }
   }, [open]);
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
-
-  useEffect(() => {
-    const activeResult = results[activeIndex];
-    if (!activeResult) return;
-    document
-      .getElementById(
-        `ayah-search-result-${activeResult.surah}-${activeResult.ayah}`,
-      )
-      ?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex, results]);
 
   const selectResult = (surah: number, ayah: number) => {
     onAyahSelect(surah, ayah);
     onOpenChange(false);
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onOpenChange(false);
-      return;
-    }
+  const { activeIndex, setActiveIndex, onKeyDown } = useListNavigation({
+    count: results.length,
+    onSelect: (index) => {
+      const result = results[index];
+      if (result) selectResult(result.surah, result.ayah);
+    },
+    onDismiss: () => onOpenChange(false),
+    resetKey: query,
+  });
 
-    if (event.key === "Home" && results.length > 0) {
-      event.preventDefault();
-      setActiveIndex(0);
-      return;
-    }
+  const activeResult = results[activeIndex];
 
-    if (event.key === "End" && results.length > 0) {
-      event.preventDefault();
-      setActiveIndex(results.length - 1);
-      return;
-    }
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      if (results.length === 0) return;
-      setActiveIndex((current) => (current + 1) % results.length);
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      if (results.length === 0) return;
-      setActiveIndex(
-        (current) => (current - 1 + results.length) % results.length,
-      );
-      return;
-    }
-
-    if (event.key === "Enter" && results[activeIndex]) {
-      event.preventDefault();
-      selectResult(results[activeIndex].surah, results[activeIndex].ayah);
-    }
-  };
-
+  useEffect(() => {
+    if (!activeResult) return;
+    document
+      .getElementById(
+        `ayah-search-result-${activeResult.surah}-${activeResult.ayah}`,
+      )
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeResult]);
   const trimmedQuery = query.trim();
   const showMinLengthHint =
     trimmedQuery.length > 0 && trimmedQuery.length < 2 && results.length === 0;
@@ -142,13 +107,16 @@ export function AyahSearchDialog({
               <Input
                 id="ayah-text-search"
                 ref={inputRef}
-                dir="rtl"
-                lang="ar"
+                /* Not rtl/ar: the field accepts an Arabic ayah, a surah name
+                   in either script, and a reference like 2:255, so it cannot
+                   be one language. "auto" takes its direction from what is
+                   actually typed, a character at a time. */
+                dir="auto"
                 placeholder={t("search.placeholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="ps-9 text-right"
+                onKeyDown={onKeyDown}
+                className="ps-9"
                 autoComplete="off"
                 role="combobox"
                 aria-autocomplete="list"
@@ -199,18 +167,24 @@ export function AyahSearchDialog({
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => selectResult(result.surah, result.ayah)}
                 className={cn(
-                  "block w-full border-b border-border px-3 py-2.5 text-right transition-colors last:border-b-0",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  index === activeIndex && "bg-accent/70",
+                  "block w-full border-b border-border px-3 py-2.5 text-start transition-colors duration-fast ease-standard last:border-b-0",
+                  "hover:bg-surface-hover",
+                  index === activeIndex && "bg-surface-hover",
                 )}
               >
-                <p className="line-clamp-2 text-sm leading-relaxed">
+                {/* The ayah is Arabic whatever the interface language is, so
+                    it carries its own direction rather than inheriting one. */}
+                <p
+                  dir="rtl"
+                  lang="ar"
+                  className="line-clamp-2 text-sm leading-relaxed"
+                >
                   {result.text}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-label text-muted-foreground">
                   {t("search.resultMeta", {
                     surahName: surahName(result.surah),
-                    ayah: toArabicNumerals(result.ayah),
+                    ayah: formatNumber(result.ayah, locale),
                   })}
                 </p>
               </button>
@@ -222,18 +196,20 @@ export function AyahSearchDialog({
           {t("search.resultCount", { count: results.length })}
         </p>
 
-        {results.length > 0 && (
+        {activeResult && (
           <Button
             type="button"
             className="w-full sm:w-auto"
-            onClick={() =>
-              selectResult(
-                results[activeIndex]!.surah,
-                results[activeIndex]!.ayah,
-              )
-            }
+            onClick={() => selectResult(activeResult.surah, activeResult.ayah)}
           >
-            {t("search.go")}
+            {/* The key has always taken a label. Nothing passed one, so the
+                button read "Go to" and named nothing. */}
+            {t("search.go", {
+              label: t("search.resultMeta", {
+                surahName: surahName(activeResult.surah),
+                ayah: formatNumber(activeResult.ayah, locale),
+              }),
+            })}
           </Button>
         )}
       </DialogContent>

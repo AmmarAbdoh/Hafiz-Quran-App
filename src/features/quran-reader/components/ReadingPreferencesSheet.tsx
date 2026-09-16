@@ -1,24 +1,26 @@
+import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocale } from "@/app/i18n";
 import {
   MUSHAF_SCALE_STEPS,
   type MushafScale,
 } from "@/features/quran-reader/model/mushafScale";
-import { MushafLayoutSwitcher } from "@/features/quran-reader/components/MushafLayoutSwitcher";
-import type { MushafLayoutMode } from "@/features/quran-reader/model/quranReaderRoutes";
 import {
   RECITERS,
   TAFSEER_OPTIONS,
   useReciter,
   useTafseer,
 } from "@/domain/quran";
+import { Field } from "@/shared/components/Field";
 import { SearchableSelect } from "@/shared/components/SearchableSelect";
 import { Stepper } from "@/shared/components/Stepper";
 import { Switch } from "@/shared/components/Switch";
+import { Button } from "@/shared/components/ui/button";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/shared/components/ui/Sheet";
@@ -27,10 +29,9 @@ import { Label } from "@/shared/components/ui/label";
 interface ReadingPreferencesSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  layoutMode: MushafLayoutMode;
-  onLayoutModeChange: (mode: MushafLayoutMode) => void;
   tajweedColored: boolean;
   onTajweedColoredChange: (value: boolean) => void;
+  onOpenTajweedLegend: () => void;
   mushafWarmth: boolean;
   onMushafWarmthChange: (value: boolean) => void;
   mushafScale: MushafScale;
@@ -40,10 +41,9 @@ interface ReadingPreferencesSheetProps {
 export function ReadingPreferencesSheet({
   open,
   onOpenChange,
-  layoutMode,
-  onLayoutModeChange,
   tajweedColored,
   onTajweedColoredChange,
+  onOpenTajweedLegend,
   mushafWarmth,
   onMushafWarmthChange,
   mushafScale,
@@ -89,14 +89,9 @@ export function ReadingPreferencesSheet({
         </SheetHeader>
 
         <div className="space-y-5">
-          <div className="space-y-2">
-            <Label>{t("layout.label")}</Label>
-            <MushafLayoutSwitcher
-              layoutMode={layoutMode}
-              onLayoutModeChange={onLayoutModeChange}
-            />
-          </div>
-
+          {/* Layout is not here: it decides how the reader is moved through,
+              so it belongs in the header menu where it can be seen without
+              opening anything. */}
           <div className="space-y-2">
             <Label>{t("preferences.textSize")}</Label>
             <Stepper
@@ -115,9 +110,25 @@ export function ReadingPreferencesSheet({
           </div>
 
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="reader-pref-tajweed">
-              {t("header.tajweedColored")}
-            </Label>
+            <span className="flex min-w-0 items-center gap-1">
+              <Label htmlFor="reader-pref-tajweed">
+                {t("header.tajweedColored")}
+              </Label>
+              {/* The legend explaining what the colours mean had no way in at
+                  all until now; it belongs beside the switch that turns them
+                  on. */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-muted-foreground"
+                onClick={onOpenTajweedLegend}
+                aria-label={t("tajweed.showMeaning")}
+                title={t("tajweed.showMeaning")}
+              >
+                <Info className="h-4 w-4" aria-hidden />
+              </Button>
+            </span>
             <Switch
               id="reader-pref-tajweed"
               pressed={tajweedColored}
@@ -138,36 +149,47 @@ export function ReadingPreferencesSheet({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="reader-pref-reciter">
-              {t("preferences.reciter")}
-            </Label>
-            <SearchableSelect
-              id="reader-pref-reciter"
-              value={reciter.id}
-              options={reciterOptions}
-              onValueChange={setReciterId}
-              placeholder={tSettings("recitation.searchPlaceholder")}
-              searchPlaceholder={tCommon("select.search")}
-              emptyMessage={tSettings("recitation.empty")}
-            />
-          </div>
+          <Field id="reader-pref-reciter" label={t("preferences.reciter")}>
+            {({ id }) => (
+              <SearchableSelect
+                id={id}
+                value={reciter.id}
+                options={reciterOptions}
+                onValueChange={setReciterId}
+                placeholder={tSettings("recitation.searchPlaceholder")}
+                searchPlaceholder={tCommon("select.search")}
+                emptyMessage={tSettings("recitation.empty")}
+              />
+            )}
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="reader-pref-tafseer">
-              {t("preferences.tafseer")}
-            </Label>
-            <SearchableSelect
-              id="reader-pref-tafseer"
-              value={tafseerId}
-              options={tafseerOptions}
-              onValueChange={setTafseerId}
-              placeholder={tSettings("interpretation.label")}
-              searchPlaceholder={tCommon("select.search")}
-              emptyMessage={tCommon("select.empty")}
-            />
-          </div>
+          <Field id="reader-pref-tafseer" label={t("preferences.tafseer")}>
+            {({ id }) => (
+              <SearchableSelect
+                id={id}
+                value={tafseerId}
+                options={tafseerOptions}
+                onValueChange={setTafseerId}
+                placeholder={tSettings("interpretation.label")}
+                searchPlaceholder={tCommon("select.search")}
+                emptyMessage={tCommon("select.empty")}
+              />
+            )}
+          </Field>
         </div>
+
+        {/* The only way out was the small X in the corner, which on a phone is
+            the hardest thing on the sheet to hit. */}
+        <SheetFooter>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full sm:w-auto"
+            onClick={() => onOpenChange(false)}
+          >
+            {tCommon("actions.done")}
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

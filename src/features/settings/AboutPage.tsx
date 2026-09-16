@@ -1,5 +1,7 @@
 import { ExternalLink, Heart, Landmark } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { PageContainer } from "@/shared/components/PageContainer";
+import { Panel } from "@/shared/components/Panel";
 
 const dataSources = [
   {
@@ -45,7 +47,7 @@ export function AboutPage() {
   const { t: tA11y } = useTranslation("a11y");
 
   return (
-    <div className="mx-auto max-w-3xl space-y-7">
+    <PageContainer className="space-y-7">
       <header className="text-center">
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
           <Landmark aria-hidden="true" className="h-7 w-7" />
@@ -56,19 +58,19 @@ export function AboutPage() {
         </p>
       </header>
 
-      <section className="editorial-panel flex items-start gap-4">
+      <Panel className="flex items-start gap-4">
         <Heart
           aria-hidden="true"
           className="mt-0.5 h-5 w-5 shrink-0 text-primary"
         />
         <p className="text-sm leading-7">{t("about.gratitude")}</p>
-      </section>
+      </Panel>
 
       <section aria-labelledby="source-list-title">
         <h2 id="source-list-title">{t("about.sourcesTitle")}</h2>
         <div className="mt-4 grid gap-4">
           {dataSources.map((source) => (
-            <article key={source.url} className="editorial-panel">
+            <Panel key={source.url} as="article">
               <h3>
                 <a
                   href={source.url}
@@ -93,14 +95,14 @@ export function AboutPage() {
                   {t(source.licenseKey)}
                 </dd>
               </dl>
-            </article>
+            </Panel>
           ))}
         </div>
       </section>
 
-      <p className="rounded-xl border border-border bg-muted/45 px-4 py-3 text-center text-xs leading-6 text-muted-foreground">
+      <p className="rounded-xl border border-border bg-surface-sunken px-4 py-3 text-center text-label leading-6 text-muted-foreground">
         {t("about.report")}
       </p>
-    </div>
+    </PageContainer>
   );
 }

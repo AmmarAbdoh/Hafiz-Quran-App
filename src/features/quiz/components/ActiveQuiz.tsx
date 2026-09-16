@@ -1,8 +1,17 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Panel } from "@/shared/components/Panel";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog";
 import type { MushafVerse, VerseInfoRecord } from "@/domain/quran";
 import type { useQuizEngine } from "../hooks/useQuizEngine";
 import { useQuizFormatters } from "../hooks/useQuizFormatters";
@@ -29,8 +38,10 @@ export function ActiveQuiz({
   onExit,
 }: ActiveQuizProps) {
   const { t } = useTranslation("quiz");
+  const { t: tCommon } = useTranslation("common");
   const { formatNumber, formatQuestionType } = useQuizFormatters();
   const questionHeadingRef = useRef<HTMLHeadingElement>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const {
     currentQuestion,
     error,
@@ -58,6 +69,23 @@ export function ActiveQuiz({
       : t("active.questionProgressEndless", {
           current: formatNumber(progress.current),
         });
+  /*
+   * Audio asks one of two things depending on the question, and the info types
+   * name themselves; the four question components used to each render this.
+   */
+  const questionPrompt = !currentQuestion
+    ? ""
+    : currentQuestion.type === "fill_blank"
+      ? t("prompts.fillBlank")
+      : currentQuestion.type === "complete_ayah"
+        ? t("prompts.completeAyah")
+        : currentQuestion.type === "audio_identify"
+          ? t(
+              currentQuestion.audioPrompt === "surah"
+                ? "prompts.audioSurah"
+                : "prompts.audioNext",
+            )
+          : t(`prompts.${currentQuestion.type}`);
   const progressPercentage =
     progress.total > 0
       ? Math.min(100, (engine.answers.length / progress.total) * 100)
@@ -76,11 +104,15 @@ export function ActiveQuiz({
   return (
     <div className="space-y-6">
       {/* One row: where you are, what is being asked, and how to stop. */}
-      <header className="editorial-panel editorial-panel--inset sticky top-0 z-10 rounded-xl shadow-sm backdrop-blur">
+      <Panel
+        as="header"
+        variant="inset"
+        className="sticky top-0 z-sticky shadow-sm backdrop-blur"
+      >
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{progressText}</p>
-            <p className="truncate text-caption text-muted-foreground">
+            <p className="truncate text-label text-muted-foreground">
               {t("active.score", {
                 score: `${formatNumber(score.correct)}/${formatNumber(score.total)}`,
               })}
@@ -96,16 +128,21 @@ export function ActiveQuiz({
           <Button
             variant="outline"
             size="sm"
-            className="min-h-11 shrink-0"
+            className="shrink-0"
             onClick={onFinish}
           >
             {t("actions.finish")}
           </Button>
+          {/*
+            This throws the session away, and it sits a few millimetres from
+            the button that saves it. Asking first is the difference between
+            the two being adjacent and being interchangeable.
+          */}
           <Button
             variant="ghost"
             size="icon"
-            className="min-h-11 min-w-11 shrink-0"
-            onClick={onExit}
+            className="shrink-0"
+            onClick={() => setConfirmDiscard(true)}
             aria-label={t("actions.exit")}
             title={t("actions.exit")}
           >
@@ -128,29 +165,26 @@ export function ActiveQuiz({
             />
           </div>
         )}
-      </header>
+      </Panel>
 
       {error && (
-        <div
-          className="editorial-panel--inset rounded-xl border border-destructive/30 bg-destructive/5 text-center"
+        <Panel
+          variant="inset"
+          className="border-destructive/30 bg-destructive/5 text-center"
           role="alert"
         >
           <p className="text-destructive">{t(`errors.${error}`)}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
             {currentQuestion === null && phase === "feedback" ? (
-              <Button
-                className="min-h-11"
-                variant="default"
-                onClick={goToNextQuestion}
-              >
+              <Button variant="default" onClick={goToNextQuestion}>
                 {t("feedback.next")}
               </Button>
             ) : null}
-            <Button className="min-h-11" variant="outline" onClick={onExit}>
+            <Button variant="outline" onClick={onExit}>
               {t("actions.newSetup")}
             </Button>
           </div>
-        </div>
+        </Panel>
       )}
 
       {currentQuestion && !error && (
@@ -158,13 +192,19 @@ export function ActiveQuiz({
           key={currentQuestion.id}
           aria-labelledby="current-quiz-question"
         >
+          {/*
+            The question itself, as a heading a sighted reader can see. It was
+            sr-only and held the progress - which the header already states -
+            while the actual question was the smallest, most muted line on the
+            screen, inside each question component.
+          */}
           <h2
             id="current-quiz-question"
             ref={questionHeadingRef}
             tabIndex={-1}
-            className="sr-only"
+            className="mb-6 text-balance text-center text-subheading font-semibold focus-visible:outline-none"
           >
-            {progressText}
+            {questionPrompt}
           </h2>
           {currentQuestion.type === "fill_blank" && (
             <FillBlankQuestion question={currentQuestion} {...sharedProps} />
@@ -184,6 +224,26 @@ export function ActiveQuiz({
           )}
         </section>
       )}
+
+      <Dialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+        <DialogContent
+          closeLabel={tCommon("actions.close")}
+          className="max-w-md"
+        >
+          <DialogHeader>
+            <DialogTitle>{t("discard.title")}</DialogTitle>
+            <DialogDescription>{t("discard.description")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDiscard(false)}>
+              {t("discard.cancel")}
+            </Button>
+            <Button variant="destructive" onClick={onExit}>
+              {t("discard.confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

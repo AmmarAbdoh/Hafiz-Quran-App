@@ -27,12 +27,12 @@ describe("SettingsPage preferences", () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "English" }));
+    fireEvent.click(screen.getByRole("tab", { name: "English" }));
     await waitFor(() =>
       expect(screen.getByText("Settings")).toBeInTheDocument(),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Dark" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Dark" }));
     fireEvent.change(screen.getByLabelText("Default tafsir"), {
       target: { value: "4" },
     });

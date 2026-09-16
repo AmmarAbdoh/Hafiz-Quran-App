@@ -17,8 +17,7 @@ import { AyahSearchDialog } from "@/features/quran-reader/components/AyahSearchD
 import { ListenOptionsDialog } from "@/features/quran-reader/components/ListenOptionsDialog";
 import { MushafAudioBar } from "@/features/quran-reader/components/MushafAudioBar";
 import { MushafBottomChrome } from "@/features/quran-reader/components/MushafBottomChrome";
-import { MushafControlBar } from "@/features/quran-reader/components/MushafControlBar";
-import { MushafPageProgress } from "@/features/quran-reader/components/MushafPageProgress";
+import { MushafReaderBar } from "@/features/quran-reader/components/MushafReaderBar";
 import { ReadingPreferencesSheet } from "@/features/quran-reader/components/ReadingPreferencesSheet";
 import { MushafSurahViewer } from "@/features/quran-reader/components/MushafSurahViewer";
 import { MushafViewer } from "@/features/quran-reader/components/MushafViewer";
@@ -40,7 +39,7 @@ import { useReaderMetadata } from "@/features/quran-reader/hooks/useReaderMetada
 import { useReaderNavigation } from "@/features/quran-reader/hooks/useReaderNavigation";
 import { useReaderChrome } from "@/features/quran-reader/hooks/useReaderChrome";
 import { useReaderPositionPersistence } from "@/features/quran-reader/hooks/useReaderPositionPersistence";
-import { useSwipePageTurn } from "@/features/quran-reader/hooks/useSwipePageTurn";
+import { useReaderGestures } from "@/features/quran-reader/hooks/useReaderGestures";
 import { useReaderPreferences } from "@/features/quran-reader/hooks/useReaderPreferences";
 import { useSurahPageNavigation } from "@/features/quran-reader/hooks/useSurahPageNavigation";
 import { useVerseHighlight } from "@/features/quran-reader/hooks/useVerseHighlight";
@@ -221,28 +220,19 @@ export function QuranReaderPage() {
     swipeNavigationRef.current.onPrevious();
   }, []);
 
-  useSwipePageTurn({
-    enabled: !practiceMode && route.layoutMode === "page" && !loading && !error,
-    containerRef: mushafStageRef,
-    onNext: handleSwipeNext,
-    onPrevious: handleSwipePrevious,
-  });
+  const handleStageTap = useCallback(() => {
+    readerChrome.toggleControls();
+  }, [readerChrome]);
 
-  const handleStagePointerUp = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (practiceMode) return;
-      const target = event.target as HTMLElement;
-      if (
-        target.closest(
-          "button, a, input, textarea, [data-verse-actions], [role='dialog']",
-        )
-      ) {
-        return;
-      }
-      readerChrome.toggleControls();
-    },
-    [practiceMode, readerChrome],
-  );
+  useReaderGestures({
+    containerRef: mushafStageRef,
+    swipeEnabled:
+      !practiceMode && route.layoutMode === "page" && !loading && !error,
+    tapEnabled: !practiceMode,
+    onTap: handleStageTap,
+    onSwipeNext: handleSwipeNext,
+    onSwipePrevious: handleSwipePrevious,
+  });
 
   const togglePractice = useCallback(async () => {
     if (!RECITATION_PRACTICE_ENABLED || !currentPageLayout) return;
@@ -281,6 +271,11 @@ export function QuranReaderPage() {
     totalPages,
   ]);
 
+  const selectSurah = (surahIndex: number) => {
+    navigation.changeSurah(surahIndex + 1);
+    overlays.setSurahDrawerOpen(false);
+  };
+
   useReaderHeaderSync({
     // The header is driven by the route, not by Quran data, so it renders while
     // the page loads. Waiting would swap the shorter fallback bar for the full
@@ -289,8 +284,13 @@ export function QuranReaderPage() {
     setHeader,
     surahLabel: statusSurahLabel,
     page: statusPage,
+    layoutMode: route.layoutMode,
+    currentSurah: route.currentSurahIndex,
+    mushafData,
     practiceActive,
     practiceLoading,
+    onLayoutModeChange: navigation.changeLayoutMode,
+    onSurahSelect: selectSurah,
     onOpenSurahDrawer: overlays.openSurahDrawer,
     onOpenAyahSearch: overlays.openAyahSearch,
     onOpenListenOptions: overlays.openListenOptions,
@@ -341,8 +341,11 @@ export function QuranReaderPage() {
       />
     );
 
-  const pageProgress = (
-    <MushafPageProgress
+  // The strip always says where the page sits in the mushaf and, unless the
+  // reader has asked for a bare page, carries its navigation too. Playback and
+  // practice take the strip over entirely and supply their own.
+  let bottomBar: ReactNode = (
+    <MushafReaderBar
       page={statusPage}
       juzNumber={
         typeof metadata.juzNumber === "number" ? metadata.juzNumber : null
@@ -350,26 +353,15 @@ export function QuranReaderPage() {
       hizbNumber={
         typeof metadata.hizbNumber === "number" ? metadata.hizbNumber : null
       }
+      pageControls={pageControls}
+      showControls={readerChrome.controlsVisible}
     />
   );
-
-  // An untouched page states where it sits in the mushaf; a tap trades that row
-  // for page navigation, and playback takes the strip over entirely.
-  let bottomBar: ReactNode = pageProgress;
   if (practiceMode) {
     bottomBar = <PracticeAudioBar pageControls={pageControls} />;
   } else if (active) {
     // The playback row owns the strip and carries page navigation itself.
     bottomBar = <MushafAudioBar pageControls={pageControls} />;
-  } else if (readerChrome.controlsVisible) {
-    bottomBar = (
-      <MushafControlBar
-        pageControls={pageControls}
-        onKeepVisible={readerChrome.keepControlsVisible}
-        onSuspendAutoHide={readerChrome.suspendAutoHide}
-        onResumeAutoHide={readerChrome.resumeAutoHide}
-      />
-    );
   }
 
   const bottomChromeClassName = cn(
@@ -417,11 +409,6 @@ export function QuranReaderPage() {
     overlays.openListenOptions({ surah: surahNumber, scope: "surah" });
   };
 
-  const selectSurah = (surahIndex: number) => {
-    navigation.changeSurah(surahIndex + 1);
-    overlays.setSurahDrawerOpen(false);
-  };
-
   // The stage, the dock and the overlays render in every state. Swapping the
   // whole tree for a loading branch used to unmount an open dialog mid-flight,
   // which left its modal layer holding pointer events for the rest of the visit.
@@ -435,11 +422,9 @@ export function QuranReaderPage() {
         preferences.mushafWarmth && "mushaf-reader-layout--sepia",
       )}
     >
-      <div
-        ref={mushafStageRef}
-        className="mushaf-stage"
-        onPointerUp={handleStagePointerUp}
-      >
+      {/* Pointer handling lives in useReaderGestures, which decides in one
+          place whether a press was a tap or a page turn. */}
+      <div ref={mushafStageRef} className="mushaf-stage">
         <div
           className={cn(
             "mushaf-stage-inner",
@@ -495,10 +480,9 @@ export function QuranReaderPage() {
       <ReadingPreferencesSheet
         open={overlays.readingPreferencesOpen}
         onOpenChange={overlays.setReadingPreferencesOpen}
-        layoutMode={route.layoutMode}
-        onLayoutModeChange={navigation.changeLayoutMode}
         tajweedColored={preferences.tajweedColored}
         onTajweedColoredChange={preferences.changeTajweedColored}
+        onOpenTajweedLegend={overlays.openLegendGuide}
         mushafWarmth={preferences.mushafWarmth}
         onMushafWarmthChange={preferences.changeMushafWarmth}
         mushafScale={preferences.mushafScale}
@@ -521,6 +505,9 @@ export function QuranReaderPage() {
         mushafData={mushafData}
         totalPages={totalPages}
         preset={overlays.listenPreset}
+        currentPage={route.currentPage}
+        currentSurahNumber={route.currentSurahNumber}
+        layoutMode={route.layoutMode}
       />
       <SurahDrawer
         open={overlays.surahDrawerOpen}

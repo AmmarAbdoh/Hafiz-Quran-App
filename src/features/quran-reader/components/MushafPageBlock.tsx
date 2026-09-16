@@ -1,10 +1,10 @@
-import type { MouseEvent, PointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
   MushafPageView,
   type MushafPageLayout,
   type MushafVerse,
-  type MushafWord,
+  type MushafWordActivateHandler,
+  type MushafWordPointerHandler,
 } from "@/domain/quran";
 import type { VerseSelection } from "@/features/quran-reader/model/selection";
 import type { Theme } from "@/shared/hooks/use-theme";
@@ -28,14 +28,8 @@ interface MushafPageBlockProps {
   practiceTargetWordLocation?: string | null;
   practiceWrongFlashLocation?: string | null;
   bookmarkedVerseKeys?: ReadonlySet<string>;
-  onWordActivate?: (
-    word: MushafWord,
-    event: MouseEvent<HTMLButtonElement>,
-  ) => void;
-  onWordPointerDown?: (
-    word: MushafWord,
-    event: PointerEvent<HTMLButtonElement>,
-  ) => void;
+  onWordActivate?: MushafWordActivateHandler;
+  onWordPointerDown?: MushafWordPointerHandler;
   onWordPointerUp?: () => void;
   onWordPointerCancel?: () => void;
   className?: string;

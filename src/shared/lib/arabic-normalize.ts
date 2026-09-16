@@ -8,7 +8,8 @@ export function containsArabicScript(text: string): boolean {
 
 const ARABIC_INDIC_DIGITS_RE = /[\u0660-\u0669]/g;
 
-function normalizeDigits(text: string): string {
+/** Turns \u0662\u0665\u0665 into 255, so a typed reference parses whichever digits are used. */
+export function normalizeArabicDigits(text: string): string {
   return text.replace(ARABIC_INDIC_DIGITS_RE, (digit) =>
     String(digit.charCodeAt(0) - 0x0660),
   );
@@ -16,7 +17,7 @@ function normalizeDigits(text: string): string {
 
 /** Normalize Arabic for fuzzy speech-to-text matching against mushaf words. */
 export function normalizeArabicForMatch(text: string): string {
-  return normalizeDigits(text)
+  return normalizeArabicDigits(text)
     .replace(DIACRITICS_RE, "")
     .replace(/[أإآٱ]/g, "ا")
     .replace(/ى/g, "ي")

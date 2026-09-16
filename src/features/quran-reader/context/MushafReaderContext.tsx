@@ -5,13 +5,30 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { MushafVerse } from "@/domain/quran";
+import type { MushafLayoutMode } from "@/features/quran-reader/model/quranReaderRoutes";
 
 export interface MushafReaderHeaderState {
   /** Surah names on the visible page, already joined for the interface language. */
   surahLabel: string;
   page: number;
+  /**
+   * Page or surah. It decides how the reader is moved through - a page turns
+   * on a swipe, a surah scrolls - so the header states it rather than leaving
+   * it buried in the preferences sheet.
+   */
+  layoutMode: MushafLayoutMode;
+  /** Zero-based index of the surah being read, for the wide-screen rail. */
+  currentSurah: number | null;
+  /**
+   * The rail renders in the shell, which is above QuranDataProvider, so the
+   * data comes with the rest of the reader's state rather than from a hook.
+   */
+  mushafData: MushafVerse[];
   practiceActive: boolean;
   practiceLoading: boolean;
+  onLayoutModeChange: (mode: MushafLayoutMode) => void;
+  onSurahSelect: (surahIndex: number) => void;
   onOpenSurahDrawer: () => void;
   onOpenAyahSearch: () => void;
   onOpenListenOptions: () => void;

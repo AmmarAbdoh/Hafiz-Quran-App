@@ -9,20 +9,98 @@
   font-display: swap;
 }
 
+/*
+ * Source tokens. Anything that differs between light and dark lives here under
+ * a name of its own, and `globals.css` maps it onto a Tailwind namespace. A
+ * source token must never share its name with the namespace it feeds, or the
+ * mapping becomes a circular reference that resolves to nothing.
+ *
+ * Constants with no dark variant (radius, easing) are declared directly in the
+ * theme instead, so there is one place to read them.
+ */
 :root {
-  --radius: 1rem;
+  /* Surfaces, ordered from the page ground upward. Every "slightly different
+     background" is one of these steps; do not tint an existing one instead. */
   --background: #f6f7f7;
-  --foreground: #141718;
+  --surface-sunken: #edf0f0;
   --card: #ffffff;
-  --card-foreground: #141718;
+  --surface-raised: #ffffff;
   --popover: #ffffff;
+  --surface-hover: color-mix(in srgb, var(--primary) 6%, var(--card));
+  --surface-selected: color-mix(in srgb, var(--primary) 12%, var(--card));
+
+  --foreground: #141718;
+  --card-foreground: #141718;
   --popover-foreground: #141718;
+  --muted: #eef0f0;
+  --muted-foreground: #5a6160;
+
   --primary: #0f6b60;
   --primary-foreground: #ffffff;
   --secondary: #e8efed;
   --secondary-foreground: #0d4e46;
-  --muted: #eef0f0;
-  --muted-foreground: #5a6160;
+  --accent: color-mix(in srgb, var(--primary) 8%, var(--card));
+  --accent-foreground: var(--foreground);
+  --accent-strong: #7a5510;
+  --brand-gold: #c49a3c;
+  --destructive: #a93232;
+  --destructive-foreground: #ffffff;
+  --success: #1f6b4f;
+  --success-foreground: #f4fbf7;
+
+  /* Borders read as one material: fields and cards share a scale. */
+  --border-subtle: #eceeee;
+  --border: #e1e4e4;
+  --border-strong: #c9cfcf;
+  --input: var(--border-strong);
+  --ring: #0f6b60;
+
+  --editorial-ink-soft: #5a6160;
+  --editorial-sidebar-width: 17rem;
+  --content-max: 72rem;
+
+  --font-ui:
+    "Inter Variable", "Noto Sans Arabic Variable", system-ui, sans-serif;
+  --font-quran: "Uthmanic Hafs Local", serif;
+  --leading-ui: 1.6;
+
+  --space-section: 2.5rem;
+  --space-panel: 1.5rem;
+  --space-stack: 1rem;
+
+  /* Elevation rises with importance. Named `elevation-*` because `--shadow-*`
+     is Tailwind's own namespace and would collide. */
+  --elevation-xs: 0 1px 2px rgb(20 23 24 / 0.04);
+  --elevation-sm:
+    0 1px 3px rgb(20 23 24 / 0.06), 0 1px 2px -1px rgb(20 23 24 / 0.04);
+  --elevation-md:
+    0 4px 12px -2px rgb(20 23 24 / 0.08), 0 2px 4px -2px rgb(20 23 24 / 0.04);
+  --elevation-lg:
+    0 12px 28px -6px rgb(20 23 24 / 0.12), 0 4px 8px -4px rgb(20 23 24 / 0.06);
+  --elevation-xl:
+    0 24px 56px -12px rgb(20 23 24 / 0.18), 0 8px 16px -8px rgb(20 23 24 / 0.08);
+  /* Docked chrome casts upward, so it needs its own direction. */
+  --elevation-dock: 0 -8px 24px -8px rgb(20 23 24 / 0.12);
+
+  --shadow-panel: var(--elevation-sm);
+  --shadow-dock: var(--elevation-dock);
+  --shadow-overlay: var(--elevation-lg);
+
+  /* One stacking order for the whole app. Chrome that overlaps has to be
+     comparable, which it cannot be while each file invents its own number. */
+  --z-raised: 10;
+  --z-sticky: 20;
+  --z-header: 30;
+  --z-dock: 40;
+  --z-overlay: 50;
+  --z-toast: 60;
+  /* The skip link has to clear everything, including a toast. */
+  --z-skip-link: 70;
+
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
+
   --mushaf-ayah-highlight: color-mix(in srgb, var(--primary) 12%, transparent);
   --mushaf-ayah-highlight-strong: color-mix(
     in srgb,
@@ -34,31 +112,6 @@
     var(--primary) 28%,
     transparent
   );
-  --accent: color-mix(in srgb, var(--primary) 8%, var(--card));
-  --accent-foreground: var(--foreground);
-  --brand-gold: #c49a3c;
-  --surface-hover: color-mix(in srgb, var(--primary) 6%, var(--card));
-  --surface-selected: color-mix(in srgb, var(--primary) 12%, var(--card));
-  --destructive: #a93232;
-  --success: #1f6b4f;
-  --success-foreground: #f4fbf7;
-  --border: #e1e4e4;
-  --input: #c9cfcf;
-  --ring: #0f6b60;
-  --accent-strong: #7a5510;
-  --editorial-ink-soft: #5a6160;
-  --surface-raised: #ffffff;
-  --editorial-sidebar-width: 17rem;
-  --font-ui:
-    "Inter Variable", "Noto Sans Arabic Variable", system-ui, sans-serif;
-  --font-quran: "Uthmanic Hafs Local", serif;
-  --leading-ui: 1.6;
-  --space-section: 2.5rem;
-  --space-panel: 1.5rem;
-  --space-stack: 1rem;
-  --shadow-panel: 0 16px 40px rgb(20 23 24 / 0.08);
-  --shadow-dock: 0 -10px 28px rgb(20 23 24 / 0.1);
-  --shadow-overlay: 0 -8px 28px -12px rgb(0 0 0 / 0.14);
   --mushaf-header: color-mix(in srgb, var(--card) 92%, transparent);
   --mushaf-header-panel: var(--muted);
   --mushaf-page: #fbfaf8;
@@ -77,34 +130,50 @@
 
 .dark {
   --background: #111314;
-  --foreground: #e8eaea;
+  --surface-sunken: #0d0f10;
   --card: #191c1d;
+  --surface-raised: #1f2324;
+  /* Overlays sit above cards, so they must not share a value with them. */
+  --popover: #1f2324;
+  --surface-hover: color-mix(in srgb, var(--primary) 10%, var(--card));
+  --surface-selected: color-mix(in srgb, var(--primary) 18%, var(--card));
+
+  --foreground: #e8eaea;
   --card-foreground: #e8eaea;
-  --popover: #191c1d;
   --popover-foreground: #e8eaea;
+  --muted: #232728;
+  --muted-foreground: #a4abab;
+
   --primary: #5ec5b4;
   --primary-foreground: #06201c;
   --secondary: #213a33;
   --secondary-foreground: #dff5ee;
-  --muted: #232728;
-  --muted-foreground: #a4abab;
   --accent: color-mix(in srgb, var(--primary) 14%, var(--card));
   --accent-foreground: var(--foreground);
+  --accent-strong: #d3a958;
   --brand-gold: #d3a958;
-  --surface-hover: color-mix(in srgb, var(--primary) 10%, var(--card));
-  --surface-selected: color-mix(in srgb, var(--primary) 18%, var(--card));
   --destructive: #ed7777;
+  --destructive-foreground: #1a0d0d;
   --success: #6bc9a8;
   --success-foreground: #06201c;
+
+  --border-subtle: #24292a;
   --border: #2e3334;
-  --input: #43524b;
+  --border-strong: #3d4344;
   --ring: #6bc9b8;
-  --accent-strong: #d3a958;
+
   --editorial-ink-soft: #a4abab;
-  --surface-raised: #1f2324;
-  --shadow-panel: 0 20px 48px rgb(0 0 0 / 0.32);
-  --shadow-dock: 0 -10px 28px rgb(0 0 0 / 0.32);
-  --shadow-overlay: 0 -8px 28px -12px rgb(0 0 0 / 0.45);
+
+  --elevation-xs: 0 1px 2px rgb(0 0 0 / 0.24);
+  --elevation-sm: 0 1px 3px rgb(0 0 0 / 0.32), 0 1px 2px -1px rgb(0 0 0 / 0.24);
+  --elevation-md:
+    0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.28);
+  --elevation-lg:
+    0 12px 28px -6px rgb(0 0 0 / 0.48), 0 4px 8px -4px rgb(0 0 0 / 0.32);
+  --elevation-xl:
+    0 24px 56px -12px rgb(0 0 0 / 0.56), 0 8px 16px -8px rgb(0 0 0 / 0.4);
+  --elevation-dock: 0 -8px 24px -8px rgb(0 0 0 / 0.44);
+
   --mushaf-header: color-mix(in srgb, var(--card) 94%, transparent);
   --mushaf-header-panel: var(--muted);
   --mushaf-page: #15181a;

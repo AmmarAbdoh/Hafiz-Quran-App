@@ -142,7 +142,7 @@ export function MushafAudioBar({ pageControls }: MushafAudioBarProps) {
                 </span>
               )}
             </p>
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="truncate text-label text-muted-foreground">
               <bdi dir={nameDir} lang={surahLanguage}>
                 {surahName(playback.surah)}
               </bdi>{" "}
@@ -163,7 +163,7 @@ export function MushafAudioBar({ pageControls }: MushafAudioBarProps) {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="hidden min-h-11 shrink-0 gap-1.5 px-2.5 text-xs lg:inline-flex"
+                  className="hidden shrink-0 gap-1.5 px-2.5 text-label lg:inline-flex"
                   onClick={goToPlayingVerse}
                   title={t("audio.goToCurrent")}
                 >
@@ -208,7 +208,7 @@ export function MushafAudioBar({ pageControls }: MushafAudioBarProps) {
               <Square className="h-3.5 w-3.5 fill-current" aria-hidden />
             </Button>
             <span
-              className="hidden max-w-32 truncate text-xs tabular-nums text-muted-foreground xl:block"
+              className="hidden max-w-32 truncate text-label tabular-nums text-muted-foreground xl:block"
               dir="rtl"
               lang="ar"
             >
@@ -234,7 +234,7 @@ export function MushafAudioBar({ pageControls }: MushafAudioBarProps) {
       />
 
       {playback.error && (
-        <p className="px-3 pb-1 text-xs text-destructive" role="alert">
+        <p className="px-3 pb-1 text-label text-destructive" role="alert">
           {t("audio.error")}
         </p>
       )}

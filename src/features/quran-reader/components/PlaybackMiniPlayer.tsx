@@ -30,14 +30,16 @@ export function PlaybackMiniPlayer() {
   const OpenIcon = i18n.dir() === "rtl" ? ChevronLeft : ChevronRight;
 
   return (
-    <div className="playback-mini relative border-t border-border bg-card/95 shadow-[var(--shadow-dock)] backdrop-blur-md md:pb-[max(0px,env(safe-area-inset-bottom))]">
+    <div className="playback-mini relative border-t border-border bg-card/95 pb-[max(0px,env(safe-area-inset-bottom))] shadow-dock backdrop-blur-md">
+      {/* Unconditional, not md: and up - a notch is a phone concern, not a
+          desktop one, and the original breakpoint had that backwards. */}
       <div
         className="absolute start-0 top-0 h-0.5 bg-primary transition-[width] duration-200"
         style={{ inlineSize: `${progress}%` }}
         aria-hidden
       />
 
-      <div className="mx-auto flex max-w-6xl items-center gap-1 px-2 py-1 sm:px-4">
+      <div className="mx-auto flex max-w-content items-center gap-1 px-2 py-1 sm:px-4">
         <Button
           variant="ghost"
           size="icon"
@@ -64,7 +66,7 @@ export function PlaybackMiniPlayer() {
         <button
           type="button"
           onClick={goToPlayingVerse}
-          className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-start transition-colors hover:bg-muted"
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-start transition-colors duration-fast ease-standard hover:bg-surface-hover"
           title={t("audio.goToCurrent")}
         >
           <span className="min-w-0 flex-1">
@@ -77,7 +79,7 @@ export function PlaybackMiniPlayer() {
               </bdi>{" "}
               — {t("ayah")} {formatNumber(playback.currentAyah, locale)}
             </span>
-            <span className="block truncate text-xs text-muted-foreground">
+            <span className="block truncate text-label text-muted-foreground">
               {t("audio.goToCurrent")}
             </span>
           </span>

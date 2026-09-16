@@ -3,6 +3,7 @@ import {
   generateHiddenIndex,
   getAvailableQuestionTypes,
   getPresetQuestionTypes,
+  keepSupportedQuestionTypes,
   matchesPreset,
   pickQuestionType,
 } from "./questionTypes";
@@ -27,6 +28,39 @@ const singleSurahCoverage: ScopeCoverage = {
 describe("quiz question type rules", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  /*
+   * Changing scope used to discard the whole selection, and it runs on every
+   * keystroke in a page or ayah field - typing "127" wiped a deliberate set
+   * three times over before the learner had finished the number.
+   */
+  describe("narrowing a selection to a new scope", () => {
+    it("keeps the types the new scope still supports", () => {
+      expect(
+        keepSupportedQuestionTypes(
+          ["fill_blank", "complete_ayah", "surah_name"],
+          singleSurahCoverage,
+        ),
+      ).toEqual(["fill_blank", "complete_ayah"]);
+    });
+
+    it("keeps a deliberate choice untouched when it all still works", () => {
+      const chosen = ["fill_blank", "surah_name"] as const;
+      expect(keepSupportedQuestionTypes([...chosen], wideCoverage)).toEqual([
+        ...chosen,
+      ]);
+    });
+
+    it("falls back to the preset only when nothing survives", () => {
+      expect(
+        keepSupportedQuestionTypes(["surah_name"], singleSurahCoverage),
+      ).toBeNull();
+    });
+
+    it("leaves an unmade choice unmade", () => {
+      expect(keepSupportedQuestionTypes(null, wideCoverage)).toBeNull();
+    });
   });
 
   it("keeps every type for a scope that spans several surahs, juz and pages", () => {

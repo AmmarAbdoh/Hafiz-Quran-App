@@ -89,8 +89,8 @@ function ReciterRow({
     <div
       role="none"
       className={cn(
-        "grid grid-cols-[1fr_auto] items-center gap-1 rounded-lg p-1",
-        (selected || active) && "bg-muted",
+        "grid grid-cols-[1fr_auto] items-center gap-1 rounded-md p-1",
+        (selected || active) && "bg-surface-selected",
       )}
     >
       <button
@@ -99,7 +99,7 @@ function ReciterRow({
         role="option"
         aria-selected={selected}
         onClick={onSelect}
-        className="flex min-h-11 min-w-0 items-center gap-2 rounded-md px-2 text-start hover:bg-accent hover:text-accent-foreground"
+        className="flex min-h-11 min-w-0 items-center gap-2 rounded-md px-2 text-start hover:bg-surface-hover hover:text-accent-foreground"
       >
         <span className="grid h-5 w-5 shrink-0 place-items-center">
           {selected && (
@@ -108,7 +108,7 @@ function ReciterRow({
         </span>
         <span className="min-w-0 flex-1 truncate">{name}</span>
         {showHighlightBadge && supportsAyahWordHighlight(reciter.id) && (
-          <span className="hidden shrink-0 rounded-full bg-primary/10 px-2 py-1 text-[0.65rem] font-semibold text-primary sm:inline">
+          <span className="hidden shrink-0 rounded-full bg-primary/10 px-2 py-1 text-label font-semibold text-primary sm:inline">
             {t("recitation.wordHighlight")}
           </span>
         )}
@@ -116,7 +116,7 @@ function ReciterRow({
       <button
         type="button"
         onClick={onPreview}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-hover hover:text-accent-foreground"
         aria-label={t("recitation.previewReciter", { name })}
       >
         <Volume2
@@ -284,7 +284,7 @@ export function ReciterSelect({
           <button
             type="button"
             onClick={() => onWordHighlightGuideClick?.()}
-            className="hidden min-h-11 shrink-0 rounded-full px-2 text-[0.65rem] font-semibold text-primary hover:bg-primary/10 sm:inline-flex sm:items-center"
+            className="hidden min-h-11 shrink-0 rounded-full px-2 text-label font-semibold text-primary hover:bg-primary/10 sm:inline-flex sm:items-center"
           >
             {t("recitation.wordHighlight")}
           </button>
@@ -296,7 +296,7 @@ export function ReciterSelect({
           aria-expanded={open}
           aria-controls={listboxId}
           onClick={() => (open ? closeDropdown() : openDropdown())}
-          className="inline-flex h-12 w-11 shrink-0 items-center justify-center rounded-e-xl text-muted-foreground hover:bg-muted"
+          className="inline-flex h-12 w-11 shrink-0 items-center justify-center rounded-e-xl text-muted-foreground hover:bg-surface-hover"
         >
           <ChevronDown
             aria-hidden="true"
@@ -310,7 +310,7 @@ export function ReciterSelect({
           id={listboxId}
           role="listbox"
           aria-label={tA11y("reciterList")}
-          className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl"
+          className="absolute z-overlay mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl"
         >
           <div className="app-main-scroll max-h-[min(22rem,55vh)] overflow-y-auto p-1.5">
             {previewError ? (
@@ -326,7 +326,7 @@ export function ReciterSelect({
               <>
                 {filteredPinned.length > 0 && (
                   <div role="group" aria-label={t("recitation.wordHighlight")}>
-                    <p className="px-3 py-2 text-xs font-bold text-primary">
+                    <p className="px-3 py-2 text-label font-bold text-primary">
                       {t("recitation.wordHighlight")}
                     </p>
                     {filteredPinned.map((reciter) => (
@@ -354,7 +354,7 @@ export function ReciterSelect({
                     role="group"
                     aria-label={t(categoryKeys[group.category])}
                   >
-                    <p className="px-3 py-2 text-xs font-bold text-primary">
+                    <p className="px-3 py-2 text-label font-bold text-primary">
                       {t(categoryKeys[group.category])}
                     </p>
                     {group.reciters.map((reciter) => (

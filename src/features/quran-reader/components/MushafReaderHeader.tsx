@@ -7,6 +7,7 @@ import {
   Loader2,
   Mic,
   Moon,
+  MoreHorizontal,
   Search,
   Settings,
   SlidersHorizontal,
@@ -21,9 +22,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
+import type { MushafLayoutMode } from "@/features/quran-reader/model/quranReaderRoutes";
 import { RECITATION_PRACTICE_AVAILABLE as RECITATION_PRACTICE_ENABLED } from "@practice/runtime";
 import { useTheme } from "@/shared/hooks/use-theme";
 
@@ -32,8 +37,10 @@ type MushafReaderHeaderProps = MushafReaderHeaderState;
 export function MushafReaderHeader({
   surahLabel,
   page,
+  layoutMode,
   practiceActive,
   practiceLoading,
+  onLayoutModeChange,
   onOpenSurahDrawer,
   onOpenAyahSearch,
   onOpenListenOptions,
@@ -46,24 +53,34 @@ export function MushafReaderHeader({
   const { theme, toggleTheme } = useTheme();
   const rtl = i18n.dir() === "rtl";
   const HomeIcon = rtl ? ArrowRight : ArrowLeft;
+  const layoutOptions: {
+    value: MushafLayoutMode;
+    label: string;
+    hint: string;
+  }[] = [
+    { value: "page", label: t("layout.page"), hint: t("layout.pageHint") },
+    { value: "surah", label: t("layout.surah"), hint: t("layout.surahHint") },
+  ];
 
   return (
     <header className="mushaf-reader-header">
-      <div className="mx-auto grid max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-1 px-2 py-1 sm:gap-2 sm:px-4 sm:py-2">
-        <Button
-          asChild
-          variant="ghost"
-          size="icon"
-          className="min-h-11 min-w-11 shrink-0"
-        >
+      <div className="mx-auto grid max-w-content grid-cols-[auto_1fr_auto] items-center gap-1 px-2 py-1 sm:gap-2 sm:px-4 sm:py-2">
+        <Button asChild variant="ghost" size="icon" className="shrink-0">
           <Link to="/" aria-label={t("header.home")} title={t("header.home")}>
             <HomeIcon className="h-5 w-5" aria-hidden />
           </Link>
         </Button>
 
-        {/* Names the reading; the juz, hizb and progress sit in the folio line
-            at the foot of the page so neither line is crowded. */}
-        <p className="flex min-w-0 items-center justify-center gap-1.5 text-caption text-muted-foreground">
+        {/*
+          Names the reading; the juz, hizb and progress sit in the folio line
+          at the foot of the page so neither line is crowded.
+
+          It is the page's h1. The reader had no heading of any level, so the
+          app's main surface gave a screen reader nothing to orient by and
+          nothing to jump to - and what it should say was already here, being
+          said by a paragraph.
+        */}
+        <h1 className="flex min-w-0 items-center justify-center gap-1.5 text-label font-normal text-muted-foreground">
           {surahLabel ? (
             <>
               <bdi
@@ -79,7 +96,7 @@ export function MushafReaderHeader({
           <span className="shrink-0">
             {t("status.page", { page: formatNumber(page, locale) })}
           </span>
-        </p>
+        </h1>
 
         <DropdownMenu dir={i18n.dir()}>
           <DropdownMenuTrigger asChild>
@@ -87,15 +104,53 @@ export function MushafReaderHeader({
               type="button"
               variant="ghost"
               size="icon"
-              className="min-h-11 min-w-11 justify-self-end"
+              className="justify-self-end"
               aria-label={t("header.more")}
               title={t("header.more")}
             >
-              <SlidersHorizontal className="h-5 w-5" aria-hidden />
+              {/* Not SlidersHorizontal: that is the Preferences item's own
+                  icon, one level down inside this very menu. */}
+              <MoreHorizontal className="h-5 w-5" aria-hidden />
             </Button>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align={rtl ? "start" : "end"}>
+            {/*
+              Layout decides how the reader is moved through - a page turns on
+              a swipe, a surah scrolls - and it used to sit three levels down,
+              inside the preferences sheet, stating only "Surah" or "Page".
+              Opening this menu now shows which one is in force and what each
+              one does.
+            */}
+            <DropdownMenuLabel>{t("layout.label")}</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={layoutMode}
+              onValueChange={(value) =>
+                onLayoutModeChange(value as MushafLayoutMode)
+              }
+            >
+              {layoutOptions.map((option) => (
+                <DropdownMenuRadioItem
+                  key={option.value}
+                  value={option.value}
+                  /* The name and the hint are separate blocks, and the
+                     accessible name computed from them runs the two together
+                     with no pause - "PageOne mushaf page". Composing it here
+                     keeps the two apart. */
+                  aria-label={`${option.label}. ${option.hint}`}
+                >
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate font-medium">{option.label}</span>
+                    <span className="truncate text-muted-foreground">
+                      {option.hint}
+                    </span>
+                  </span>
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+
+            <DropdownMenuSeparator />
+
             {/*
               Radix hands onSelect the select event. The reader's listen action
               takes an optional preset, so it has to be called with no argument

@@ -130,7 +130,7 @@ function PracticeTelemetryStatus({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{t("practice.title")}</p>
         <p
-          className="truncate text-xs text-muted-foreground"
+          className="truncate text-label text-muted-foreground"
           aria-live="polite"
           aria-atomic="true"
         >
@@ -177,7 +177,7 @@ export function PracticeAudioBar({ pageControls }: PracticeAudioBarProps) {
         <div className="mushaf-playback-bar__controls">
           <div className="flex items-center gap-0.5">
             {practice.loadingModel && (
-              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+              <span className="shrink-0 text-label tabular-nums text-muted-foreground">
                 {t("practice.modelProgress", {
                   progress: formatNumber(practice.modelProgress, locale),
                 })}
@@ -194,7 +194,6 @@ export function PracticeAudioBar({ pageControls }: PracticeAudioBarProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="min-h-11 min-w-11"
               onClick={practice.toggleHideAyat}
               title={
                 practice.hideAyat
@@ -217,7 +216,6 @@ export function PracticeAudioBar({ pageControls }: PracticeAudioBarProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="min-h-11 min-w-11"
               onClick={practice.stopPractice}
               aria-label={t("practice.stop")}
             >
@@ -258,7 +256,7 @@ export function PracticeAudioBar({ pageControls }: PracticeAudioBarProps) {
       )}
 
       {practice.error && (
-        <p className="px-3 pb-1 text-xs text-destructive" role="alert">
+        <p className="px-3 pb-1 text-label text-destructive" role="alert">
           {t(`practice.errors.${practice.error}`)}
         </p>
       )}

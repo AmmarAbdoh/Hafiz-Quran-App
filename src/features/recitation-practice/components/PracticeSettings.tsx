@@ -1,8 +1,10 @@
 import { useId, useState } from "react";
 import { Mic, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Panel } from "@/shared/components/Panel";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";
+import { NativeSelect } from "@/shared/components/ui/select";
 import { usePracticeModel } from "@/features/recitation-practice/hooks/usePracticeModel";
 import { PRACTICE_MODEL_OPTIONS } from "@/features/recitation-practice/model/practiceConfig";
 import { clearWhisperModelCache } from "@/features/recitation-practice/services/clearWhisperModelCache";
@@ -28,8 +30,10 @@ export function PracticeSettings() {
   };
 
   return (
-    <section
-      className="editorial-panel editorial-panel--flush overflow-hidden"
+    <Panel
+      as="section"
+      variant="flush"
+      className="overflow-hidden"
       aria-labelledby={titleId}
     >
       <header className="flex items-start gap-4 border-b border-border/80 px-5 py-5 sm:px-6">
@@ -48,25 +52,25 @@ export function PracticeSettings() {
         <Label htmlFor="practice-model-select">
           {t("practice.modelLabel")}
         </Label>
-        <select
+        <NativeSelect
           id="practice-model-select"
           value={modelId}
           onChange={(event) => setModelId(event.target.value)}
-          className="min-h-12 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring"
         >
           {Object.entries(PRACTICE_MODEL_OPTIONS).map(([id, model]) => (
             <option key={id} value={id}>
               {model.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
         <p className="text-sm leading-6 text-muted-foreground">
           {t("practice.localNote")}
         </p>
         <Button
+          size="lg"
           type="button"
           variant="outline"
-          className="min-h-12 w-full justify-between"
+          className="w-full justify-between"
           onClick={() => void clearPracticeModels()}
           disabled={clearingCache}
         >
@@ -78,7 +82,7 @@ export function PracticeSettings() {
           <Trash2 aria-hidden="true" />
         </Button>
       </div>
-    </section>
+    </Panel>
   );
 }
 

@@ -95,12 +95,12 @@ export function VerseActionsPopover({
       data-verse-actions
       role="dialog"
       aria-label={t("actions.verseLabel", { verseKey })}
-      className="pointer-events-auto fixed z-50"
+      className="pointer-events-auto fixed z-overlay"
       style={{ left, top, transform }}
     >
       <div className="flex max-w-[min(20rem,calc(100vw-1rem))] flex-col gap-1.5 rounded-xl border border-border bg-card px-2.5 py-2 shadow-xl">
         <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-1.5">
-          <span className="text-xs font-semibold text-primary">
+          <span className="text-label font-semibold text-primary">
             {mode === "ayah"
               ? t("actions.verseLabel", { verseKey })
               : (wordLocation ?? verseKey)}
@@ -117,12 +117,14 @@ export function VerseActionsPopover({
           </Button>
         </div>
 
+        {/* Full-size, not compact: these are how an ayah is acted on and a
+            finger aims at them directly. */}
         <div className="flex flex-wrap items-center justify-center gap-1">
           {mode === "word" && onListenWord && (
             <Button
               variant="secondary"
-              size="sm"
-              className="min-h-11 gap-1.5 text-xs"
+              size="default"
+              className="gap-1.5"
               onClick={onListenWord}
             >
               <Volume2
@@ -137,8 +139,8 @@ export function VerseActionsPopover({
 
           <Button
             variant="secondary"
-            size="sm"
-            className="min-h-11 gap-1.5 text-xs"
+            size="default"
+            className="gap-1.5"
             onClick={onListenAyah}
           >
             <Volume2
@@ -152,8 +154,8 @@ export function VerseActionsPopover({
 
           <Button
             variant="secondary"
-            size="sm"
-            className="min-h-11 gap-1.5 text-xs"
+            size="default"
+            className="gap-1.5"
             onClick={onTafseer}
           >
             <BookOpen className="h-3.5 w-3.5" />
@@ -163,8 +165,8 @@ export function VerseActionsPopover({
           {onCopy ? (
             <Button
               variant="secondary"
-              size="sm"
-              className="min-h-11 gap-1.5 text-xs"
+              size="default"
+              className="gap-1.5"
               onClick={onCopy}
             >
               <Copy className="h-3.5 w-3.5" />
@@ -175,8 +177,8 @@ export function VerseActionsPopover({
           {onShare ? (
             <Button
               variant="secondary"
-              size="sm"
-              className="min-h-11 gap-1.5 text-xs"
+              size="default"
+              className="gap-1.5"
               onClick={onShare}
             >
               <Share2 className="h-3.5 w-3.5" />
@@ -187,8 +189,8 @@ export function VerseActionsPopover({
           {onBookmarkToggle ? (
             <Button
               variant={isBookmarked ? "default" : "secondary"}
-              size="sm"
-              className="min-h-11 gap-1.5 text-xs"
+              size="default"
+              className="gap-1.5"
               onClick={onBookmarkToggle}
               aria-pressed={isBookmarked}
             >

@@ -58,13 +58,13 @@ export function QuizSessionStep({
 
       <dl className="grid gap-3 rounded-xl border border-border bg-muted/20 p-3 text-sm sm:grid-cols-3">
         <div>
-          <dt className="text-caption font-semibold text-muted-foreground">
+          <dt className="text-label font-semibold text-muted-foreground">
             {t("session.scopeLabel")}
           </dt>
           <dd className="mt-0.5">{formatScope(scope)}</dd>
         </div>
         <div>
-          <dt className="text-caption font-semibold text-muted-foreground">
+          <dt className="text-label font-semibold text-muted-foreground">
             {t("summary.label")}
           </dt>
           <dd className="mt-0.5">
@@ -75,7 +75,7 @@ export function QuizSessionStep({
           </dd>
         </div>
         <div>
-          <dt className="text-caption font-semibold text-muted-foreground">
+          <dt className="text-label font-semibold text-muted-foreground">
             {t("session.typesLabel")}
           </dt>
           <dd className="mt-0.5">{questionTypeSummary}</dd>
@@ -115,7 +115,7 @@ export function QuizSessionStep({
                   ? t("session.fixedTitle")
                   : t("session.endlessTitle")}
               </span>
-              <span className="mt-1 block text-xs text-muted-foreground">
+              <span className="mt-1 block text-label text-muted-foreground">
                 {mode === "fixed"
                   ? t("session.fixedDescription")
                   : t("session.endlessDescription")}
@@ -135,7 +135,7 @@ export function QuizSessionStep({
               <Button
                 key={count}
                 type="button"
-                className="min-h-11 min-w-11 rounded-full"
+                className="min-w-11 rounded-full"
                 variant={questionCount === count ? "default" : "outline"}
                 aria-pressed={questionCount === count}
                 onClick={() => onQuestionCountChange(count)}
@@ -161,7 +161,7 @@ export function QuizSessionStep({
           </div>
           {repeats && (
             <p
-              className="flex items-start gap-2 rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground"
+              className="flex items-start gap-2 rounded-xl bg-muted/40 p-3 text-label text-muted-foreground"
               role="status"
             >
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -176,10 +176,10 @@ export function QuizSessionStep({
       )}
 
       <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-        <Button variant="outline" className="min-h-11" onClick={onBack}>
+        <Button variant="outline" onClick={onBack}>
           {t("actions.back")}
         </Button>
-        <Button size="lg" className="min-h-11" onClick={onStart}>
+        <Button size="lg" onClick={onStart}>
           {t("session.start")}
         </Button>
       </div>

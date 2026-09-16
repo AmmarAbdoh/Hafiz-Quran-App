@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Field } from "@/shared/components/Field";
 import { SearchableSelect } from "@/shared/components/SearchableSelect";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -28,6 +29,8 @@ interface QuizScopeStepProps {
   mushafData: MushafVerse[];
   scope: QuizScope;
   ayahCount: number;
+  /** Reported upward so the step nav cannot walk past an invalid scope. */
+  onValidityChange?: (valid: boolean) => void;
   onScopeChange: (scope: QuizScope) => void;
   onNext: () => void;
 }
@@ -99,12 +102,7 @@ function ToggleGrid({
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11"
-          onClick={onSelectAll}
-        >
+        <Button type="button" variant="outline" onClick={onSelectAll}>
           {t("actions.selectAll")}
         </Button>
       </div>
@@ -157,7 +155,7 @@ function ToggleGrid({
                     {ayahCountFor && (
                       <span
                         className={cn(
-                          "shrink-0 text-caption",
+                          "shrink-0 text-label",
                           isSelected ? "font-normal" : "text-muted-foreground",
                         )}
                       >
@@ -174,7 +172,7 @@ function ToggleGrid({
           </ul>
         )}
       </div>
-      <p className="text-caption text-muted-foreground">
+      <p className="text-label text-muted-foreground">
         {t("scope.listHint", {
           count: total,
           formattedCount: formatNumber(total),
@@ -194,6 +192,7 @@ export function QuizScopeStep({
   mushafData,
   scope,
   ayahCount,
+  onValidityChange,
   onScopeChange,
   onNext,
 }: QuizScopeStepProps) {
@@ -225,6 +224,24 @@ export function QuizScopeStep({
   }
 
   const error = validateScope({ ...draft, mode }, mushafData);
+  /*
+   * Both page fields obey one rule, so there is one message. They point at it
+   * rather than each rendering a copy - three alerts for one mistake is three
+   * announcements of the same sentence.
+   */
+  const SCOPE_ERROR_ID = "quiz-scope-error";
+  const pageRangeError = mode === "page" && error ? SCOPE_ERROR_ID : undefined;
+
+  /*
+   * Continue is disabled while the scope is invalid, but the step nav above it
+   * was not - so the learner could switch to the Page tab, leave it empty, jump
+   * straight to Questions, and be quizzed on the surah they had chosen before,
+   * which is not what the last screen they saw showed them.
+   */
+  useEffect(() => {
+    onValidityChange?.(error === null);
+    return () => onValidityChange?.(true);
+  }, [error, onValidityChange]);
 
   return (
     <div className="space-y-5">
@@ -238,7 +255,7 @@ export function QuizScopeStep({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-caption font-semibold text-muted-foreground">
+        <span className="text-label font-semibold text-muted-foreground">
           {t("scope.presetsLabel")}
         </span>
         {SCOPE_PRESETS.map((preset) => (
@@ -247,7 +264,7 @@ export function QuizScopeStep({
             type="button"
             variant="outline"
             size="sm"
-            className="min-h-11 rounded-full"
+            className="rounded-full"
             onClick={() => applyPreset(preset.scope)}
           >
             {t(`scope.presets.${preset.id}`)}
@@ -341,41 +358,54 @@ export function QuizScopeStep({
         </TabsContent>
 
         <TabsContent value="page" className="mt-4 space-y-4">
+          {/* The error is attached to the fields that caused it, so it is
+              announced when the field is reached rather than sitting in a red
+              sentence elsewhere on the screen. */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="quiz-page-from">{t("scope.fromPage")}</Label>
-              <Input
-                id="quiz-page-from"
-                className="min-h-11"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={TOTAL_MUSHAF_PAGES}
-                value={draft.pageFrom ?? ""}
-                onChange={(event) =>
-                  update({
-                    pageFrom: Number.parseInt(event.target.value, 10),
-                    pageTo:
-                      draft.pageTo ?? Number.parseInt(event.target.value, 10),
-                  })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="quiz-page-to">{t("scope.toPage")}</Label>
-              <Input
-                id="quiz-page-to"
-                className="min-h-11"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={TOTAL_MUSHAF_PAGES}
-                value={draft.pageTo ?? ""}
-                onChange={(event) =>
-                  update({ pageTo: Number.parseInt(event.target.value, 10) })
-                }
-              />
-            </div>
+            <Field
+              id="quiz-page-from"
+              label={t("scope.fromPage")}
+              errorId={pageRangeError}
+            >
+              {(field) => (
+                <Input
+                  {...field}
+                  className="min-h-11"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={TOTAL_MUSHAF_PAGES}
+                  value={draft.pageFrom ?? ""}
+                  onChange={(event) =>
+                    update({
+                      pageFrom: Number.parseInt(event.target.value, 10),
+                      pageTo:
+                        draft.pageTo ?? Number.parseInt(event.target.value, 10),
+                    })
+                  }
+                />
+              )}
+            </Field>
+            <Field
+              id="quiz-page-to"
+              label={t("scope.toPage")}
+              errorId={pageRangeError}
+            >
+              {(field) => (
+                <Input
+                  {...field}
+                  className="min-h-11"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={TOTAL_MUSHAF_PAGES}
+                  value={draft.pageTo ?? ""}
+                  onChange={(event) =>
+                    update({ pageTo: Number.parseInt(event.target.value, 10) })
+                  }
+                />
+              )}
+            </Field>
           </div>
         </TabsContent>
 
@@ -423,7 +453,7 @@ export function QuizScopeStep({
               />
             </div>
           </div>
-          <p className="text-caption text-muted-foreground">
+          <p className="text-label text-muted-foreground">
             {t("scope.ayahCount", { count: formatNumber(maxAyah) })}
           </p>
         </TabsContent>
@@ -431,6 +461,7 @@ export function QuizScopeStep({
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <p
+          id={SCOPE_ERROR_ID}
           className={
             error
               ? "text-sm font-medium text-destructive"
@@ -448,12 +479,7 @@ export function QuizScopeStep({
                 formattedCount: formatNumber(ayahCount),
               })}
         </p>
-        <Button
-          size="lg"
-          className="min-h-11"
-          disabled={Boolean(error)}
-          onClick={onNext}
-        >
+        <Button size="lg" disabled={Boolean(error)} onClick={onNext}>
           {t("scope.continue")}
         </Button>
       </div>

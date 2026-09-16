@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Input } from "@/shared/components/ui/input";
+import { useListNavigation } from "@/shared/hooks/useListNavigation";
 import { normalizeArabicForMatch } from "@/shared/lib/arabic-normalize";
 import { cn } from "@/shared/lib/utils";
 
@@ -34,7 +35,7 @@ export function SearchableSelect({
   const { t, i18n } = useTranslation("common");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [activeIndex, setActiveIndex] = useState(0);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
@@ -85,7 +86,23 @@ export function SearchableSelect({
     inputRef.current?.focus();
   };
 
+  const {
+    activeIndex,
+    setActiveIndex,
+    onKeyDown: listKeyDown,
+  } = useListNavigation({
+    count: filteredOptions.length,
+    onSelect: (index) => {
+      const option = filteredOptions[index];
+      if (option) handleSelect(option.value);
+    },
+    onDismiss: closeDropdown,
+    resetKey: query,
+  });
+
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    // Closed, the field is a button: the same two keys that open a native
+    // select open this one, and nothing else applies until it is open.
     if (!open) {
       if (event.key === "ArrowDown" || event.key === "Enter") {
         event.preventDefault();
@@ -94,46 +111,7 @@ export function SearchableSelect({
       return;
     }
 
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeDropdown();
-      return;
-    }
-
-    if (filteredOptions.length === 0) return;
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setActiveIndex((current) => (current + 1) % filteredOptions.length);
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setActiveIndex(
-        (current) =>
-          (current - 1 + filteredOptions.length) % filteredOptions.length,
-      );
-      return;
-    }
-
-    if (event.key === "Home") {
-      event.preventDefault();
-      setActiveIndex(0);
-      return;
-    }
-
-    if (event.key === "End") {
-      event.preventDefault();
-      setActiveIndex(filteredOptions.length - 1);
-      return;
-    }
-
-    if (event.key === "Enter") {
-      event.preventDefault();
-      const activeOption = filteredOptions[activeIndex];
-      if (activeOption) handleSelect(activeOption.value);
-    }
+    listKeyDown(event);
   };
 
   return (
@@ -144,7 +122,7 @@ export function SearchableSelect({
     >
       <div
         className={cn(
-          "flex min-h-12 w-full items-center gap-1 rounded-xl border border-input bg-background text-sm shadow-sm",
+          "flex min-h-12 w-full items-center gap-1 rounded-xl border border-input bg-background text-body shadow-sm",
           "focus-within:ring-2 focus-within:ring-ring",
           triggerClassName,
         )}
@@ -192,7 +170,7 @@ export function SearchableSelect({
           aria-expanded={open}
           aria-controls={listboxId}
           onClick={() => (open ? closeDropdown() : openDropdown())}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-muted/30"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-e-xl text-muted-foreground transition-colors duration-fast ease-standard hover:bg-surface-hover"
         >
           <ChevronDown
             className={cn("h-4 w-4 transition-transform", open && "rotate-180")}
@@ -205,11 +183,11 @@ export function SearchableSelect({
         <div
           role="listbox"
           id={listboxId}
-          className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg"
+          className="absolute z-overlay mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-[var(--shadow-overlay)]"
         >
           <div className="app-main-scroll max-h-[min(16rem,45vh)] overflow-y-auto p-1">
             {filteredOptions.length === 0 ? (
-              <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+              <p className="px-3 py-6 text-center text-label text-muted-foreground">
                 {resolvedEmptyMessage}
               </p>
             ) : (
@@ -224,10 +202,10 @@ export function SearchableSelect({
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => handleSelect(option.value)}
                   className={cn(
-                    "grid w-full grid-cols-[1fr_auto] items-center gap-2 rounded-sm px-3 py-2.5 text-start text-base transition-colors",
-                    "hover:bg-accent hover:text-accent-foreground",
-                    index === activeIndex && "bg-accent text-accent-foreground",
-                    option.value === value && "bg-[var(--surface-selected)]",
+                    "grid w-full grid-cols-[1fr_auto] items-center gap-2 rounded-lg px-3 py-2.5 text-start text-body transition-colors duration-fast ease-standard",
+                    "hover:bg-surface-hover",
+                    index === activeIndex && "bg-surface-hover",
+                    option.value === value && "bg-surface-selected",
                   )}
                 >
                   <span className="truncate">{option.label}</span>

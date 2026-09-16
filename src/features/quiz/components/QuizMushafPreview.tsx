@@ -7,8 +7,10 @@ import {
   type MushafPageLayout,
   type MushafVerse,
 } from "@/domain/quran";
+import { Panel } from "@/shared/components/Panel";
 import { Button } from "@/shared/components/ui/button";
 import { useTheme } from "@/shared/hooks/use-theme";
+import { cn } from "@/shared/lib/utils";
 import { useTajweedColored } from "@/features/quran-reader/hooks/useTajweedColored";
 const QUIZ_PREVIEW_SKELETON_LINES = 6;
 
@@ -81,13 +83,20 @@ export function QuizMushafPreview({
   );
 
   return (
-    <div
-      className={
-        className ??
-        "quiz-mushaf-preview editorial-panel--inset mx-auto w-full p-2"
-      }
+    <Panel
+      variant="inset"
+      className={cn("quiz-mushaf-preview mx-auto w-full p-2", className)}
       dir="rtl"
       lang="ar"
+      /*
+       * The preview scrolls within itself when the page is taller than the
+       * room left for it, and a region that scrolls has to be reachable by
+       * keyboard or it is content only a mouse can see. Naming it keeps the
+       * tab stop meaningful rather than an unexplained halt.
+       */
+      role="group"
+      aria-label={t("mushafPreviewLabel")}
+      tabIndex={0}
     >
       {loadError ? (
         <div className="space-y-3 px-2 py-6 text-center">
@@ -97,7 +106,6 @@ export function QuizMushafPreview({
           <Button
             type="button"
             variant="outline"
-            className="min-h-11"
             onClick={() => setReloadToken((value) => value + 1)}
           >
             {t("actions.retry")}
@@ -127,6 +135,6 @@ export function QuizMushafPreview({
           revealedWordLocations={revealedLocations}
         />
       )}
-    </div>
+    </Panel>
   );
 }
