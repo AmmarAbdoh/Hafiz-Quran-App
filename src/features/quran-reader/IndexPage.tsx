@@ -24,7 +24,11 @@ import {
   type ReaderRecentEntry,
 } from "@/features/quran-reader/services/readerRecentsStorage";
 import type { MushafVerse } from "@/domain/quran";
-import { findMushafVerse, getSurahAyahCount } from "@/domain/quran";
+import {
+  findMushafVerse,
+  getSurahAyahCount,
+  searchSurahNumbers,
+} from "@/domain/quran";
 import {
   JUZ_NAMES,
   TOTAL_MUSHAF_PAGES,
@@ -103,12 +107,17 @@ export function IndexPage() {
     return search.length >= 2 ? searchAyahsByText(searchIndex, search, 12) : [];
   }, [ayahReference, mushafData, search, searchIndex]);
 
+  const surahMatches = searchSurahNumbers(search);
   const filteredSurahs = names
     .map((name, index) => ({ name, number: index + 1 }))
     .filter(
-      ({ name, number }) =>
-        textMatchesSearch(name, search) ||
-        textMatchesSearch(String(number), search),
+      ({ number }) => surahMatches === null || surahMatches.includes(number),
+    )
+    .sort((left, right) =>
+      surahMatches === null
+        ? 0
+        : surahMatches.indexOf(left.number) -
+          surahMatches.indexOf(right.number),
     );
 
   const filteredJuz = JUZ_NAMES.map((name, index) => ({

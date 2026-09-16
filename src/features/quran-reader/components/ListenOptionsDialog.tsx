@@ -32,7 +32,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
-import { JUZ_NAMES, useSurahNames } from "@/domain/quran";
+import { JUZ_NAMES, searchSurahNumbers, useSurahNames } from "@/domain/quran";
 import { cn } from "@/shared/lib/utils";
 import { getSurahAyahCount } from "@/domain/quran";
 import type { MushafVerse } from "@/domain/quran";
@@ -106,10 +106,18 @@ export function ListenOptionsDialog({
     setShowOptions(false);
   }, [open, preset]);
 
-  const search = surahSearch.trim().toLowerCase();
+  const surahMatches = searchSurahNumbers(surahSearch);
   const filteredSurahs = surahNames
     .map((name, index) => ({ name, number: index + 1 }))
-    .filter(({ name }) => name.toLowerCase().includes(search));
+    .filter(
+      ({ number }) => surahMatches === null || surahMatches.includes(number),
+    )
+    .sort((left, right) =>
+      surahMatches === null
+        ? 0
+        : surahMatches.indexOf(left.number) -
+          surahMatches.indexOf(right.number),
+    );
 
   const setRepeat = (repeatMode: RepeatMode, repeatCount = 1) => {
     setPlan((prev) => ({ ...prev, repeatMode, repeatCount }));

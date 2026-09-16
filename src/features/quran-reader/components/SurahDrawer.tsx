@@ -9,7 +9,11 @@ import {
   DialogTitle,
 } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
-import { getSurahAyahCount, useSurahNames } from "@/domain/quran";
+import {
+  getSurahAyahCount,
+  searchSurahNumbers,
+  useSurahNames,
+} from "@/domain/quran";
 import { cn } from "@/shared/lib/utils";
 import type { MushafVerse } from "@/domain/quran";
 
@@ -36,10 +40,17 @@ export function SurahDrawer({
   const { names, language } = useSurahNames();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const search = searchTerm.trim().toLowerCase();
+  // Matches either script and tolerates a dropped article, so "بقره" and
+  // "baqarah" both find البقرة; a lowercase includes did neither.
+  const matches = searchSurahNumbers(searchTerm);
   const filtered = names
     .map((name, index) => ({ name, index }))
-    .filter(({ name }) => name.toLowerCase().includes(search));
+    .filter(({ index }) => matches === null || matches.includes(index + 1))
+    .sort((left, right) =>
+      matches === null
+        ? 0
+        : matches.indexOf(left.index + 1) - matches.indexOf(right.index + 1),
+    );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

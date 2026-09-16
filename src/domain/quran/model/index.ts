@@ -42,3 +42,4 @@ export {
   TAFSEER_OPTIONS,
   TOTAL_MUSHAF_PAGES,
 } from "./constants";
+export { findSurahsByName, searchSurahNumbers } from "./surahSearch";

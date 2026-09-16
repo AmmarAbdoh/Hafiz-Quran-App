@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { MushafPageBlock } from "@/features/quran-reader/components/MushafPageBlock";
-import { VerseActionsPopover } from "@/features/quran-reader/components/VerseActionsPopover";
-import { VerseDialog } from "@/features/quran-reader/components/VerseDialog";
+import { VerseInteractionOverlays } from "@/features/quran-reader/components/VerseInteractionOverlays";
 import {
   useQuranPlaybackHighlight,
   useQuranPlaybackState,
@@ -46,32 +45,21 @@ export function MushafViewer({
     return map;
   }, [pageLayout]);
 
-  const {
-    selection,
-    anchorRect,
-    playingTarget,
-    tafseerVerse,
-    setTafseerVerse,
-    popoverRef,
-    activateWord,
-    handlePointerDown,
-    handlePointerUp,
-    clearSelection,
-    handleListenWord,
-    handleListenAyah,
-    handleTafseer,
-    handleCopyVerse,
-    handleShareVerse,
-    handleBookmarkToggle,
-    selectionBookmarked,
-    bookmarkedSet,
-  } = useMushafVerseInteractions({
+  const interactions = useMushafVerseInteractions({
     mushafRef,
     mushafData,
     wordsByLocation,
     highlightVerseKey,
     resetKey: pageLayout.page,
   });
+  /* The overlays take the whole object; the page below needs these by name. */
+  const {
+    selection,
+    activateWord,
+    handlePointerDown,
+    handlePointerUp,
+    bookmarkedSet,
+  } = interactions;
 
   useEffect(() => {
     if (!highlightVerseKey || !mushafRef.current) return;
@@ -126,35 +114,9 @@ export function MushafViewer({
         onWordPointerCancel={handlePointerUp}
       />
 
-      {selection && anchorRect && (
-        <VerseActionsPopover
-          verseKey={selection.verseKey}
-          wordLocation={selection.word.location}
-          mode={selection.mode}
-          anchor={anchorRect}
-          playingTarget={
-            playback.active && playback.playing ? "ayah" : playingTarget
-          }
-          onListenWord={
-            selection.mode === "word" ? handleListenWord : undefined
-          }
-          onListenAyah={handleListenAyah}
-          onTafseer={handleTafseer}
-          onCopy={handleCopyVerse}
-          onShare={handleShareVerse}
-          isBookmarked={selectionBookmarked}
-          onBookmarkToggle={handleBookmarkToggle}
-          onClose={clearSelection}
-          popoverRef={popoverRef}
-        />
-      )}
-
-      <VerseDialog
-        verse={tafseerVerse}
-        open={tafseerVerse !== null}
-        onOpenChange={(open) => {
-          if (!open) setTafseerVerse(null);
-        }}
+      <VerseInteractionOverlays
+        interactions={interactions}
+        playingAyah={playback.active && playback.playing}
       />
     </div>
   );
