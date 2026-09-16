@@ -271,6 +271,11 @@ export function QuranReaderPage() {
     totalPages,
   ]);
 
+  const selectSurah = (surahIndex: number) => {
+    navigation.changeSurah(surahIndex + 1);
+    overlays.setSurahDrawerOpen(false);
+  };
+
   useReaderHeaderSync({
     // The header is driven by the route, not by Quran data, so it renders while
     // the page loads. Waiting would swap the shorter fallback bar for the full
@@ -280,9 +285,12 @@ export function QuranReaderPage() {
     surahLabel: statusSurahLabel,
     page: statusPage,
     layoutMode: route.layoutMode,
+    currentSurah: route.currentSurahIndex,
+    mushafData,
     practiceActive,
     practiceLoading,
     onLayoutModeChange: navigation.changeLayoutMode,
+    onSurahSelect: selectSurah,
     onOpenSurahDrawer: overlays.openSurahDrawer,
     onOpenAyahSearch: overlays.openAyahSearch,
     onOpenListenOptions: overlays.openListenOptions,
@@ -399,11 +407,6 @@ export function QuranReaderPage() {
   const listenToSurah = (surahNumber: number) => {
     overlays.setSurahDrawerOpen(false);
     overlays.openListenOptions({ surah: surahNumber, scope: "surah" });
-  };
-
-  const selectSurah = (surahIndex: number) => {
-    navigation.changeSurah(surahIndex + 1);
-    overlays.setSurahDrawerOpen(false);
   };
 
   // The stage, the dock and the overlays render in every state. Swapping the

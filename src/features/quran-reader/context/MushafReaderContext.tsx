@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { MushafVerse } from "@/domain/quran";
 import type { MushafLayoutMode } from "@/features/quran-reader/model/quranReaderRoutes";
 
 export interface MushafReaderHeaderState {
@@ -17,9 +18,17 @@ export interface MushafReaderHeaderState {
    * it buried in the preferences sheet.
    */
   layoutMode: MushafLayoutMode;
+  /** Zero-based index of the surah being read, for the wide-screen rail. */
+  currentSurah: number | null;
+  /**
+   * The rail renders in the shell, which is above QuranDataProvider, so the
+   * data comes with the rest of the reader's state rather than from a hook.
+   */
+  mushafData: MushafVerse[];
   practiceActive: boolean;
   practiceLoading: boolean;
   onLayoutModeChange: (mode: MushafLayoutMode) => void;
+  onSurahSelect: (surahIndex: number) => void;
   onOpenSurahDrawer: () => void;
   onOpenAyahSearch: () => void;
   onOpenListenOptions: () => void;

@@ -7,9 +7,12 @@ interface UseReaderHeaderSyncOptions {
   surahLabel: string;
   page: number;
   layoutMode: MushafReaderHeaderState["layoutMode"];
+  currentSurah: MushafReaderHeaderState["currentSurah"];
+  mushafData: MushafReaderHeaderState["mushafData"];
   practiceActive: boolean;
   practiceLoading: boolean;
   onLayoutModeChange: MushafReaderHeaderState["onLayoutModeChange"];
+  onSurahSelect: MushafReaderHeaderState["onSurahSelect"];
   onOpenSurahDrawer: MushafReaderHeaderState["onOpenSurahDrawer"];
   onOpenAyahSearch: MushafReaderHeaderState["onOpenAyahSearch"];
   onOpenListenOptions: MushafReaderHeaderState["onOpenListenOptions"];
@@ -23,9 +26,12 @@ export function useReaderHeaderSync({
   surahLabel,
   page,
   layoutMode,
+  currentSurah,
+  mushafData,
   practiceActive,
   practiceLoading,
   onLayoutModeChange,
+  onSurahSelect,
   onOpenSurahDrawer,
   onOpenAyahSearch,
   onOpenListenOptions,
@@ -34,6 +40,7 @@ export function useReaderHeaderSync({
 }: UseReaderHeaderSyncOptions): void {
   const callbacksRef = useRef({
     onLayoutModeChange,
+    onSurahSelect,
     onOpenSurahDrawer,
     onOpenAyahSearch,
     onOpenListenOptions,
@@ -42,6 +49,7 @@ export function useReaderHeaderSync({
   });
   callbacksRef.current = {
     onLayoutModeChange,
+    onSurahSelect,
     onOpenSurahDrawer,
     onOpenAyahSearch,
     onOpenListenOptions,
@@ -60,9 +68,12 @@ export function useReaderHeaderSync({
       surahLabel,
       page,
       layoutMode,
+      currentSurah,
+      mushafData,
       practiceActive,
       practiceLoading,
       onLayoutModeChange: (mode) => callbacks.onLayoutModeChange(mode),
+      onSurahSelect: (index) => callbacks.onSurahSelect(index),
       onOpenSurahDrawer: callbacks.onOpenSurahDrawer,
       onOpenAyahSearch: callbacks.onOpenAyahSearch,
       onOpenListenOptions: callbacks.onOpenListenOptions,
@@ -72,7 +83,9 @@ export function useReaderHeaderSync({
       },
     });
   }, [
+    currentSurah,
     enabled,
+    mushafData,
     layoutMode,
     page,
     practiceActive,

@@ -96,6 +96,35 @@ test("a surah opening squeezed into one line fits like any other page", async ({
   );
 });
 
+/*
+ * A wide screen shows a surah rail beside the mushaf. It is out of flow and
+ * the layout is padded by its width, because container query units resolve
+ * against the content box - so the page is fitted to what is left without
+ * knowing the rail is there. Making it a flex sibling instead grew the shell
+ * to 6107px and scaled the type to match, which is what this guards.
+ */
+test("the wide-screen rail does not change the type size", async ({ page }) => {
+  await page.setViewportSize({ width: 1279, height: 900 });
+  const withoutRail = await readMushafPage(page, 3);
+  expect(withoutRail).not.toBeNull();
+  expect(await page.locator(".mushaf-reader-rail").isVisible()).toBe(false);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const withRail = await readMushafPage(page, 3);
+  expect(withRail).not.toBeNull();
+  await expect(page.locator(".mushaf-reader-rail")).toBeVisible();
+
+  expect(withRail!.fontSize).toBe(withoutRail!.fontSize);
+  expect(withRail!.verticalOverflow).toBeLessThanOrEqual(1);
+  // The page never runs under the rail.
+  const pageBox = await page.locator(".mushaf-page--full").boundingBox();
+  const railBox = await page.locator(".mushaf-reader-rail").boundingBox();
+  const overlaps =
+    pageBox!.x < railBox!.x + railBox!.width &&
+    railBox!.x < pageBox!.x + pageBox!.width;
+  expect(overlaps).toBe(false);
+});
+
 test("type size does not change when the bottom bar changes height", async ({
   page,
 }) => {

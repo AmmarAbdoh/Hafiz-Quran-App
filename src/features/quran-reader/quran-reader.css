@@ -3,6 +3,34 @@
 @layer theme, base, components, utilities;
 
 @layer utilities {
+  /*
+   * A wide screen has room the mushaf cannot use: the page is scaled to fit
+   * its stage and height is what binds there, so at 1920px the page is about
+   * 460px wide with more than a thousand pixels idle beside it - and changing
+   * surah still meant opening a dialog over the page being read.
+   *
+   * Below 80rem there is no such room, and the header's menu still opens the
+   * same list in a dialog.
+   */
+  .mushaf-reader-rail {
+    display: none;
+  }
+
+  @media (min-width: 80rem) {
+    .mushaf-reader-rail {
+      position: absolute;
+      inset-block: 0;
+      inset-inline-end: 0;
+      inline-size: var(--reader-rail-width);
+      display: flex;
+      min-height: 0;
+      flex-direction: column;
+      border-inline-start: 1px solid var(--border);
+      background: var(--card);
+      padding: 1rem 0.75rem;
+    }
+  }
+
   .mushaf-reader-layout {
     --mushaf-dock-offset: 0px;
     --mushaf-dock-reserve: 64px;

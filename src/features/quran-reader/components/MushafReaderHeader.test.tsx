@@ -30,9 +30,12 @@ function renderHeader(
                   surahLabel="البقرة"
                   page={5}
                   layoutMode="page"
+                  currentSurah={1}
+                  mushafData={[]}
                   practiceActive={false}
                   practiceLoading={false}
                   onLayoutModeChange={onLayoutModeChange}
+                  onSurahSelect={vi.fn()}
                   onOpenSurahDrawer={onOpenSurahDrawer}
                   onOpenAyahSearch={onOpenAyahSearch}
                   onOpenListenOptions={onOpenListenOptions}

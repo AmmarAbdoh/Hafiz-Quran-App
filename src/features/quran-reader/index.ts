@@ -1,4 +1,5 @@
 export { MushafReaderHeader } from "./components/MushafReaderHeader";
+export { MushafReaderRail } from "./components/MushafReaderRail";
 export { PlaybackMiniPlayer } from "./components/PlaybackMiniPlayer";
 export {
   MushafReaderProvider,

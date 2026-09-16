@@ -110,12 +110,39 @@ textarea {
  * width-capped, natural-height box every other route uses.
  */
 .editorial-main--reader {
+  /* Declared here, on the parent of both, so the rail and the padding that
+     makes room for it cannot disagree. */
+  --reader-rail-width: 20rem;
   display: flex;
   min-height: 0;
   flex: 1;
   flex-direction: column;
   overflow: hidden;
   background: var(--mushaf-page, var(--background));
+}
+
+/*
+ * Wide screens put the surah rail beside the mushaf rather than under it.
+ *
+ * The rail is taken out of flow rather than made a flex sibling. The reader's
+ * column is a chain of flex: 1 boxes whose heights resolve only because the
+ * mushaf layout carries `contain: size` and contributes no intrinsic height of
+ * its own; a rail in that flow contributes 114 rows of it, and measuring
+ * showed the shell grow to 6107px with the page scaled to match. Out of flow,
+ * the height chain the mushaf is fitted against is untouched.
+ *
+ * The layout is padded by exactly the rail's width, and container query units
+ * resolve against the content box - so 100cqw already excludes the rail and
+ * the page centres in what is left without knowing the rail exists.
+ */
+@media (min-width: 80rem) {
+  .editorial-main--reader {
+    position: relative;
+  }
+
+  .editorial-main--reader > .mushaf-reader-layout {
+    padding-inline-end: var(--reader-rail-width);
+  }
 }
 
 .editorial-dock {

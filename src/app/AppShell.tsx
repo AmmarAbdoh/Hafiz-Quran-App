@@ -15,6 +15,7 @@ import { ServiceWorkerUpdatePrompt } from "@/app/ServiceWorkerUpdatePrompt";
 import {
   isQuranReaderPath,
   MushafReaderHeader,
+  MushafReaderRail,
   MushafReaderProvider,
   PlaybackMiniPlayer,
   useMushafReader,
@@ -190,6 +191,19 @@ function ReaderContent({ children }: { children: ReactNode }) {
       {header ? <MushafReaderHeader {...header} /> : <ReaderHeaderFallback />}
       <main id="app-content" tabIndex={-1} className="editorial-main--reader">
         {children}
+        {/*
+          The rail is a sibling of the reader's own layout, not a child of it:
+          that layout is the size container the mushaf page is measured
+          against, so a rail inside it would be counted as room the page could
+          spread into and would change the type size.
+        */}
+        {header ? (
+          <MushafReaderRail
+            currentSurah={header.currentSurah}
+            onSurahSelect={header.onSurahSelect}
+            mushafData={header.mushafData}
+          />
+        ) : null}
       </main>
     </>
   );
