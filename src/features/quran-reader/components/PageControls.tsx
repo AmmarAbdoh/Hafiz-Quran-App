@@ -90,8 +90,22 @@ export function PageControls({
     maxPage,
   );
 
-  const controlSize = "h-11 w-11";
-  const inputSize = compact ? "h-11 w-14 text-label" : "h-11 w-16 text-sm";
+  /*
+   * 44px is the touch floor and remains the default. A mouse does not need
+   * it, and at that size the pill was the loudest thing in a strip whose job
+   * is to stay out of the way of the page. A fine pointer gets a 36px one -
+   * still well over the 24px WCAG 2.2 target - and this is written round this
+   * way so that losing the variant leaves the safe size standing.
+   *
+   * The min-* pair is not redundant: `size="icon"` sets min-h/min-w to the
+   * 44px target, and a floor beats a smaller height, so setting h/w alone
+   * left the button open at 44 while the number beside it shrank.
+   */
+  const controlSize =
+    "h-11 w-11 pointer-fine:h-9 pointer-fine:w-9 pointer-fine:min-h-9 pointer-fine:min-w-9";
+  const inputSize = compact
+    ? "h-11 w-14 pointer-fine:h-9 pointer-fine:w-12 text-label"
+    : "h-11 w-16 text-sm";
   const labelSize = compact ? "text-label" : "text-sm";
   const iconSize = compact ? "h-3.5 w-3.5" : "h-4 w-4";
   const pillPadding = compact ? "p-0.5" : "p-1";
@@ -148,7 +162,7 @@ export function PageControls({
           className={cn(
             // A target in its own right, not a label, so it keeps the 44px floor.
             "flex min-w-11 items-center justify-center rounded-full px-2 transition-colors hover:bg-background/80",
-            "min-h-11",
+            "min-h-11 pointer-fine:min-h-9 pointer-fine:min-w-9",
           )}
           aria-label={t("navigation.goToPage")}
         >

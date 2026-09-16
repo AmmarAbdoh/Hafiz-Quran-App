@@ -56,7 +56,7 @@ export function MushafReaderBar({
      * sibling, so it cannot drift when the juz text grows or a third element
      * arrives in the trailing cell.
      */
-    <div className="mx-auto grid min-h-13 w-full max-w-content grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6">
+    <div className="mx-auto grid min-h-13 w-full max-w-content grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 pointer-fine:min-h-11 sm:px-6">
       <p className="flex min-w-0 items-center gap-1.5 text-label text-muted-foreground">
         {location.map((part, index) => (
           <span key={part} className="flex items-center gap-1.5 truncate">
