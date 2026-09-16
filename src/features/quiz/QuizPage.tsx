@@ -24,7 +24,10 @@ import {
   type QuizGoalId,
 } from "./model/quizGoals";
 import { collectWeakVerses } from "./model/quizSession";
-import { getPresetQuestionTypes } from "./model/questionTypes";
+import {
+  getPresetQuestionTypes,
+  keepSupportedQuestionTypes,
+} from "./model/questionTypes";
 import { describeScopeCoverage } from "./model/scopeCoverage";
 import { SETUP_STEPS, type SetupStep } from "./model/setupSteps";
 import type {
@@ -110,9 +113,33 @@ export function QuizPage() {
 
   function changeScope(nextScope: QuizScope): void {
     setScope(nextScope);
-    // A new scope can invalidate chosen types, so the selection resets to what
-    // this scope supports rather than silently dropping questions later.
-    setQuestionTypes(null);
+    /*
+     * A new scope can invalidate chosen types, but this used to throw the
+     * whole selection away - and it runs on every keystroke in a page or ayah
+     * field, so typing "1", "12", "127" wiped a deliberate choice three times
+     * over. Only the types the new scope cannot support are dropped; if that
+     * leaves nothing, the preset takes over as before.
+     */
+    setQuestionTypes((chosen) =>
+      keepSupportedQuestionTypes(
+        chosen,
+        describeScopeCoverage(
+          buildVersePool(mushafData, nextScope),
+          verseInfoRecords,
+        ),
+      ),
+    );
+  }
+
+  /*
+   * Opening the types step commits the preset it is about to show ticked.
+   * questionTypes starts null - "not chosen yet" - while the step rendered
+   * effectiveTypes, so the learner saw a choice presented as already made
+   * while state said nothing had been chosen.
+   */
+  function openTypesStep(): void {
+    setQuestionTypes((chosen) => chosen ?? effectiveTypes);
+    setSetupStep("types");
   }
 
   function startQuiz(): void {
@@ -278,7 +305,9 @@ export function QuizPage() {
                   <li key={step} aria-current={current ? "step" : undefined}>
                     <button
                       type="button"
-                      onClick={() => setSetupStep(step)}
+                      onClick={() =>
+                        step === "types" ? openTypesStep() : setSetupStep(step)
+                      }
                       className={cn(
                         "flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         current
@@ -315,7 +344,7 @@ export function QuizPage() {
                   scope={scope}
                   ayahCount={pool.length}
                   onScopeChange={changeScope}
-                  onNext={() => setSetupStep("types")}
+                  onNext={openTypesStep}
                 />
               )}
               {setupStep === "types" && (
@@ -336,7 +365,7 @@ export function QuizPage() {
                   questionCount={questionCount}
                   onSessionModeChange={setSessionMode}
                   onQuestionCountChange={setQuestionCount}
-                  onBack={() => setSetupStep("types")}
+                  onBack={openTypesStep}
                   onStart={startQuiz}
                 />
               )}

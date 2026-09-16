@@ -49,6 +49,23 @@ export function getAvailableQuestionTypes(
   );
 }
 
+/**
+ * Narrows a deliberate selection to what a new scope can still support,
+ * returning null when nothing survives so the caller falls back to a preset.
+ *
+ * Changing scope used to throw the whole selection away, and it runs on every
+ * keystroke in a page or ayah field - typing "127" wiped a chosen set three
+ * times over.
+ */
+export function keepSupportedQuestionTypes(
+  chosen: readonly QuestionType[] | null,
+  coverage: ScopeCoverage,
+): QuestionType[] | null {
+  if (chosen === null) return null;
+  const kept = chosen.filter((type) => isQuestionTypeAvailable(type, coverage));
+  return kept.length > 0 ? kept : null;
+}
+
 export function getPresetQuestionTypes(
   preset: QuizPreset,
   coverage: ScopeCoverage,
