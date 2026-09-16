@@ -275,6 +275,14 @@ const ar = {
     listenDialog: {
       title: "خيارات الاستماع",
       description: "اختر ما تريد سماعه وعدد مرات التكرار",
+      playHere: {
+        page: "شغّل هذه الصفحة",
+        pageHint: "صفحة {{page}}، من أولها",
+        surah: "شغّل هذه السورة",
+        surahHint: "سورة {{surahName}}، من أولها",
+      },
+      moreOptions: "خيارات أخرى",
+      moreOptionsHint: "جزء، نطاق صفحات، آية بعينها، أو تكرار",
       tabs: { surah: "سورة", juz: "جزء", page: "صفحة", ayah: "آية" },
       searchSurah: "ابحث عن السورة…",
       startAyah: "من الآية (اختياري)",
@@ -1175,6 +1183,14 @@ const en: StringTree<typeof ar> = {
     listenDialog: {
       title: "Listening options",
       description: "Choose what to hear and how often to repeat it.",
+      playHere: {
+        page: "Play this page",
+        pageHint: "Page {{page}}, from the top",
+        surah: "Play this surah",
+        surahHint: "Surah {{surahName}}, from the beginning",
+      },
+      moreOptions: "Other options",
+      moreOptionsHint: "A juz, a page range, one ayah, or repeats",
       tabs: { surah: "Surah", juz: "Juz", page: "Page", ayah: "Ayah" },
       searchSurah: "Search surahs…",
       startAyah: "Start at ayah (optional)",

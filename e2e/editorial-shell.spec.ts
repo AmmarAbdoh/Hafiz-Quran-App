@@ -366,10 +366,12 @@ test("starts a quiz from a goal in one tap", async ({ page }) => {
   await expect(
     page.locator('section[aria-labelledby="current-quiz-question"] h2'),
   ).toBeVisible();
+  // Answerable, whatever type the generator picked: the choice types render
+  // pressable options, fill-blank renders a searchable listbox.
   await expect(
     page
       .locator(
-        'section[aria-labelledby="current-quiz-question"] button[aria-pressed]',
+        'section[aria-labelledby="current-quiz-question"] button[aria-pressed], section[aria-labelledby="current-quiz-question"] [role="option"]',
       )
       .first(),
   ).toBeVisible();
