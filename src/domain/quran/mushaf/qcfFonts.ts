@@ -14,9 +14,20 @@ const injectedPalettes = new Set<string>();
  */
 const documentFontFamilies = new Set<string>();
 
+/**
+ * Keyed on the file, not on the theme.
+ *
+ * The key used to carry the theme unconditionally, while getFontUrl varies by
+ * theme in exactly one case - Firefox, dark, coloured. So on every other
+ * browser, switching theme threw away the cached face for every visible page
+ * and re-registered it against a byte-identical URL. In plain mode the file
+ * never depends on the theme at all.
+ *
+ * The tajweed colours do follow the theme, but through the CSS font-palette
+ * property, which needs no new font.
+ */
 function getFontCacheKey(page: number, theme: Theme, colored: boolean): string {
-  const fontFamily = getQcfFontFamily(page, colored);
-  return `${fontFamily}-${theme}-${colored ? "c" : "p"}`;
+  return `${getQcfFontFamily(page, colored)}|${getFontUrl(page, theme, colored)}`;
 }
 
 function isQcfFontInDocument(page: number, colored: boolean): boolean {

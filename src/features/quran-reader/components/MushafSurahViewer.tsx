@@ -9,6 +9,9 @@ import {
 import { useTranslation } from "react-i18next";
 import { formatNumber, useLocale } from "@/app/i18n";
 import { MushafPageBlock } from "@/features/quran-reader/components/MushafPageBlock";
+
+/** Pages mounted at a time. Three fills a tall screen with one in reserve. */
+const PAGE_MOUNT_STEP = 3;
 import { MushafSurahEndNav } from "@/features/quran-reader/components/MushafSurahEndNav";
 import { VerseInteractionOverlays } from "@/features/quran-reader/components/VerseInteractionOverlays";
 import {
@@ -80,6 +83,78 @@ export function MushafSurahViewer({
     [surahPageLayouts],
   );
 
+  /*
+   * Surah mode used to mount every page of the surah at once. Al-Baqarah is
+   * 48 of them: 49 layout requests and 48 font requests fired together, 6402
+   * glyph spans and 15,956 DOM nodes in the document, 5.4 seconds before a
+   * word of Quran appeared - and every later style change paying for all of
+   * it, which is why switching theme took 236ms here against 44ms on a single
+   * page.
+   *
+   * Pages mount a few at a time instead, extending as the reader reaches the
+   * end of what is mounted. A surah is read downwards, so the next pages are
+   * wanted in the order they are reached.
+   */
+  const pageIndexForVerse = useMemo(() => {
+    if (!highlightVerseKey) return 0;
+    const index = surahPageLayouts.findIndex((layout) =>
+      layout.lines.some((line) =>
+        line.words.some((word) => word.verse_key === highlightVerseKey),
+      ),
+    );
+    return index < 0 ? 0 : index;
+  }, [highlightVerseKey, surahPageLayouts]);
+
+  const [mountedCount, setMountedCount] = useState(PAGE_MOUNT_STEP);
+
+  // Somewhere to jump to has to exist before the jump.
+  useEffect(() => {
+    setMountedCount((current) =>
+      Math.max(current, pageIndexForVerse + PAGE_MOUNT_STEP),
+    );
+  }, [pageIndexForVerse]);
+
+  useEffect(() => {
+    setMountedCount(PAGE_MOUNT_STEP);
+  }, [surahNumber]);
+
+  const mountedLayouts = useMemo(
+    () => surahPageLayouts.slice(0, mountedCount),
+    [surahPageLayouts, mountedCount],
+  );
+  const hasMorePages = mountedCount < surahPageLayouts.length;
+
+  /*
+   * A callback ref, not a useRef.
+   *
+   * The viewer returns a loading tree before the pages exist, so an effect
+   * reading a ref ran once while the sentinel was still null - and its
+   * dependencies never changed afterwards, so it never ran again and no
+   * listener was ever attached. Scrolling to the very bottom of Al-Baqarah
+   * mounted nothing. Holding the node in state makes its arrival the thing
+   * that starts the effect.
+   */
+  const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const stage = sentinel?.closest<HTMLElement>(".mushaf-stage");
+    if (!sentinel || !stage || !hasMorePages) return;
+
+    const LOOKAHEAD_PX = 800;
+    const grow = () => {
+      const remaining =
+        stage.scrollHeight - stage.scrollTop - stage.clientHeight;
+      if (remaining > LOOKAHEAD_PX) return;
+      setMountedCount((current) =>
+        Math.min(current + PAGE_MOUNT_STEP, surahPageLayouts.length),
+      );
+    };
+
+    grow();
+    stage.addEventListener("scroll", grow, { passive: true });
+    return () => stage.removeEventListener("scroll", grow);
+  }, [sentinel, hasMorePages, mountedCount, surahPageLayouts.length]);
+
   const wordsByLocation = useMemo(() => {
     const words = new Map<string, MushafWord>();
     for (const layout of surahPageLayouts) {
@@ -106,11 +181,17 @@ export function MushafSurahViewer({
     bookmarkedSet,
   } = interactions;
 
+  /*
+   * Only the pages that are mounted, and the next step's worth. This used to
+   * warm every page of the surah at once - 48 font files for Al-Baqarah,
+   * fetched before a word was read, for pages the reader might never reach.
+   */
   useEffect(() => {
-    for (const page of surahPages) {
+    const upTo = Math.min(mountedCount + PAGE_MOUNT_STEP, surahPages.length);
+    for (const page of surahPages.slice(0, upTo)) {
       void preloadQcfPageFont(page, theme, tajweedColored);
     }
-  }, [surahPages, theme, tajweedColored]);
+  }, [surahPages, mountedCount, theme, tajweedColored]);
 
   const [surahFontsLoading, setSurahFontsLoading] = useState(true);
 
@@ -237,7 +318,7 @@ export function MushafSurahViewer({
 
   return (
     <div ref={mushafRef} className="flex w-full flex-col items-stretch">
-      {surahPageLayouts.map((pageLayout, index) => (
+      {mountedLayouts.map((pageLayout, index) => (
         <section
           key={pageLayout.page}
           className="mushaf-surah-page"
@@ -279,6 +360,11 @@ export function MushafSurahViewer({
           />
         </section>
       ))}
+
+      {/* Asks for the next pages a little before the reader reaches them. */}
+      {hasMorePages ? (
+        <div ref={setSentinel} className="h-px w-full" aria-hidden="true" />
+      ) : null}
 
       {onSurahChange ? (
         <MushafSurahEndNav
