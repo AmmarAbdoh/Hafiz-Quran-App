@@ -45,7 +45,18 @@ export function MushafReaderBar({
   ].filter((part): part is string => part !== null);
 
   return (
-    <div className="mx-auto flex min-h-13 w-full max-w-content items-center justify-between gap-3 px-4 sm:px-6">
+    /*
+     * A three-column grid, not space-between. With exactly two children,
+     * space-between pushes one to each edge, which left the page control 142px
+     * off centre on a phone and 482px off on a desktop - where the page it
+     * turns sits in the middle of the screen and the control sat under the
+     * surah rail. A printed mushaf centres the page number in its footer.
+     *
+     * The grid centres the control against the bar rather than against its
+     * sibling, so it cannot drift when the juz text grows or a third element
+     * arrives in the trailing cell.
+     */
+    <div className="mx-auto grid min-h-13 w-full max-w-content grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6">
       <p className="flex min-w-0 items-center gap-1.5 text-label text-muted-foreground">
         {location.map((part, index) => (
           <span key={part} className="flex items-center gap-1.5 truncate">
@@ -55,17 +66,22 @@ export function MushafReaderBar({
         ))}
       </p>
 
-      {showControls ? (
-        pageControls
-      ) : (
-        /* Read aloud with its label, since a bare digit says nothing alone. */
-        <span
-          className="shrink-0 text-label font-medium text-muted-foreground"
-          aria-label={t("status.page", { page: formatNumber(page, locale) })}
-        >
-          {formatNumber(page, locale)}
-        </span>
-      )}
+      <div className="flex justify-center">
+        {showControls ? (
+          pageControls
+        ) : (
+          /* Read aloud with its label, since a bare digit says nothing alone. */
+          <span
+            className="shrink-0 text-label font-medium text-muted-foreground"
+            aria-label={t("status.page", { page: formatNumber(page, locale) })}
+          >
+            {formatNumber(page, locale)}
+          </span>
+        )}
+      </div>
+
+      {/* Reserved: the natural home for a bookmark or repeat affordance. */}
+      <span aria-hidden="true" />
     </div>
   );
 }
