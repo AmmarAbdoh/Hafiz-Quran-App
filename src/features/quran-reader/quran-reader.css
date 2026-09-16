@@ -136,18 +136,45 @@
     --mushaf-line-height-base: clamp(2.1rem, 6.75vh, 3.1rem);
   }
 
+  /*
+   * Sepia reassigned four global tokens - background, card, muted and the page
+   * - with warm hex, and left foreground, the borders and the rest of the
+   * surface ramp as they were. So warm paper carried cool grey rules and
+   * near-white raised surfaces, and nothing had been checked for contrast
+   * against the colour it now sat on.
+   *
+   * It is a complete variant now: every surface, every border and both
+   * foregrounds, warmed together. surface-hover and surface-selected are
+   * derived from --card upstream, so they follow on their own.
+   */
   .mushaf-reader-layout--sepia {
     --mushaf-page: #f4ecd8;
-    --background: #f0e8d8;
-    --card: #faf4e8;
-    --muted: #ebe3d2;
+    --background: #efe6d2;
+    --card: #faf3e3;
+    --surface-base: #efe6d2;
+    --surface-raised: #faf3e3;
+    --surface-sunken: #e6dcc6;
+    --muted: #e9e0cc;
+    --foreground: #2b2416;
+    --muted-foreground: #5a5140;
+    --border-subtle: #e4dac2;
+    --border: #d5c7a6;
+    --border-strong: #b9a77e;
   }
 
   .dark .mushaf-reader-layout--sepia {
     --mushaf-page: #1c1914;
     --background: #141210;
-    --card: #1a1814;
-    --muted: #242018;
+    --card: #1f1b15;
+    --surface-base: #141210;
+    --surface-raised: #1f1b15;
+    --surface-sunken: #0f0d0a;
+    --muted: #262118;
+    --foreground: #ece4d2;
+    --muted-foreground: #a99e88;
+    --border-subtle: #262118;
+    --border: #363023;
+    --border-strong: #4a4132;
   }
 
   .mushaf-bottom-chrome--controls {
