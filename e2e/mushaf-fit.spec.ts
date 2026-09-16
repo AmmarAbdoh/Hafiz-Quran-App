@@ -148,3 +148,50 @@ test("type size does not change when the bottom bar changes height", async ({
 
   expect(after).toBe(before!.fontSize);
 });
+
+/*
+ * The reader's chrome is centred on the mushaf page, not on the window.
+ *
+ * Both flanks - the app sidebar and the surah rail - take a slice of the
+ * window, and each one is invisible to a different piece of chrome: the
+ * header is a sibling of the main that pads itself for the rail, and the dock
+ * is fixed to the window and so sees neither. Left to themselves the header
+ * sat 160px to the side of the page it names and the bar ran on underneath
+ * the sidebar, covering the theme toggle.
+ */
+test("the header and the bottom bar centre on the page, not the window", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  expect(await readMushafPage(page, 3)).not.toBeNull();
+  await expect(page.locator(".mushaf-reader-rail")).toBeVisible();
+
+  const centres = await page.evaluate(() => {
+    const centre = (selector: string) => {
+      const box = document.querySelector(selector)?.getBoundingClientRect();
+      return box ? box.left + box.width / 2 : null;
+    };
+    const dock = document.querySelector(".mushaf-bottom-dock");
+    const sidebar = document.querySelector(".editorial-sidebar");
+    const dockBox = dock?.getBoundingClientRect();
+    const sidebarBox = sidebar?.getBoundingClientRect();
+    return {
+      window: window.innerWidth / 2,
+      mushafPage: centre(".mushaf-page"),
+      header: centre(".mushaf-reader-header > *"),
+      dock: centre(".mushaf-bottom-dock"),
+      coversSidebar:
+        dockBox && sidebarBox
+          ? dockBox.left < sidebarBox.right && sidebarBox.left < dockBox.right
+          : null,
+    };
+  });
+
+  expect(centres.mushafPage).not.toBeNull();
+  expect(centres.header).toBeCloseTo(centres.mushafPage!, 0);
+  expect(centres.dock).toBeCloseTo(centres.mushafPage!, 0);
+  // Guards the measurement itself: if the flanks were equal there would be
+  // nothing here to get wrong.
+  expect(Math.abs(centres.mushafPage! - centres.window)).toBeGreaterThan(20);
+  expect(centres.coversSidebar).toBe(false);
+});

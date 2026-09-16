@@ -76,7 +76,20 @@ textarea {
   backdrop-filter: blur(18px);
 }
 
+/*
+ * The reader's chrome is measured against the mushaf page, not against the
+ * window. On a wide screen the app sidebar and the surah rail each take a
+ * slice of the window, so a header centred on the window sat half a rail -
+ * 160px - to the side of the page it labels, and the bottom bar ran on
+ * underneath the sidebar.
+ *
+ * These two hold the width of whatever is currently beside the page. The
+ * header, the dock and the page all then centre on what is left, and either
+ * flank can be resized from one number.
+ */
 .editorial-content-column {
+  --reader-sidebar-inset: 0px;
+  --reader-rail-width: 0px;
   display: flex;
   min-width: 0;
   min-height: 100dvh;
@@ -110,9 +123,6 @@ textarea {
  * width-capped, natural-height box every other route uses.
  */
 .editorial-main--reader {
-  /* Declared here, on the parent of both, so the rail and the padding that
-     makes room for it cannot disagree. */
-  --reader-rail-width: 20rem;
   display: flex;
   min-height: 0;
   flex: 1;
@@ -136,6 +146,13 @@ textarea {
  * the page centres in what is left without knowing the rail exists.
  */
 @media (min-width: 80rem) {
+  /* Only once the rail is really mounted: the header shown while the reader
+     boots has none, and reserving room for an absent rail misaligns the
+     other way. */
+  .editorial-content-column:has(.mushaf-reader-rail) {
+    --reader-rail-width: 20rem;
+  }
+
   .editorial-main--reader {
     position: relative;
   }
@@ -251,6 +268,9 @@ textarea {
   flex-shrink: 0;
   border-block-end: 1px solid var(--border);
   background: var(--mushaf-header);
+  /* The header is a sibling of the main that makes room for the rail, so it
+     has to keep clear of it on its own account. */
+  padding-inline-end: var(--reader-rail-width);
   backdrop-filter: blur(16px);
 }
 
@@ -262,6 +282,10 @@ textarea {
 }
 
 @media (min-width: 768px) {
+  .editorial-content-column {
+    --reader-sidebar-inset: var(--editorial-sidebar-width);
+  }
+
   .editorial-sidebar {
     display: flex;
   }

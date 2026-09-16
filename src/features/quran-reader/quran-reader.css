@@ -49,11 +49,13 @@
     overflow: hidden;
   }
 
+  /* Fixed to the window, so it subtracts the flanks itself rather than
+     inheriting padding the way the mushaf layout does. */
   .mushaf-bottom-dock {
     position: fixed;
-    right: 0;
+    inset-inline-start: var(--reader-sidebar-inset, 0px);
+    inset-inline-end: var(--reader-rail-width, 0px);
     bottom: 0;
-    left: 0;
     z-index: var(--z-dock);
     display: flex;
     flex-direction: column;
