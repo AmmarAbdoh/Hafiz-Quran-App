@@ -28,7 +28,6 @@ function renderHeader(
               element={
                 <MushafReaderHeader
                   surahLabel="البقرة"
-                  page={5}
                   layoutMode="page"
                   currentSurah={1}
                   mushafData={[]}
@@ -83,19 +82,29 @@ describe("MushafReaderHeader", () => {
     expect(await screen.findByText("home route")).toBeInTheDocument();
   });
 
-  it("names the surah and page being read", () => {
+  it("names the surah being read", () => {
     renderHeader();
 
-    const surah = screen.getByText("البقرة");
-    expect(surah).toHaveAttribute("lang", "ar");
-    expect(surah).toHaveAttribute("dir", "rtl");
-    expect(screen.getByText("صفحة ٥")).toBeInTheDocument();
+    const surah = screen.getByRole("heading", { level: 1 });
+    expect(surah).toHaveTextContent("البقرة");
+    expect(surah.firstElementChild).toHaveAttribute("lang", "ar");
+    expect(surah.firstElementChild).toHaveAttribute("dir", "rtl");
   });
 
-  it("shows the page alone until the surah names arrive", () => {
+  /*
+   * The page number is the folio line's to state, continuously, at the foot
+   * of the page. Saying it here as well put the same number on screen twice.
+   */
+  it("leaves the page number to the folio line", () => {
+    renderHeader();
+
+    expect(screen.queryByText("صفحة ٥")).not.toBeInTheDocument();
+  });
+
+  it("still has a heading before the surah names arrive", () => {
     renderHeader({ surahLabel: "" });
 
-    expect(screen.getByText("صفحة ٥")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/\S/);
   });
 
   it("opens reading preferences from the overflow menu", async () => {

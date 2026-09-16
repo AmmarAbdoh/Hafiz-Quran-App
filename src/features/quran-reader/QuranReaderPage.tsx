@@ -283,7 +283,6 @@ export function QuranReaderPage() {
     enabled: !error,
     setHeader,
     surahLabel: statusSurahLabel,
-    page: statusPage,
     layoutMode: route.layoutMode,
     currentSurah: route.currentSurahIndex,
     mushafData,

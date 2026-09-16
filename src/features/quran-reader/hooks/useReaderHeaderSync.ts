@@ -5,7 +5,6 @@ interface UseReaderHeaderSyncOptions {
   enabled: boolean;
   setHeader: (header: MushafReaderHeaderState | null) => void;
   surahLabel: string;
-  page: number;
   layoutMode: MushafReaderHeaderState["layoutMode"];
   currentSurah: MushafReaderHeaderState["currentSurah"];
   mushafData: MushafReaderHeaderState["mushafData"];
@@ -24,7 +23,6 @@ export function useReaderHeaderSync({
   enabled,
   setHeader,
   surahLabel,
-  page,
   layoutMode,
   currentSurah,
   mushafData,
@@ -66,7 +64,6 @@ export function useReaderHeaderSync({
     const callbacks = callbacksRef.current;
     setHeader({
       surahLabel,
-      page,
       layoutMode,
       currentSurah,
       mushafData,
@@ -87,7 +84,6 @@ export function useReaderHeaderSync({
     enabled,
     mushafData,
     layoutMode,
-    page,
     practiceActive,
     practiceLoading,
     setHeader,

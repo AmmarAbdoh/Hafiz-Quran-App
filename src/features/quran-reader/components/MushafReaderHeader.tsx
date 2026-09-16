@@ -14,7 +14,6 @@ import {
   Sun,
   Volume2,
 } from "lucide-react";
-import { formatNumber, useLocale } from "@/app/i18n";
 import { useSurahNames } from "@/domain/quran";
 import type { MushafReaderHeaderState } from "@/features/quran-reader/context/MushafReaderContext";
 import { Button } from "@/shared/components/ui/button";
@@ -36,7 +35,6 @@ type MushafReaderHeaderProps = MushafReaderHeaderState;
 
 export function MushafReaderHeader({
   surahLabel,
-  page,
   layoutMode,
   practiceActive,
   practiceLoading,
@@ -47,8 +45,7 @@ export function MushafReaderHeader({
   onOpenReadingPreferences,
   onTogglePractice,
 }: MushafReaderHeaderProps) {
-  const { t, i18n } = useTranslation("reader");
-  const { locale } = useLocale();
+  const { t, i18n } = useTranslation(["reader", "common"]);
   const { language: surahLanguage } = useSurahNames();
   const { theme, toggleTheme } = useTheme();
   const rtl = i18n.dir() === "rtl";
@@ -72,30 +69,24 @@ export function MushafReaderHeader({
         </Button>
 
         {/*
-          Names the reading; the juz, hizb and progress sit in the folio line
-          at the foot of the page so neither line is crowded.
+          The surah, and nothing else. The page number is stated continuously
+          in the folio line at the foot of the page - inside the navigation
+          pill when that is shown, standing alone when it is not - so printing
+          it here as well said the same thing twice on one screen and crowded
+          the one line that names the reading.
 
           It is the page's h1. The reader had no heading of any level, so the
           app's main surface gave a screen reader nothing to orient by and
-          nothing to jump to - and what it should say was already here, being
-          said by a paragraph.
+          nothing to jump to.
         */}
-        <h1 className="flex min-w-0 items-center justify-center gap-1.5 text-label font-normal text-muted-foreground">
-          {surahLabel ? (
-            <>
-              <bdi
-                dir={surahLanguage === "ar" ? "rtl" : "ltr"}
-                lang={surahLanguage}
-                className="truncate font-semibold text-foreground"
-              >
-                {surahLabel}
-              </bdi>
-              <span aria-hidden="true">·</span>
-            </>
-          ) : null}
-          <span className="shrink-0">
-            {t("status.page", { page: formatNumber(page, locale) })}
-          </span>
+        <h1 className="flex min-w-0 items-center justify-center text-body">
+          <bdi
+            dir={surahLanguage === "ar" ? "rtl" : "ltr"}
+            lang={surahLanguage}
+            className="truncate font-semibold text-foreground"
+          >
+            {surahLabel || t("navigation.reader", { ns: "common" })}
+          </bdi>
         </h1>
 
         <DropdownMenu dir={i18n.dir()}>

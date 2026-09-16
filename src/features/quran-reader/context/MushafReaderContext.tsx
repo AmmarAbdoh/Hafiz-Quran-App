@@ -11,7 +11,6 @@ import type { MushafLayoutMode } from "@/features/quran-reader/model/quranReader
 export interface MushafReaderHeaderState {
   /** Surah names on the visible page, already joined for the interface language. */
   surahLabel: string;
-  page: number;
   /**
    * Page or surah. It decides how the reader is moved through - a page turns
    * on a swipe, a surah scrolls - so the header states it rather than leaving
