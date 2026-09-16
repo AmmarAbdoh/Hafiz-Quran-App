@@ -7,16 +7,23 @@ import { Panel } from "@/shared/components/Panel";
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { cn } from "@/shared/lib/utils";
+import { useReaderPositionSnapshot } from "@/features/quran-reader";
 import { ActiveQuiz } from "./components/ActiveQuiz";
-import { QuizHelpPanel } from "./components/QuizHelpPanel";
+import { QuizGoalPicker } from "./components/QuizGoalPicker";
 import { QuizHistoryList } from "./components/QuizHistoryList";
 import { QuizResults } from "./components/QuizResults";
 import { QuizScopeStep } from "./components/QuizScopeStep";
 import { QuizSessionStep } from "./components/QuizSessionStep";
-import { QuizSetupSummary } from "./components/QuizSetupSummary";
 import { QuizTypesStep } from "./components/QuizTypesStep";
 import { useQuizEngine } from "./hooks/useQuizEngine";
 import { useQuizFormatters } from "./hooks/useQuizFormatters";
+import {
+  buildReviewTodayConfig,
+  buildSurahConfig,
+  buildWeakVersesConfig,
+  type QuizGoalId,
+} from "./model/quizGoals";
+import { collectWeakVerses } from "./model/quizSession";
 import { getPresetQuestionTypes } from "./model/questionTypes";
 import { describeScopeCoverage } from "./model/scopeCoverage";
 import { SETUP_STEPS, type SetupStep } from "./model/setupSteps";
@@ -72,6 +79,13 @@ export function QuizPage() {
     retryCoreData,
   } = useQuranData();
   const engine = useQuizEngine(mushafData, verseInfoRecords);
+  const savedPosition = useReaderPositionSnapshot();
+  /*
+   * Goals are where setup starts now. The wizard is still all here - it is
+   * simply one of the goals rather than the only way in.
+   */
+  const [showManualSetup, setShowManualSetup] = useState(false);
+  const [goalSurah, setGoalSurah] = useState(1);
   const [setupStep, setSetupStep] = useState<SetupStep>("scope");
   const [scope, setScope] = useState<QuizScope>(DEFAULT_SCOPE);
   // Null means "not chosen yet", which is not the same as choosing nothing.
@@ -105,6 +119,25 @@ export function QuizPage() {
     engine.startQuiz(config);
   }
 
+  const weakVerses = collectWeakVerses(history, Number.MAX_SAFE_INTEGER);
+
+  function startGoal(goal: QuizGoalId): void {
+    if (goal === "manual") {
+      setShowManualSetup(true);
+      setSetupStep("scope");
+      return;
+    }
+
+    const goalConfig =
+      goal === "today"
+        ? buildReviewTodayConfig(savedPosition, mushafData, verseInfoRecords)
+        : goal === "surah"
+          ? buildSurahConfig(goalSurah, mushafData, verseInfoRecords)
+          : buildWeakVersesConfig(weakVerses, mushafData, verseInfoRecords);
+
+    if (goalConfig) engine.startQuiz(goalConfig);
+  }
+
   function retryQuiz(): void {
     engine.resetQuiz();
     engine.startQuiz(config);
@@ -122,6 +155,7 @@ export function QuizPage() {
 
   function openNewSetup(): void {
     engine.resetQuiz();
+    setShowManualSetup(false);
     setSetupStep("scope");
     setHistory(loadQuizHistory());
   }
@@ -219,96 +253,114 @@ export function QuizPage() {
         </Button>
       </header>
 
-      <QuizHelpPanel />
+      {!showManualSetup ? (
+        <QuizGoalPicker
+          position={savedPosition}
+          weakVerseCount={weakVerses.length}
+          surahNumber={goalSurah}
+          onSurahNumberChange={setGoalSurah}
+          onStart={startGoal}
+        />
+      ) : (
+        <>
+          <div>
+            <Button variant="ghost" onClick={() => setShowManualSetup(false)}>
+              {t("goals.back")}
+            </Button>
+          </div>
 
-      <nav aria-label={t("steps.label")}>
-        <ol className="grid grid-cols-3 gap-2">
-          {SETUP_STEPS.map((step, index) => {
-            const current = setupStep === step;
-            const completed = currentStepIndex > index;
-            return (
-              <li key={step} aria-current={current ? "step" : undefined}>
-                <button
-                  type="button"
-                  onClick={() => setSetupStep(step)}
-                  className={cn(
-                    "flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    current
-                      ? "border-primary bg-primary/10 font-semibold text-primary"
-                      : "border-border hover:bg-muted/40",
-                    completed && !current && "border-primary/30 bg-primary/5",
-                  )}
+          <nav aria-label={t("steps.label")}>
+            <ol className="grid grid-cols-3 gap-2">
+              {SETUP_STEPS.map((step, index) => {
+                const current = setupStep === step;
+                const completed = currentStepIndex > index;
+                return (
+                  <li key={step} aria-current={current ? "step" : undefined}>
+                    <button
+                      type="button"
+                      onClick={() => setSetupStep(step)}
+                      className={cn(
+                        "flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        current
+                          ? "border-primary bg-primary/10 font-semibold text-primary"
+                          : "border-border hover:bg-muted/40",
+                        completed &&
+                          !current &&
+                          "border-primary/30 bg-primary/5",
+                      )}
+                    >
+                      <span className="text-label text-muted-foreground">
+                        {formatNumber(index + 1)}
+                      </span>
+                      <span className="truncate">{t(`steps.${step}`)}</span>
+                      <span className="sr-only">
+                        {current
+                          ? `, ${t("steps.current")}`
+                          : completed
+                            ? `, ${t("steps.completed")}`
+                            : ""}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+
+          <Panel variant="flush" className="overflow-hidden">
+            <SetupStepPanel step={setupStep}>
+              {setupStep === "scope" && (
+                <QuizScopeStep
+                  mushafData={mushafData}
+                  scope={scope}
+                  ayahCount={pool.length}
+                  onScopeChange={changeScope}
+                  onNext={() => setSetupStep("types")}
+                />
+              )}
+              {setupStep === "types" && (
+                <QuizTypesStep
+                  coverage={coverage}
+                  selectedTypes={effectiveTypes}
+                  onTypesChange={setQuestionTypes}
+                  onBack={() => setSetupStep("scope")}
+                  onNext={() => setSetupStep("session")}
+                />
+              )}
+              {setupStep === "session" && (
+                <QuizSessionStep
+                  scope={scope}
+                  ayahCount={pool.length}
+                  questionTypes={effectiveTypes}
+                  sessionMode={sessionMode}
+                  questionCount={questionCount}
+                  onSessionModeChange={setSessionMode}
+                  onQuestionCountChange={setQuestionCount}
+                  onBack={() => setSetupStep("types")}
+                  onStart={startQuiz}
+                />
+              )}
+              {engine.error && (
+                <p
+                  className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive"
+                  role="alert"
                 >
-                  <span className="text-label text-muted-foreground">
-                    {formatNumber(index + 1)}
-                  </span>
-                  <span className="truncate">{t(`steps.${step}`)}</span>
-                  <span className="sr-only">
-                    {current
-                      ? `, ${t("steps.current")}`
-                      : completed
-                        ? `, ${t("steps.completed")}`
-                        : ""}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-      </nav>
+                  {t(`errors.${engine.error}`)}
+                </p>
+              )}
+            </SetupStepPanel>
+          </Panel>
+        </>
+      )}
 
-      <QuizSetupSummary
-        scope={scope}
-        ayahCount={pool.length}
-        questionTypes={effectiveTypes}
-        sessionMode={sessionMode}
-        questionCount={questionCount}
-        onEditStep={setSetupStep}
-      />
-
-      <Panel variant="flush" className="overflow-hidden">
-        <SetupStepPanel step={setupStep}>
-          {setupStep === "scope" && (
-            <QuizScopeStep
-              mushafData={mushafData}
-              scope={scope}
-              ayahCount={pool.length}
-              onScopeChange={changeScope}
-              onNext={() => setSetupStep("types")}
-            />
-          )}
-          {setupStep === "types" && (
-            <QuizTypesStep
-              coverage={coverage}
-              selectedTypes={effectiveTypes}
-              onTypesChange={setQuestionTypes}
-              onBack={() => setSetupStep("scope")}
-              onNext={() => setSetupStep("session")}
-            />
-          )}
-          {setupStep === "session" && (
-            <QuizSessionStep
-              scope={scope}
-              ayahCount={pool.length}
-              questionTypes={effectiveTypes}
-              sessionMode={sessionMode}
-              questionCount={questionCount}
-              onSessionModeChange={setSessionMode}
-              onQuestionCountChange={setQuestionCount}
-              onBack={() => setSetupStep("types")}
-              onStart={startQuiz}
-            />
-          )}
-          {engine.error && (
-            <p
-              className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive"
-              role="alert"
-            >
-              {t(`errors.${engine.error}`)}
-            </p>
-          )}
-        </SetupStepPanel>
-      </Panel>
+      {engine.error && !showManualSetup && (
+        <p
+          className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+          role="alert"
+        >
+          {t(`errors.${engine.error}`)}
+        </p>
+      )}
 
       <Panel>
         <h2 className="font-semibold">{t("history.title")}</h2>

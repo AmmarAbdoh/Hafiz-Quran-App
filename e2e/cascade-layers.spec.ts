@@ -54,9 +54,11 @@ test("a filled button keeps its foreground color on a hard-loaded lazy route", a
 });
 
 test("a checked checkbox keeps its foreground color", async ({ page }) => {
-  // The default scope (Al-Fatihah) is enough to reach the question-type
-  // checkboxes; the step nav jumps directly there without filling scope in.
+  // The checkboxes live in the manual wizard, which setup now offers as one
+  // goal among four. The default scope (Al-Fatihah) is enough to reach them;
+  // the step nav jumps straight there without filling scope in.
   await page.goto("/quiz");
+  await page.getByRole("button", { name: /Set it up myself/i }).click();
   await page.getByRole("button", { name: "Questions" }).first().click();
 
   const checkbox = page.getByRole("checkbox").first();

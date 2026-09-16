@@ -397,6 +397,40 @@ const ar = {
       newSetup: "إعداد جديد",
       confirm: "تأكيد",
     },
+    goals: {
+      title: "ما الذي تريد مراجعته؟",
+      description: "اختر هدفاً ويبدأ الاختبار فوراً، أو جهّزه بنفسك.",
+      today: {
+        title: "راجع ما قرأته",
+        page: "صفحة {{page}}",
+        surah: "سورة {{surahName}}",
+        fallback: "ابدأ من الفاتحة",
+      },
+      weak: {
+        title: "ثبّت ما نسيته",
+        // count drives the plural form; formattedCount carries the Arabic
+        // numerals, as the rest of the app does.
+        description: "{{formattedCount}} آية أخطأت فيها من قبل",
+        description_one: "آية واحدة أخطأت فيها من قبل",
+        description_two: "آيتان أخطأت فيهما من قبل",
+        description_few: "{{formattedCount}} آيات أخطأت فيها من قبل",
+        description_many: "{{formattedCount}} آية أخطأت فيها من قبل",
+        description_other: "{{formattedCount}} آية أخطأت فيها من قبل",
+        empty: "لا توجد آيات تحتاج تثبيتاً بعد",
+      },
+      surah: {
+        title: "اختبر سورة",
+        description: "اختر سورة واحدة",
+        picker: "السورة",
+        empty: "لا توجد سورة بهذا الاسم",
+      },
+      manual: {
+        title: "إعداد يدوي",
+        description: "اختر النطاق ونوع الأسئلة وطول الجلسة",
+      },
+      start: "ابدأ",
+      back: "العودة إلى الأهداف",
+    },
     steps: {
       label: "خطوات إعداد الاختبار",
       scope: "النطاق",
@@ -1256,6 +1290,38 @@ const en: StringTree<typeof ar> = {
       retry: "Retry quiz",
       newSetup: "New setup",
       confirm: "Confirm",
+    },
+    goals: {
+      title: "What do you want to review?",
+      description: "Pick a goal and start, or set one up yourself.",
+      today: {
+        title: "Review what you read",
+        page: "Page {{page}}",
+        surah: "Surah {{surahName}}",
+        fallback: "Start at Al-Fatihah",
+      },
+      weak: {
+        title: "Work on what you missed",
+        description: "{{formattedCount}} ayahs you have got wrong before",
+        description_one: "{{formattedCount}} ayah you have got wrong before",
+        description_two: "{{formattedCount}} ayahs you have got wrong before",
+        description_few: "{{formattedCount}} ayahs you have got wrong before",
+        description_many: "{{formattedCount}} ayahs you have got wrong before",
+        description_other: "{{formattedCount}} ayahs you have got wrong before",
+        empty: "Nothing needs work yet",
+      },
+      surah: {
+        title: "Test one surah",
+        description: "Choose a single surah",
+        picker: "Surah",
+        empty: "No surah by that name",
+      },
+      manual: {
+        title: "Set it up myself",
+        description: "Choose the scope, question types, and session length",
+      },
+      start: "Start",
+      back: "Back to goals",
     },
     steps: {
       label: "Quiz setup steps",

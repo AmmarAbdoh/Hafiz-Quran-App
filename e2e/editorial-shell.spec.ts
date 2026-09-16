@@ -343,10 +343,36 @@ test("renders an accessible localized 404", async ({ page }) => {
   await expectNoAccessibilityViolations(page);
 });
 
+/**
+ * The point of the goals: a playable session from a cold start in one tap,
+ * where the wizard asked for a scope, a set of question types and a session
+ * length across three steps first.
+ */
+test("starts a quiz from a goal in one tap", async ({ page }) => {
+  await page.goto("/quiz");
+  await expect(page.locator("h1")).toBeVisible({ timeout: 15_000 });
+
+  // The button reads "Start"; its accessible name carries the goal, so three
+  // cards do not offer three buttons all called the same thing.
+  await page
+    .getByRole("button", { name: /Review what you read|راجع ما قرأته/i })
+    .click();
+
+  await expect(
+    page.getByRole("heading", { name: /Question 1 of|السؤال ١ من/i }),
+  ).toBeVisible({ timeout: 15_000 });
+  await expectNoAccessibilityViolations(page);
+});
+
 test("completes a quiz and persists its semantic history", async ({ page }) => {
   await page.goto("/quiz");
   await expect(page.locator("h1")).toBeVisible({ timeout: 15_000 });
   await expectNoAccessibilityViolations(page);
+
+  // Setup opens on goals now; the wizard is one of them.
+  await page
+    .getByRole("button", { name: /Set it up myself|إعداد يدوي/i })
+    .click();
 
   await page
     .getByRole("button", {
