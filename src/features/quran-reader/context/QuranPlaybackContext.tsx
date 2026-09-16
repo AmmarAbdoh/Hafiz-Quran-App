@@ -43,6 +43,16 @@ export interface QuranPlaybackHighlightState {
 export interface QuranPlaybackActions {
   startListening: (session: BuiltListenSession) => Promise<void>;
   startAyahPlayback: (surah: number, ayah: number) => Promise<void>;
+  /**
+   * One ayah, on a loop. Repeating a single ayah until it sticks is the
+   * memorization loop itself, and it used to require leaving the ayah,
+   * opening a dialog and typing back the surah and ayah already selected.
+   */
+  startAyahRepeat: (
+    surah: number,
+    ayah: number,
+    repeat: number | "infinite",
+  ) => Promise<void>;
   pause: () => void;
   resume: () => void;
   stop: () => void;
@@ -433,6 +443,30 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     [startListening],
   );
 
+  const startAyahRepeat = useCallback(
+    async (surah: number, ayah: number, repeat: number | "infinite") => {
+      const infinite = repeat === "infinite";
+      const count = infinite ? 1 : Math.max(1, repeat);
+
+      await startListening({
+        // One item, repeated in place: repeatEachAyah so the bar can count
+        // the passes rather than treating them as one long block.
+        playlist: [{ surah, ayah }],
+        repeatMode: infinite ? "infinite" : "count",
+        repeatCount: count,
+        repeatEachAyah: true,
+        plan: {
+          scope: "ayah",
+          surah,
+          ayah,
+          repeatMode: infinite ? "infinite" : "count",
+          repeatCount: count,
+        },
+      });
+    },
+    [startListening],
+  );
+
   const pause = useCallback(() => {
     audioPlayer.pause();
     dispatch({ type: "playback-changed", playing: false, error: null });
@@ -492,6 +526,7 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     () => ({
       startListening,
       startAyahPlayback,
+      startAyahRepeat,
       pause,
       resume,
       stop,
@@ -503,6 +538,7 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     [
       startListening,
       startAyahPlayback,
+      startAyahRepeat,
       pause,
       resume,
       stop,

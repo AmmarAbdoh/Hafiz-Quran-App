@@ -31,6 +31,7 @@ export function VerseInteractionOverlays({
     clearSelection,
     handleListenWord,
     handleListenAyah,
+    handleRepeatAyah,
     handleTafseer,
     handleCopyVerse,
     handleShareVerse,
@@ -51,6 +52,7 @@ export function VerseInteractionOverlays({
             selection.mode === "word" ? handleListenWord : undefined
           }
           onListenAyah={handleListenAyah}
+          onRepeatAyah={handleRepeatAyah}
           onTafseer={handleTafseer}
           onCopy={handleCopyVerse}
           onShare={handleShareVerse}

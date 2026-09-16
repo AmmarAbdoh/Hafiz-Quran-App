@@ -291,7 +291,7 @@ test("replaces active reader playback with a newly selected ayah", async ({
   await firstAyahWord.click();
   await page
     .getByRole("button", {
-      name: /Listen to this ayah|الاستماع إلى الآية/i,
+      name: /Listen from here|استمع من هنا/i,
     })
     .click();
   await expect
@@ -310,7 +310,7 @@ test("replaces active reader playback with a newly selected ayah", async ({
   await secondAyahWord.click();
   await page
     .getByRole("button", {
-      name: /Listen to this ayah|الاستماع إلى الآية/i,
+      name: /Listen from here|استمع من هنا/i,
     })
     .click();
 

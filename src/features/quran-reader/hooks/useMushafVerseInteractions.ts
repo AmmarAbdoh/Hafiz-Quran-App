@@ -302,6 +302,18 @@ export function useMushafVerseInteractions({
     void playback.startAyahPlayback(sura!, aya!);
   }, [selection, stop, playback, clearSelection]);
 
+  const handleRepeatAyah = useCallback(
+    (repeat: number | "infinite") => {
+      if (!selection) return;
+      const [sura, aya] = selection.verseKey.split(":").map(Number);
+      stop();
+      clearSelection();
+      setPlayingTarget("ayah");
+      void playback.startAyahRepeat(sura!, aya!, repeat);
+    },
+    [selection, stop, playback, clearSelection],
+  );
+
   const handleTafseer = useCallback(() => {
     if (!selection) return;
     const verse = getVerseForKey(selection.verseKey);
@@ -330,6 +342,7 @@ export function useMushafVerseInteractions({
     clearSelection,
     handleListenWord,
     handleListenAyah,
+    handleRepeatAyah,
     handleTafseer,
     handleCopyVerse,
     handleShareVerse,

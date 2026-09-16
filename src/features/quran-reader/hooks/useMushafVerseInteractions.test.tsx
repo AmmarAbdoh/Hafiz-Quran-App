@@ -10,6 +10,7 @@ import { useMushafVerseInteractions } from "./useMushafVerseInteractions";
 
 const playback = vi.hoisted(() => ({
   startAyahPlayback: vi.fn(() => Promise.resolve()),
+  startAyahRepeat: vi.fn(() => Promise.resolve()),
   stop: vi.fn(),
 }));
 
@@ -39,6 +40,13 @@ vi.mock("@/features/quran-reader/hooks/useBookmarks", () => ({
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
+}));
+
+// The popover formats its repeat counts in the reader's numerals, and the
+// real provider cannot mount while react-i18next is mocked above.
+vi.mock("@/app/i18n", () => ({
+  useLocale: () => ({ locale: "ar" }),
+  formatNumber: (value: number) => String(value),
 }));
 
 const fallbackWord: MushafWord = {
