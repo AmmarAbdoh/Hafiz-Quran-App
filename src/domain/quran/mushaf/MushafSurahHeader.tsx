@@ -27,10 +27,27 @@ export function MushafSurahHeader({
   const occupiedLines = 1 + (showBismillah ? 1 : 0);
   const spacerLines = Math.max(0, headerLines - occupiedLines);
 
+  /*
+   * On 21 pages a surah begins on the line straight after the previous one
+   * ends, so the grid reserves a single slot, and the opening still needs a
+   * name band and a bismillah - two. Those pages ran exactly one line past the
+   * bottom of the stage and scrolled, which is the one thing the fit is for.
+   *
+   * The printed mushaf sets these openings tighter rather than stealing a line
+   * of Quran, so the block compresses to the slots it was given: each part
+   * takes an equal share of them.
+   */
+  const lineFit = occupiedLines > headerLines ? headerLines / occupiedLines : 1;
+
   return (
     <div
       className="mushaf-surah-header-block"
-      style={{ "--mushaf-header-spacer-lines": spacerLines } as CSSProperties}
+      style={
+        {
+          "--mushaf-header-spacer-lines": spacerLines,
+          "--mushaf-header-line-fit": lineFit,
+        } as CSSProperties
+      }
       aria-label={accessibleLabel}
       dir="rtl"
       lang="ar"

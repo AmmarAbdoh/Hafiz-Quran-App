@@ -40,6 +40,7 @@ async function readMushafPage(page: Page, pageNumber: number) {
     return {
       fontSize: Number.parseFloat(getComputedStyle(line).fontSize).toFixed(2),
       pageWidth: mushafPage.getBoundingClientRect().width,
+      pageHeight: mushafPage.getBoundingClientRect().height,
       stageWidth: stage.clientWidth,
       verticalOverflow: stage.scrollHeight - stage.clientHeight,
     };
@@ -68,6 +69,31 @@ test("a plain page fits its stage without scrolling", async ({ page }) => {
   const measured = await readMushafPage(page, 3);
   expect(measured).not.toBeNull();
   expect(measured!.verticalOverflow).toBeLessThanOrEqual(1);
+});
+
+/*
+ * On 21 pages a surah begins on the line straight after the previous one ends,
+ * so the Madani grid reserves one slot where the opening needs two - a name
+ * band and a bismillah. Those pages rendered a full line taller than the grid
+ * they are laid out on, and the name band took its type from the viewport
+ * width rather than from the page's own scale, so a short wide window made it
+ * taller still. Page 77 is one of them; page 3 has no opening at all.
+ */
+test("a surah opening squeezed into one line fits like any other page", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1000, height: 480 });
+
+  const opening = await readMushafPage(page, 77);
+  const plain = await readMushafPage(page, 3);
+
+  expect(opening).not.toBeNull();
+  expect(plain).not.toBeNull();
+  expect(opening!.verticalOverflow).toBeLessThanOrEqual(1);
+  // Within a few pixels of a page with no opening on it, not a line taller.
+  expect(Math.abs(opening!.pageHeight - plain!.pageHeight)).toBeLessThanOrEqual(
+    8,
+  );
 });
 
 test("type size does not change when the bottom bar changes height", async ({

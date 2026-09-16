@@ -28,6 +28,8 @@
 
   .mushaf-surah-header-block {
     --mushaf-header-spacer-lines: 0;
+    /* 1 unless the opening has been given fewer slots than it needs. */
+    --mushaf-header-line-fit: 1;
     display: flex;
     width: 100%;
     flex-direction: column;
@@ -50,7 +52,9 @@
   .mushaf-surah-header {
     display: flex;
     width: 100%;
-    min-height: var(--mushaf-line-height, 2.5rem);
+    min-height: calc(
+      var(--mushaf-line-height, 2.5rem) * var(--mushaf-header-line-fit)
+    );
     align-items: center;
     justify-content: center;
     gap: 0.4em;
@@ -66,6 +70,25 @@
   .mushaf-page--full .mushaf-surah-header {
     inline-size: var(--mushaf-line-width);
     margin-inline: auto;
+  }
+
+  /*
+   * A full page is a fixed-proportion artefact scaled to fit its stage, and
+   * the name band was the one part of it that escaped that: its type came from
+   * clamp(..., 3.6vw, ...), so on a wide, short window it was sized off the
+   * width while every line of Quran around it was sized off the height. That
+   * made a surah opening tall out of all proportion to the page carrying it.
+   * It scales with the page now, like the bismillah beneath it.
+   */
+  .mushaf-page--full .mushaf-surah-header__name {
+    font-size: calc(var(--mushaf-font-size, 1rem) * 1.05);
+    line-height: calc(
+      var(--mushaf-line-height, 2.5rem) * var(--mushaf-header-line-fit)
+    );
+  }
+
+  .mushaf-page--full .mushaf-surah-header__bracket {
+    font-size: calc(var(--mushaf-font-size, 1rem) * 1.2);
   }
 
   .mushaf-surah-header__bracket {
@@ -90,7 +113,9 @@
   .mushaf-bismillah {
     margin: 0;
     width: 100%;
-    min-height: var(--mushaf-line-height, 2.5rem);
+    min-height: calc(
+      var(--mushaf-line-height, 2.5rem) * var(--mushaf-header-line-fit)
+    );
     padding-inline: 0.5rem;
     text-align: center;
     font-size: clamp(1rem, 3vw, 1.65rem);
@@ -106,7 +131,9 @@
     inline-size: var(--mushaf-line-width);
     margin-inline: auto;
     font-size: calc(var(--mushaf-font-size, 1rem) * 0.92);
-    line-height: var(--mushaf-line-height, 2.5rem);
+    line-height: calc(
+      var(--mushaf-line-height, 2.5rem) * var(--mushaf-header-line-fit)
+    );
   }
 
   /*
