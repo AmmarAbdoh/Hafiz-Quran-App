@@ -46,6 +46,7 @@ interface MushafPageViewProps {
   className?: string;
   id?: string;
   surahFilter?: number;
+  hideSurahHeader?: boolean;
 }
 
 export function MushafPageView({
@@ -75,6 +76,7 @@ export function MushafPageView({
   className,
   id,
   surahFilter,
+  hideSurahHeader,
 }: MushafPageViewProps) {
   const {
     fontFamily,
@@ -126,6 +128,7 @@ export function MushafPageView({
         fontReady={fontReady || fontLoadFailed}
         colored={colored}
         surahFilter={surahFilter}
+        hideSurahHeader={hideSurahHeader}
         selectedWordLocation={selectedWordLocation}
         highlightVerseKey={highlightVerseKey}
         highlightPulse={highlightPulse}

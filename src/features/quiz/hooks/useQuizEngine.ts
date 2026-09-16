@@ -22,7 +22,6 @@ import type {
 } from "../model/types";
 import { buildVersePool, shuffleArray, toVerseKey } from "../model/versePool";
 import { saveQuizSession } from "../services/quizHistoryStorage";
-import { useQuizFormatters } from "./useQuizFormatters";
 import type { MushafVerse, VerseInfoRecord } from "@/domain/quran";
 
 export type QuizStartResult =
@@ -40,7 +39,6 @@ export function useQuizEngine(
 ) {
   const [state, dispatch] = useReducer(quizReducer, initialQuizState);
   const { surahName } = useSurahNames();
-  const { formatVerseRef } = useQuizFormatters();
   /** Every verse in the scope: the source of options and neighbouring ayahs. */
   const poolRef = useRef<MushafVerse[]>([]);
   /** The verses to ask about, which a review session narrows to the misses. */
@@ -92,7 +90,6 @@ export function useQuizEngine(
           mushafData,
           verseInfoRecords,
           surahName,
-          verseRef: formatVerseRef,
         });
         if (question) return question;
       }

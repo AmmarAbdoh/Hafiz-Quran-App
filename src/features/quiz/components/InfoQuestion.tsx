@@ -24,6 +24,9 @@ export function InfoQuestion({
       <div className="space-y-3 text-center">
         {/* One surah's lines are enough context and keep the prompt compact. */}
         <QuizMushafPreview
+          /* "Which surah is this?" over a page that carries the surah's own
+             name band was printing the answer above the question. */
+          hideSurahHeader={question.type === "surah_name"}
           page={question.verse.page}
           mushafData={mushafData}
           surahFilter={question.verse.sura_no}

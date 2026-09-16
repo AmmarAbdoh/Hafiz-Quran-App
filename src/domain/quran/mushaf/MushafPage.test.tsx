@@ -206,6 +206,34 @@ describe("MushafPage", () => {
     expect(onWordActivate).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * The quiz asks "which surah is this ayah from" over a page filtered to that
+   * surah - and the filtered page keeps the surah's opening, so the answer was
+   * printed above the question.
+   */
+  it("can omit the surah name band", () => {
+    const { rerender } = render(
+      <MushafPage
+        pageLayout={layout}
+        surahNames={new Map([[1, "الفَاتِحَة"]])}
+        fontFamily="Test Mushaf"
+      />,
+    );
+    expect(screen.getByLabelText("سورة الفَاتِحَة")).toBeInTheDocument();
+
+    rerender(
+      <MushafPage
+        pageLayout={layout}
+        surahNames={new Map([[1, "الفَاتِحَة"]])}
+        fontFamily="Test Mushaf"
+        hideSurahHeader
+      />,
+    );
+    expect(screen.queryByLabelText("سورة الفَاتِحَة")).not.toBeInTheDocument();
+    // The ayah itself still renders - the question needs something to show.
+    expect(document.querySelector("[data-location='1:1:1']")).not.toBeNull();
+  });
+
   it("renders glyph data as text instead of HTML", () => {
     const unsafeGlyph = {
       ...interactiveWord,

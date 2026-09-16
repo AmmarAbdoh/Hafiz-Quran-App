@@ -11,11 +11,6 @@ export const DEFAULT_CHOICE_COUNT = 4;
 export type SurahNameLookup = (surahNumber: number) => string;
 
 /** Renders the "surah name + ayah number" tail of a choice label. */
-export type VerseRefFormatter = (
-  surahNumber: number,
-  ayahNumber: number,
-) => string;
-
 /** Splitting needs enough words that the visible half is a real cue. */
 const MIN_COMPLETION_WORDS = 4;
 

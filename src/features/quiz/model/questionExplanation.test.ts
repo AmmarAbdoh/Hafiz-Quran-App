@@ -42,8 +42,6 @@ const records: VerseInfoRecord[] = surah.map((verse) => ({
 
 const surahName = (surahNumber: number) =>
   SURAH_NAMES[surahNumber - 1] ?? String(surahNumber);
-const verseRef = (surahNumber: number, ayahNumber: number) =>
-  `${surahName(surahNumber)} ${ayahNumber}`;
 
 function explain(
   questionType: QuestionType,
@@ -57,7 +55,6 @@ function explain(
     mushafData: surah,
     verseInfoRecords,
     surahName,
-    verseRef,
   });
   if (!question) return null;
   return buildAnswerExplanation({
@@ -119,7 +116,6 @@ describe("buildAnswerExplanation", () => {
       mushafData: surah,
       verseInfoRecords: [],
       surahName,
-      verseRef,
     });
     const explanation = buildAnswerExplanation({
       question: question!,

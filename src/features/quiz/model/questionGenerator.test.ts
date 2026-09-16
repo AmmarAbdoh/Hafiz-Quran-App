@@ -50,8 +50,6 @@ const records: VerseInfoRecord[] = surah.map((verse) => ({
 
 const surahName = (surahNumber: number) =>
   SURAH_NAMES[surahNumber - 1] ?? String(surahNumber);
-const verseRef = (surahNumber: number, ayahNumber: number) =>
-  `${surahName(surahNumber)} ${ayahNumber}`;
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -76,7 +74,6 @@ describe("question generation", () => {
         mushafData: surah,
         verseInfoRecords: records,
         surahName,
-        verseRef,
       });
       expect(question?.type).toBe(questionType);
     }
@@ -90,7 +87,6 @@ describe("question generation", () => {
       mushafData: surah,
       verseInfoRecords: records,
       surahName,
-      verseRef,
     });
 
     expect(question?.type).toBe("ayah_number");
@@ -111,7 +107,6 @@ describe("question generation", () => {
       mushafData: surah,
       verseInfoRecords: [],
       surahName,
-      verseRef,
     });
 
     expect(question).toBeNull();
@@ -126,7 +121,6 @@ describe("question generation", () => {
       mushafData: [...surah, shortVerse],
       verseInfoRecords: records,
       surahName,
-      verseRef,
     });
 
     expect(question).toBeNull();
@@ -141,7 +135,6 @@ describe("question generation", () => {
       mushafData: [...surah, twin],
       verseInfoRecords: records,
       surahName,
-      verseRef,
     });
 
     expect(question?.type).toBe("complete_ayah");
@@ -165,7 +158,6 @@ describe("question generation", () => {
       mushafData: verses,
       verseInfoRecords: records,
       surahName,
-      verseRef,
     });
 
     expect(question?.type).toBe("fill_blank");
@@ -184,7 +176,6 @@ describe("question generation", () => {
       mushafData: surah,
       verseInfoRecords: records,
       surahName,
-      verseRef,
     });
 
     expect(question?.type).toBe("fill_blank");
@@ -213,7 +204,6 @@ describe("question generation", () => {
         mushafData: data,
         verseInfoRecords: records,
         surahName,
-        verseRef,
       });
       return question?.type === "fill_blank" ? question : null;
     }
@@ -226,6 +216,24 @@ describe("question generation", () => {
       expect(question!.choices.map((choice) => choice.id)).toContain(
         question!.hiddenVerseKey,
       );
+    });
+
+    /*
+     * The label used to end with the ayah's own reference - "… نذير · 67:17".
+     * The page shows the ayahs either side of the blank, so the missing number
+     * is arithmetic: you could answer every one of these without reading a
+     * word of Quran.
+     */
+    it("does not name the ayah it is asking you to recognise", () => {
+      const question = build(longSurah, longSurah);
+
+      for (const choice of question!.choices) {
+        expect(choice.label).not.toMatch(/\d+\s*:\s*\d+/);
+        expect(choice.label).not.toContain("·");
+      }
+      for (const choice of question!.searchOptions.slice(0, 20)) {
+        expect(choice.label).not.toMatch(/\d+\s*:\s*\d+/);
+      }
     });
 
     it("keeps the whole surah reachable for searching", () => {
@@ -290,7 +298,6 @@ describe("question generation", () => {
       mushafData: marked,
       verseInfoRecords: records,
       surahName,
-      verseRef,
     });
 
     expect(question?.type).toBe("complete_ayah");
@@ -312,7 +319,6 @@ describe("question generation", () => {
       mushafData: surah,
       verseInfoRecords: records,
       surahName,
-      verseRef,
     });
 
     expect(question?.type).toBe("surah_name");
@@ -330,7 +336,6 @@ describe("question generation", () => {
       mushafData: surah,
       verseInfoRecords: records,
       surahName,
-      verseRef,
     });
 
     expect(question?.type).toBe("audio_identify");

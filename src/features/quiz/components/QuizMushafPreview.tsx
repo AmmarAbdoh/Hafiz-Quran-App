@@ -36,6 +36,7 @@ interface QuizMushafPreviewProps {
   page: number;
   mushafData: MushafVerse[];
   surahFilter?: number;
+  hideSurahHeader?: boolean;
   highlightVerseKey?: string | null;
   hiddenVerseKey?: string | null;
   tajweedColored?: boolean;
@@ -46,6 +47,7 @@ export function QuizMushafPreview({
   page,
   mushafData,
   surahFilter,
+  hideSurahHeader,
   highlightVerseKey = null,
   hiddenVerseKey = null,
   tajweedColored: tajweedColoredProp,
@@ -130,6 +132,7 @@ export function QuizMushafPreview({
           // Review reads at its own pace, so the tested ayah stays tinted.
           highlightPulse={false}
           surahFilter={surahFilter}
+          hideSurahHeader={hideSurahHeader}
           practiceMode={Boolean(hiddenVerseKey)}
           hidePracticeWords={Boolean(hiddenVerseKey)}
           revealedWordLocations={revealedLocations}

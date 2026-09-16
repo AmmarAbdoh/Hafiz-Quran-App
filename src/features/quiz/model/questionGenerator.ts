@@ -6,7 +6,7 @@ import { generateAudioIdentifyQuestion } from "./questions/audioIdentify";
 import { generateCompleteAyahQuestion } from "./questions/completeAyah";
 import { generateFillBlankQuestion } from "./questions/fillBlank";
 import { generateInfoQuestion } from "./questions/info";
-import type { SurahNameLookup, VerseRefFormatter } from "./questions/shared";
+import type { SurahNameLookup } from "./questions/shared";
 
 /**
  * Returns null when this verse cannot carry a fair question of this type, for
@@ -20,20 +20,12 @@ export function generateQuizQuestion(input: {
   mushafData: MushafVerse[];
   verseInfoRecords: VerseInfoRecord[];
   surahName: SurahNameLookup;
-  verseRef: VerseRefFormatter;
 }): QuizQuestion | null {
-  const {
-    verse,
-    questionType,
-    pool,
-    mushafData,
-    verseInfoRecords,
-    surahName,
-    verseRef,
-  } = input;
+  const { verse, questionType, pool, mushafData, verseInfoRecords, surahName } =
+    input;
   switch (questionType) {
     case "fill_blank":
-      return generateFillBlankQuestion(verse, pool, mushafData, verseRef);
+      return generateFillBlankQuestion(verse, pool, mushafData);
     case "complete_ayah":
       return generateCompleteAyahQuestion(verse, pool);
     case "audio_identify":

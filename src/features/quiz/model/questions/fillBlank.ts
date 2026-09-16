@@ -6,13 +6,17 @@ import {
   shuffleArray,
   toVerseKey,
 } from "../versePool";
-import { createQuestionId, type VerseRefFormatter } from "./shared";
+import { createQuestionId } from "./shared";
 
-function buildSearchLabel(
-  verse: MushafVerse,
-  verseRef: VerseRefFormatter,
-): string {
-  return `${verse.aya_text_emlaey} · ${verseRef(verse.sura_no, verse.aya_no)}`;
+/*
+ * The words alone. The label used to end with the ayah's own reference - "…
+ * فستعلمون كيف نذير · 67:17" - which answers the question without reading any
+ * of it: the page shows the ayahs either side of the blank, so the missing
+ * number is arithmetic, and the option that carries it is the answer. An
+ * option has to be identifiable by what it says, not by its label.
+ */
+function buildSearchLabel(verse: MushafVerse): string {
+  return verse.aya_text_emlaey;
 }
 
 /**
@@ -50,7 +54,6 @@ function buildChoices(
   options: MushafVerse[],
   hiddenVerse: MushafVerse,
   visibleKeys: Set<string>,
-  verseRef: VerseRefFormatter,
 ): QuizChoice[] {
   const hiddenKey = toVerseKey(hiddenVerse);
   const others = options.filter((item) => toVerseKey(item) !== hiddenKey);
@@ -68,7 +71,7 @@ function buildChoices(
 
   return shuffleArray([hiddenVerse, ...distractors]).map((item) => ({
     id: toVerseKey(item),
-    label: buildSearchLabel(item, verseRef),
+    label: buildSearchLabel(item),
   }));
 }
 
@@ -76,7 +79,6 @@ export function generateFillBlankQuestion(
   verse: MushafVerse,
   pool: MushafVerse[],
   mushafData: MushafVerse[],
-  verseRef: VerseRefFormatter,
 ): FillBlankQuizQuestion | null {
   const { previous, next } = getAdjacentVersesInSurah(pool, mushafData, verse);
   const hiddenIndex = generateHiddenIndex(
@@ -105,11 +107,11 @@ export function generateFillBlankQuestion(
     hiddenVerse,
     hiddenVerseKey: toVerseKey(hiddenVerse),
     page: hiddenVerse.page,
-    choices: buildChoices(options, hiddenVerse, visibleKeys, verseRef),
+    choices: buildChoices(options, hiddenVerse, visibleKeys),
     searchOptions: shuffleArray(
       options.map((item) => ({
         id: toVerseKey(item),
-        label: buildSearchLabel(item, verseRef),
+        label: buildSearchLabel(item),
       })),
     ),
   };

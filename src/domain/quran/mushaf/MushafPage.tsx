@@ -24,6 +24,12 @@ interface MushafPageProps {
   colored?: boolean;
   spreadLayout?: boolean;
   surahFilter?: number;
+  /**
+   * Hides the surah's name band. The quiz asks "which surah is this ayah
+   * from" over a filtered page, and that page carries the surah's opening -
+   * so the answer was printed above the question.
+   */
+  hideSurahHeader?: boolean;
   selectedWordLocation?: string | null;
   highlightVerseKey?: string | null;
   highlightPulse?: boolean;
@@ -55,6 +61,7 @@ export function MushafPage({
   colored = false,
   spreadLayout = !isCenterAlignedPage(pageLayout.page),
   surahFilter,
+  hideSurahHeader = false,
   selectedWordLocation = null,
   highlightVerseKey = null,
   highlightPulse = true,
@@ -86,7 +93,11 @@ export function MushafPage({
     [pageLayout, surahFilter],
   );
 
-  if (pageItems.length === 0) return null;
+  const visibleItems = hideSurahHeader
+    ? pageItems.filter((item) => item.type !== "surah-header")
+    : pageItems;
+
+  if (visibleItems.length === 0) return null;
 
   return (
     <div
@@ -100,7 +111,7 @@ export function MushafPage({
       dir="rtl"
       lang="ar"
     >
-      {pageItems.map((item) =>
+      {visibleItems.map((item) =>
         item.type === "surah-header" ? (
           <MushafSurahHeader
             key={item.key}
