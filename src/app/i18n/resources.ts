@@ -681,6 +681,7 @@ const ar = {
       playing: "التلاوة قيد التشغيل",
       idle: "شغّل التلاوة",
       error: "تعذر تشغيل التلاوة.",
+      errorFallback: "هذه هي الآية، حتى تتمكن من الإجابة دون سماعها.",
     },
     feedback: {
       correct: "إجابة صحيحة",
@@ -1604,6 +1605,7 @@ const en: StringTree<typeof ar> = {
       playing: "Recitation is playing",
       idle: "Play recitation",
       error: "The recitation could not be played.",
+      errorFallback: "Here is the ayah, so you can answer without hearing it.",
     },
     feedback: {
       correct: "Correct answer",
