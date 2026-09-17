@@ -1,6 +1,7 @@
+import type { ReactNode } from "react";
 import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useLocale } from "@/app/i18n";
+import { formatNumber, useLocale } from "@/app/i18n";
 import {
   MUSHAF_SCALE_STEPS,
   type MushafScale,
@@ -25,6 +26,31 @@ import {
   SheetTitle,
 } from "@/shared/components/ui/Sheet";
 import { Label } from "@/shared/components/ui/label";
+
+/** A setting and its control, on one line, the same way every time. */
+function PreferenceRow({
+  label,
+  htmlFor,
+  action,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-h-14 items-center justify-between gap-4 py-1">
+      <span className="flex min-w-0 items-center gap-0.5">
+        <Label htmlFor={htmlFor} className="text-body font-medium">
+          {label}
+        </Label>
+        {action}
+      </span>
+      {children}
+    </div>
+  );
+}
 
 interface ReadingPreferencesSheetProps {
   open: boolean;
@@ -88,12 +114,18 @@ export function ReadingPreferencesSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-5">
+        {/*
+          One row shape for every compact setting: what it is on the leading
+          side, the control on the trailing side. The three used to be laid
+          out three different ways - and the text size was a bare <Label>,
+          which is an inline element, so the stack meant to separate it from
+          its stepper did nothing and the two sat jammed on one line.
+        */}
+        <div className="divide-y divide-border-subtle">
           {/* Layout is not here: it decides how the reader is moved through,
               so it belongs in the header menu where it can be seen without
               opening anything. */}
-          <div className="space-y-2">
-            <Label>{t("preferences.textSize")}</Label>
+          <PreferenceRow label={t("preferences.textSize")}>
             <Stepper
               value={scaleIndex + 1}
               min={1}
@@ -102,53 +134,57 @@ export function ReadingPreferencesSheet({
               decrementLabel={t("preferences.decreaseText")}
               incrementLabel={t("preferences.increaseText")}
               valueLabel={t("preferences.textSize")}
+              formatValue={(value) => formatNumber(value, locale)}
               onValueChange={(next) => {
                 const step = MUSHAF_SCALE_STEPS[next - 1];
                 if (step) onMushafScaleChange(step);
               }}
             />
-          </div>
+          </PreferenceRow>
 
-          <div className="flex items-center justify-between gap-3">
-            <span className="flex min-w-0 items-center gap-1">
-              <Label htmlFor="reader-pref-tajweed">
-                {t("header.tajweedColored")}
-              </Label>
-              {/* The legend explaining what the colours mean had no way in at
-                  all until now; it belongs beside the switch that turns them
-                  on. */}
+          <PreferenceRow
+            htmlFor="reader-pref-tajweed"
+            label={t("header.tajweedColored")}
+            /* The legend explaining what the colours mean had no way in at
+               all until now; it belongs beside the switch that turns them on. */
+            action={
               <Button
                 type="button"
                 variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0 text-muted-foreground"
+                size="icon-sm"
+                className="shrink-0 text-muted-foreground"
                 onClick={onOpenTajweedLegend}
                 aria-label={t("tajweed.showMeaning")}
                 title={t("tajweed.showMeaning")}
               >
                 <Info className="h-4 w-4" aria-hidden />
               </Button>
-            </span>
+            }
+          >
             <Switch
               id="reader-pref-tajweed"
               pressed={tajweedColored}
               onPressedChange={onTajweedColoredChange}
               aria-label={t("header.tajweedColored")}
             />
-          </div>
+          </PreferenceRow>
 
-          <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="reader-pref-warmth">
-              {t("preferences.warmth")}
-            </Label>
+          <PreferenceRow
+            htmlFor="reader-pref-warmth"
+            label={t("preferences.warmth")}
+          >
             <Switch
               id="reader-pref-warmth"
               pressed={mushafWarmth}
               onPressedChange={onMushafWarmthChange}
               aria-label={t("preferences.warmth")}
             />
-          </div>
+          </PreferenceRow>
+        </div>
 
+        {/* These two need the width, so they keep their label above them
+            rather than beside them. */}
+        <div className="space-y-4">
           <Field id="reader-pref-reciter" label={t("preferences.reciter")}>
             {({ id }) => (
               <SearchableSelect
