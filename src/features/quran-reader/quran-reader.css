@@ -295,6 +295,20 @@
 
   .mushaf-surah-page {
     width: 100%;
+    /*
+     * A surah keeps every page it has reached mounted, and every one of them
+     * was being laid out on any change that touched the text. Turning on
+     * tajweed gives all of them a new font: with Al-Baqarah fully read the
+     * cost was measured at 13.9s of blocked main thread and a dead tab, and
+     * it scaled straight off the glyph count - 597 spans 1.3s, 2634 spans
+     * 5.7s, 6402 spans 13.9s.
+     *
+     * Pages out of view keep their box and skip their layout, paint and font
+     * work until they are near the viewport. They stay in the DOM, so the
+     * scroll position, find-in-page and the accessibility tree are unchanged.
+     */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 40rem;
   }
 
   .mushaf-surah-page__divider {

@@ -30,22 +30,32 @@ import { Label } from "@/shared/components/ui/label";
 /** A setting and its control, on one line, the same way every time. */
 function PreferenceRow({
   label,
+  hint,
   htmlFor,
   action,
   children,
 }: {
   label: string;
+  /** For a setting whose name does not say what it does. */
+  hint?: string;
   htmlFor?: string;
   action?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-14 items-center justify-between gap-4 py-1">
-      <span className="flex min-w-0 items-center gap-0.5">
-        <Label htmlFor={htmlFor} className="text-body font-medium">
-          {label}
-        </Label>
-        {action}
+    <div className="flex min-h-14 items-center justify-between gap-4 py-2">
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="flex min-w-0 items-center gap-0.5">
+          <Label htmlFor={htmlFor} className="text-body font-medium">
+            {label}
+          </Label>
+          {action}
+        </span>
+        {hint ? (
+          <span className="text-label font-normal text-muted-foreground">
+            {hint}
+          </span>
+        ) : null}
       </span>
       {children}
     </div>
@@ -172,6 +182,7 @@ export function ReadingPreferencesSheet({
           <PreferenceRow
             htmlFor="reader-pref-warmth"
             label={t("preferences.warmth")}
+            hint={t("preferences.warmthHint")}
           >
             <Switch
               id="reader-pref-warmth"

@@ -147,6 +147,9 @@ const ar = {
       increaseText: "تكبير حجم النص",
       textSize: "حجم النص",
       warmth: "الوضع الدافئ",
+      // The name never said what it does, and it is the one preference here
+      // whose effect is not obvious from its label.
+      warmthHint: "لون الصفحة كورق المصحف، أخف على العين في القراءة الطويلة",
       reciter: "القارئ",
       tafseer: "التفسير",
     },
@@ -1068,6 +1071,8 @@ const en: StringTree<typeof ar> = {
       increaseText: "Increase text size",
       textSize: "Text size",
       warmth: "Warm sepia tone",
+      warmthHint:
+        "Tints the page like mushaf paper, easier on the eyes when reading for a long time",
       reciter: "Reciter",
       tafseer: "Tafsir",
     },
