@@ -280,21 +280,51 @@ integration with a known-good pipeline instead of a hope.
 
 ---
 
-## 6. The one question left
+## 6. The licence question — answered
 
-1. **Is audio leaving the device acceptable to you?** For recitation of
-   Quran, in an app you built for yourself, this may be a hard no — and if it
-   is, that settles hosted vs on-device before any benchmark.
-2. **Is tasmee' allowed to require a 150–400MB download?** If yes, on-device
-   is viable. If it must work on a cheap phone on mobile data, it is not.
-3. **What counts as a mistake?** Skipping a word, obviously. But a
-   mispronounced letter? A tajweed error? Ruling tajweed _out_ for v1 makes
-   this tractable; ruling it in makes it a research project.
-4. **Live or after the fact?** Word-by-word highlighting while reciting is a
-   much harder engineering problem than "recite an ayah, then get told how it
-   went." The second is genuinely useful and far cheaper to build well.
+**Decided (2026-09-17): Artqiy stays free, permanently, with no ads.** That
+settles it. NPL-1.2 forbids charging for the model, for access to it, or for
+any feature it powers — none of which is ever going to happen here, so the
+restriction takes nothing away.
 
----
+**Yes, the model can be used.** Two conditions come with it, and one of them
+is engineering work rather than paperwork.
+
+### Redistribution is allowed, and is required
+
+All three candidates are **gated on Hugging Face** (`gated: "auto"` — you
+accept the terms while signed in, approval is automatic). Gated files cannot
+be fetched anonymously, and a PWA cannot ship a token to do it: the token
+would be readable by anyone and would be _your_ account's access.
+
+So the app cannot point users at Hugging Face the way it points them at
+`verses.quran.foundation` for fonts today. **The weights have to be
+re-hosted.** NPL-1.2 permits redistribution provided nothing is charged for
+it, so this is allowed — but it is a real change:
+
+- a host for ~65MB+ of weights, with cache headers, that the project pays for
+- one more origin in the CSP and the service worker's offline story
+- a version/integrity story for the weights, since they are no longer coming
+  from an immutable upstream
+
+### The obligations
+
+|                                                                  |                                                                                                 |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| never charge for the model, access to it, or a feature it powers | already the plan                                                                                |
+| credit Quran-Lab                                                 | the card does not specify a format; do it visibly anyway — About is the natural place           |
+| read the actual LICENSE file before shipping                     | it sits behind the gate; the above is the model card's summary of it, not the instrument itself |
+
+### One clause that matters for §7
+
+**A fine-tune of an NPL model inherits NPL.** So the "own our own weights"
+path cannot start from the zipformer — it has to start from a permissive base
+(`w2v-bert-2.0`, MIT) on `everyayah` (MIT). Adapting Quran-Lab's model would
+produce something just as restricted as the original, which is the one
+outcome that path exists to avoid.
+
+Not a reason to avoid the model now. A reason to keep the two efforts
+separate: **use theirs, and if you ever train, train from MIT.**
 
 ## 7. Training your own — reconsidered
 
