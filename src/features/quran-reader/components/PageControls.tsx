@@ -52,6 +52,38 @@ export function PageControls({
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  /*
+   * `currentPage` is a prop driven by the URL, and the URL only updates once
+   * navigation actually commits - which a second tap can easily outrun. Two
+   * taps fired before that commit both read the same `currentPage` and both
+   * ask to go to the very page the first tap already asked for, so from the
+   * second tap of a quick run onward the control looked like it had stopped
+   * responding.
+   *
+   * This tracks the page we last asked for rather than the one the route has
+   * confirmed, so each tap steps from where the last tap left off. It stays
+   * caught up with the route on every render a real navigation produces, so
+   * a page reached some other way - a swipe, a keyboard shortcut, the surah
+   * drawer - is still the base the next tap builds on.
+   */
+  const pendingPageRef = useRef(currentPage);
+  useEffect(() => {
+    pendingPageRef.current = currentPage;
+  }, [currentPage]);
+
+  const requestStep = (direction: "prev" | "next") => {
+    const target = resolveSequentialPage(
+      pageSequence,
+      pendingPageRef.current,
+      direction,
+      minPage,
+      maxPage,
+    );
+    if (target === null) return;
+    pendingPageRef.current = target;
+    onPageChange(target);
+  };
+
   useEffect(() => {
     if (!editing) return;
 
@@ -70,6 +102,7 @@ export function PageControls({
     const inSequence =
       !pageSequence || pageSequence.length === 0 || pageSequence.includes(page);
     if (!isNaN(page) && page >= minPage && page <= maxPage && inSequence) {
+      pendingPageRef.current = page;
       onPageChange(page);
     }
     setEditing(false);
@@ -125,7 +158,7 @@ export function PageControls({
         variant="ghost"
         size="icon"
         className={cn(controlSize, "shrink-0 rounded-full")}
-        onClick={() => nextPage !== null && onPageChange(nextPage)}
+        onClick={() => requestStep("next")}
         disabled={nextPage === null}
         aria-label={t("navigation.nextPage")}
       >
@@ -176,7 +209,7 @@ export function PageControls({
         variant="ghost"
         size="icon"
         className={cn(controlSize, "shrink-0 rounded-full")}
-        onClick={() => prevPage !== null && onPageChange(prevPage)}
+        onClick={() => requestStep("prev")}
         disabled={prevPage === null}
         aria-label={t("navigation.previousPage")}
       >
