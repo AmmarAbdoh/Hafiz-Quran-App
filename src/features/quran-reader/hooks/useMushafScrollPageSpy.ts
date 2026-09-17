@@ -141,22 +141,30 @@ export function useMushafScrollPageSpy(
   ]);
 }
 
+/**
+ * Scrolls to a page, and reports whether it was there to scroll to.
+ *
+ * Surah mode mounts a few pages at a time, so a page can be a real page of
+ * the surah and still have no element yet. The caller needs to know the
+ * difference: a request that lands nowhere has to be held and retried once
+ * the page exists, not dropped.
+ */
 export function scrollMushafToPage(
   contentRef: RefObject<HTMLElement | null>,
   containerRef: RefObject<HTMLElement | null>,
   page: number,
   behavior: ScrollBehavior = "smooth",
-) {
+): boolean {
   const target = contentRef.current?.querySelector<HTMLElement>(
     `[data-mushaf-page="${page}"]`,
   );
   const container = containerRef.current;
 
-  if (!target) return;
+  if (!target) return false;
 
   if (!container) {
     target.scrollIntoView({ behavior, block: "start" });
-    return;
+    return true;
   }
 
   const containerRect = container.getBoundingClientRect();
@@ -164,4 +172,5 @@ export function scrollMushafToPage(
   const top = container.scrollTop + (targetRect.top - containerRect.top);
 
   container.scrollTo({ top: Math.max(0, top), behavior });
+  return true;
 }

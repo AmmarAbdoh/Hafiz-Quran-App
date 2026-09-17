@@ -10,8 +10,6 @@ import { useTranslation } from "react-i18next";
 import { formatNumber, useLocale } from "@/app/i18n";
 import { MushafPageBlock } from "@/features/quran-reader/components/MushafPageBlock";
 
-/** Pages mounted at a time. Three fills a tall screen with one in reserve. */
-const PAGE_MOUNT_STEP = 3;
 import { MushafSurahEndNav } from "@/features/quran-reader/components/MushafSurahEndNav";
 import { VerseInteractionOverlays } from "@/features/quran-reader/components/VerseInteractionOverlays";
 import {
@@ -34,6 +32,16 @@ import {
   type MushafVerse as MushafVerseType,
   type MushafWord,
 } from "@/domain/quran";
+
+/**
+ * Pages mounted at a time.
+ *
+ * Three filled a tall screen with one in reserve, which is the least that
+ * works and left the reader meeting the end of what was mounted often. Five
+ * costs little - the pages are already fetched and a page is ~100 glyph
+ * spans - and puts two more pages of slack in front of the reader.
+ */
+const PAGE_MOUNT_STEP = 5;
 
 interface MushafSurahViewerProps {
   mushafData: MushafVerseType[];
@@ -106,6 +114,10 @@ export function MushafSurahViewer({
   }, [highlightVerseKey, surahPageLayouts]);
 
   const [mountedCount, setMountedCount] = useState(PAGE_MOUNT_STEP);
+  /* A jump held until the page it asks for exists. See the effect below. */
+  const [pendingScrollPage, setPendingScrollPage] = useState<number | null>(
+    null,
+  );
 
   // Somewhere to jump to has to exist before the jump.
   useEffect(() => {
@@ -116,6 +128,7 @@ export function MushafSurahViewer({
 
   useEffect(() => {
     setMountedCount(PAGE_MOUNT_STEP);
+    setPendingScrollPage(null);
   }, [surahNumber]);
 
   const mountedLayouts = useMemo(
@@ -230,21 +243,45 @@ export function MushafSurahViewer({
     `${surahNumber}:${surahPages.join(",")}`,
   );
 
+  /*
+   * A jump asks for a page that may not be mounted yet, and a page that is
+   * not mounted has no position to scroll to. Every such request used to be
+   * dropped in silence: asking for page 40 of Al-Baqarah from the top left
+   * the reader exactly where it was, with the page number briefly showing 40
+   * before the scroll spy put it back. That is the whole of "it stops
+   * responding" in surah mode - typing a page, picking one from the rail, or
+   * turning pages faster than reading down the surah would mount them.
+   *
+   * The request now mounts what it needs and is held until it lands, so it
+   * survives both the mount it triggers and the font load that gates the
+   * page tree existing at all.
+   */
   useEffect(() => {
     if (!scrollToPageRef) return;
 
     scrollToPageRef.current = (page: number) => {
-      scrollMushafToPage(
-        mushafRef,
-        scrollContainerRef ?? { current: null },
-        page,
+      const index = surahPages.indexOf(page);
+      if (index < 0) return;
+      setMountedCount((current) =>
+        Math.max(current, Math.min(surahPages.length, index + PAGE_MOUNT_STEP)),
       );
+      setPendingScrollPage(page);
     };
 
     return () => {
       scrollToPageRef.current = null;
     };
-  }, [scrollToPageRef, scrollContainerRef, surahNumber]);
+  }, [scrollToPageRef, surahPages]);
+
+  useEffect(() => {
+    if (pendingScrollPage === null) return;
+    const landed = scrollMushafToPage(
+      mushafRef,
+      scrollContainerRef ?? { current: null },
+      pendingScrollPage,
+    );
+    if (landed) setPendingScrollPage(null);
+  }, [pendingScrollPage, mountedCount, surahFontsLoading, scrollContainerRef]);
 
   useEffect(() => {
     const container = scrollContainerRef?.current;

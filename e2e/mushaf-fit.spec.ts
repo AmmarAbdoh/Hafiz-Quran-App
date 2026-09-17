@@ -195,3 +195,52 @@ test("the header and the bottom bar centre on the page, not the window", async (
   expect(Math.abs(centres.mushafPage! - centres.window)).toBeGreaterThan(20);
   expect(centres.coversSidebar).toBe(false);
 });
+
+/*
+ * Surah mode mounts a few pages at a time, so most of a long surah is not in
+ * the document yet. A jump asks for a page by number, and a page that is not
+ * mounted has no position to scroll to: every such request used to be dropped
+ * in silence, which is what "it stops responding" was. Al-Baqarah is the case
+ * that matters - 48 pages, of which five are mounted at the start.
+ */
+test("jumps to a page of a surah that is not mounted yet", async ({ page }) => {
+  await page.goto("/quran/surah/2");
+  await page.waitForSelector("[data-mushaf-page]", { timeout: 30_000 });
+  await page.evaluate(() => document.fonts.ready);
+
+  const mountedPages = () =>
+    page.evaluate(() =>
+      Array.from(document.querySelectorAll("[data-mushaf-page]"), (element) =>
+        Number(element.getAttribute("data-mushaf-page")),
+      ),
+    );
+
+  const atStart = await mountedPages();
+  expect(atStart.length).toBeGreaterThan(0);
+  // The premise: the page we are about to ask for is not in the document.
+  expect(atStart).not.toContain(40);
+
+  await page.getByRole("button", { name: "انتقل إلى صفحة" }).click();
+  await page.getByRole("textbox", { name: "رقم الصفحة" }).fill("40");
+  await page.getByRole("textbox", { name: "رقم الصفحة" }).press("Enter");
+
+  await expect(page.locator('[data-mushaf-page="40"]')).toBeAttached({
+    timeout: 10_000,
+  });
+
+  // Mounted is not enough - the reader has to actually be taken there.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const target = document.querySelector('[data-mushaf-page="40"]');
+          const stage = document.querySelector(".mushaf-stage");
+          if (!target || !stage) return null;
+          const targetTop = target.getBoundingClientRect().top;
+          const stageTop = stage.getBoundingClientRect().top;
+          return Math.round(targetTop - stageTop);
+        }),
+      { timeout: 10_000 },
+    )
+    .toBeLessThan(200);
+});
