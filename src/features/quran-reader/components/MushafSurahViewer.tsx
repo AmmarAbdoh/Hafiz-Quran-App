@@ -240,7 +240,9 @@ export function MushafSurahViewer({
     (page) => onVisiblePageChange?.(page),
     Boolean(scrollContainerRef && onVisiblePageChange && !surahFontsLoading),
     scrollLockRef,
-    `${surahNumber}:${surahPages.join(",")}`,
+    /* Re-subscribes when pages mount, which is what changes the sections
+       the spy watches - the surah's own page list never does. */
+    `${surahNumber}:${mountedCount}`,
   );
 
   /*

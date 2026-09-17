@@ -244,3 +244,67 @@ test("jumps to a page of a surah that is not mounted yet", async ({ page }) => {
     )
     .toBeLessThan(200);
 });
+
+/*
+ * The strip states the page being read, and surah mode mounts pages as the
+ * reader reaches them. The scroll spy used to measure a list of page elements
+ * captured when it last subscribed, and nothing made it subscribe again as
+ * pages mounted - so once past the first few pages it reported the nearest of
+ * those, pinning the stated page near the start of the surah however far down
+ * the reader was. Page turns then computed their next step from that wrong
+ * page and walked backwards, which is what "it says page 2 and I cannot
+ * navigate any more" was.
+ */
+test("keeps stating the right page while reading down a long surah", async ({
+  page,
+}) => {
+  await page.goto("/quran/surah/2");
+  await page.waitForSelector("[data-mushaf-page]", { timeout: 30_000 });
+  await page.evaluate(() => document.fonts.ready);
+
+  // Read downwards, which is what mounts more pages, until well past the
+  // handful the surah opens with.
+  for (let step = 0; step < 25; step += 1) {
+    await page.evaluate(() => {
+      const stage = document.querySelector(".mushaf-stage");
+      if (stage) stage.scrollTop = stage.scrollHeight;
+    });
+    await page.waitForTimeout(140);
+  }
+  await page.waitForTimeout(1000);
+
+  const reading = await page.evaluate(() => {
+    const pill = document.querySelector('button[aria-label="انتقل إلى صفحة"]');
+    const stated = Number(
+      (pill?.textContent ?? "").replace(/[٠-٩]/g, (digit) =>
+        String(digit.charCodeAt(0) - 0x0660),
+      ),
+    );
+    const container = document.querySelector(".mushaf-stage");
+    const sections = Array.from(
+      document.querySelectorAll("[data-mushaf-page]"),
+    );
+    const rect = container?.getBoundingClientRect();
+    const centre = rect ? (rect.top + rect.bottom) / 2 : 0;
+    let shown = null;
+    let best = Number.POSITIVE_INFINITY;
+    for (const section of sections) {
+      const box = section.getBoundingClientRect();
+      if (box.bottom <= (rect?.top ?? 0) || box.top >= (rect?.bottom ?? 0))
+        continue;
+      const distance = Math.abs((box.top + box.bottom) / 2 - centre);
+      if (distance < best) {
+        best = distance;
+        shown = Number(section.getAttribute("data-mushaf-page"));
+      }
+    }
+    return { stated, shown, mounted: sections.length };
+  });
+
+  // The premise: reading down really did mount a long way into the surah.
+  expect(reading.mounted).toBeGreaterThan(12);
+  expect(reading.shown).toBeGreaterThan(12);
+  // And the strip says the page that is actually on screen, not one of the
+  // few the spy happened to subscribe to when the surah opened.
+  expect(Math.abs(reading.stated - reading.shown!)).toBeLessThanOrEqual(1);
+});

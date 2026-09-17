@@ -89,8 +89,21 @@ export function useMushafScrollPageSpy(
 
     let frameId: number | null = null;
 
+    /*
+     * Read the sections again rather than measuring the list captured above.
+     * Surah mode mounts pages as the reader reaches them, so that list is a
+     * snapshot of whatever existed when this effect last ran: measuring it
+     * reported the nearest of the first few pages however far down the surah
+     * the reader actually was, which pinned the stated page near the start
+     * and left every page turn computing its next step from there.
+     */
     const publishVisiblePage = () => {
-      const bestPage = measureVisiblePage(container, sections);
+      const current = contentRef.current;
+      if (!current) return;
+      const bestPage = measureVisiblePage(
+        container,
+        Array.from(current.querySelectorAll<HTMLElement>(pageSelector)),
+      );
       if (bestPage === null) return;
 
       const lockedPage = scrollLockRef?.current ?? null;
