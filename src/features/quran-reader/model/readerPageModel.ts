@@ -158,6 +158,7 @@ export function selectReaderMetadata({
       surahNames: [surahName(currentSurahNumber)],
       surahAyahCount: getSurahAyahCount(mushafData, currentSurahNumber),
       juzNumber: verseInfo?.juz_number,
+      hizbNumber: verseInfo?.hizb_number,
     };
   }
 

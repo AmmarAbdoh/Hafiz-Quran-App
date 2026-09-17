@@ -100,6 +100,7 @@ describe("reader page selectors", () => {
       surahNames: ["البَقَرَة"],
       surahAyahCount: 3,
       juzNumber: 3,
+      hizbNumber: 13,
     });
   });
 
