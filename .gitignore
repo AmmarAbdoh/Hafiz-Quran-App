@@ -27,3 +27,10 @@ test-results
 *.njsproj
 *.sln
 *.sw?
+
+# تسميع fixtures: regenerate with `node scripts/tasmee/build-fixtures.mjs`.
+# The audio is 66MB of someone else's recitation and rebuilds in a minute;
+# the manifest that labels it is committed, so the set is reproducible.
+scripts/tasmee/fixtures/clips/
+scripts/tasmee/fixtures/.work/
+scripts/tasmee/fixtures/recorded/

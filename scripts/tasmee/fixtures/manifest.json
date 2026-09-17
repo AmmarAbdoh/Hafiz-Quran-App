@@ -1,0 +1,295 @@
+{
+  "generatedAt": "2026-09-17T11:04:17.733Z",
+  "source": "everyayah.com, spliced",
+  "warning": "Synthetic mistakes by professional reciters. A model that passes here still has to be tried on a learner's own voice.",
+  "clips": [
+    {
+      "id": "correct-husary-2_255",
+      "audio": "clips/correct-husary-2_255.wav",
+      "verseKey": "2:255",
+      "expectedText": "الله لا إله إلا هو الحي القيوم لا تأخذه سنة ولا نوم له ما في السموات وما في الأرض من ذا الذي يشفع عنده إلا بإذنه يعلم ما بين أيديهم وما خلفهم ولا يحيطون بشيء من علمه إلا بما شاء وسع كرسيه السموات والأرض ولا يئوده حفظهما وهو العلي العظيم",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "husary, unmodified"
+    },
+    {
+      "id": "correct-husary-112_1",
+      "audio": "clips/correct-husary-112_1.wav",
+      "verseKey": "112:1",
+      "expectedText": "قل هو الله أحد",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "husary, unmodified"
+    },
+    {
+      "id": "correct-husary-112_2",
+      "audio": "clips/correct-husary-112_2.wav",
+      "verseKey": "112:2",
+      "expectedText": "الله الصمد",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "husary, unmodified"
+    },
+    {
+      "id": "correct-husary-112_3",
+      "audio": "clips/correct-husary-112_3.wav",
+      "verseKey": "112:3",
+      "expectedText": "لم يلد ولم يولد",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "husary, unmodified"
+    },
+    {
+      "id": "correct-husary-112_4",
+      "audio": "clips/correct-husary-112_4.wav",
+      "verseKey": "112:4",
+      "expectedText": "ولم يكن له كفوا أحد",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "husary, unmodified"
+    },
+    {
+      "id": "correct-husary-1_2",
+      "audio": "clips/correct-husary-1_2.wav",
+      "verseKey": "1:2",
+      "expectedText": "الحمد لله رب العالمين",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "husary, unmodified"
+    },
+    {
+      "id": "correct-husary-1_3",
+      "audio": "clips/correct-husary-1_3.wav",
+      "verseKey": "1:3",
+      "expectedText": "الرحمن الرحيم",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "husary, unmodified"
+    },
+    {
+      "id": "correct-husary-1_4",
+      "audio": "clips/correct-husary-1_4.wav",
+      "verseKey": "1:4",
+      "expectedText": "مالك يوم الدين",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "husary, unmodified"
+    },
+    {
+      "id": "correct-husary-2_285",
+      "audio": "clips/correct-husary-2_285.wav",
+      "verseKey": "2:285",
+      "expectedText": "آمن الرسول بما أنزل إليه من ربه والمؤمنون كل آمن بالله وملائكته وكتبه ورسله لا نفرق بين أحد من رسله وقالوا سمعنا وأطعنا غفرانك ربنا وإليك المصير",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "husary, unmodified"
+    },
+    {
+      "id": "correct-husary-2_286",
+      "audio": "clips/correct-husary-2_286.wav",
+      "verseKey": "2:286",
+      "expectedText": "لا يكلف الله نفسا إلا وسعها لها ما كسبت وعليها ما اكتسبت ربنا لا تؤاخذنا إن نسينا أو أخطأنا ربنا ولا تحمل علينا إصرا كما حملته على الذين من قبلنا ربنا ولا تحملنا ما لا طاقة لنا به واعف عنا واغفر لنا وارحمنا أنت مولانا فانصرنا على القوم الكافرين",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "husary, unmodified"
+    },
+    {
+      "id": "correct-husary-2_284",
+      "audio": "clips/correct-husary-2_284.wav",
+      "verseKey": "2:284",
+      "expectedText": "لله ما في السموات وما في الأرض وإن تبدوا ما في أنفسكم أو تخفوه يحاسبكم به الله فيغفر لمن يشاء ويعذب من يشاء والله على كل شيء قدير",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "husary, unmodified"
+    },
+    {
+      "id": "correct-alafasy-2_255",
+      "audio": "clips/correct-alafasy-2_255.wav",
+      "verseKey": "2:255",
+      "expectedText": "الله لا إله إلا هو الحي القيوم لا تأخذه سنة ولا نوم له ما في السموات وما في الأرض من ذا الذي يشفع عنده إلا بإذنه يعلم ما بين أيديهم وما خلفهم ولا يحيطون بشيء من علمه إلا بما شاء وسع كرسيه السموات والأرض ولا يئوده حفظهما وهو العلي العظيم",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "alafasy, unmodified"
+    },
+    {
+      "id": "correct-alafasy-112_1",
+      "audio": "clips/correct-alafasy-112_1.wav",
+      "verseKey": "112:1",
+      "expectedText": "قل هو الله أحد",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "alafasy, unmodified"
+    },
+    {
+      "id": "correct-alafasy-1_2",
+      "audio": "clips/correct-alafasy-1_2.wav",
+      "verseKey": "1:2",
+      "expectedText": "الحمد لله رب العالمين",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "alafasy, unmodified"
+    },
+    {
+      "id": "correct-alafasy-2_285",
+      "audio": "clips/correct-alafasy-2_285.wav",
+      "verseKey": "2:285",
+      "expectedText": "آمن الرسول بما أنزل إليه من ربه والمؤمنون كل آمن بالله وملائكته وكتبه ورسله لا نفرق بين أحد من رسله وقالوا سمعنا وأطعنا غفرانك ربنا وإليك المصير",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "alafasy, unmodified"
+    },
+    {
+      "id": "correct-minshawi-2_255",
+      "audio": "clips/correct-minshawi-2_255.wav",
+      "verseKey": "2:255",
+      "expectedText": "الله لا إله إلا هو الحي القيوم لا تأخذه سنة ولا نوم له ما في السموات وما في الأرض من ذا الذي يشفع عنده إلا بإذنه يعلم ما بين أيديهم وما خلفهم ولا يحيطون بشيء من علمه إلا بما شاء وسع كرسيه السموات والأرض ولا يئوده حفظهما وهو العلي العظيم",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "minshawi, unmodified"
+    },
+    {
+      "id": "correct-minshawi-112_3",
+      "audio": "clips/correct-minshawi-112_3.wav",
+      "verseKey": "112:3",
+      "expectedText": "لم يلد ولم يولد",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "minshawi, unmodified"
+    },
+    {
+      "id": "correct-minshawi-1_4",
+      "audio": "clips/correct-minshawi-1_4.wav",
+      "verseKey": "1:4",
+      "expectedText": "مالك يوم الدين",
+      "verdict": "correct",
+      "kind": "as-recited",
+      "note": "minshawi, unmodified"
+    },
+    {
+      "id": "stopped-2_255",
+      "audio": "clips/stopped-2_255.wav",
+      "verseKey": "2:255",
+      "expectedText": "الله لا إله إلا هو الحي القيوم لا تأخذه سنة ولا نوم له ما في السموات وما في الأرض من ذا الذي يشفع عنده إلا بإذنه يعلم ما بين أيديهم وما خلفهم ولا يحيطون بشيء من علمه إلا بما شاء وسع كرسيه السموات والأرض ولا يئوده حفظهما وهو العلي العظيم",
+      "verdict": "mistake",
+      "kind": "stopped-early",
+      "note": "first 55% only"
+    },
+    {
+      "id": "stopped-2_286",
+      "audio": "clips/stopped-2_286.wav",
+      "verseKey": "2:286",
+      "expectedText": "لا يكلف الله نفسا إلا وسعها لها ما كسبت وعليها ما اكتسبت ربنا لا تؤاخذنا إن نسينا أو أخطأنا ربنا ولا تحمل علينا إصرا كما حملته على الذين من قبلنا ربنا ولا تحملنا ما لا طاقة لنا به واعف عنا واغفر لنا وارحمنا أنت مولانا فانصرنا على القوم الكافرين",
+      "verdict": "mistake",
+      "kind": "stopped-early",
+      "note": "first 40% only"
+    },
+    {
+      "id": "stopped-1_2",
+      "audio": "clips/stopped-1_2.wav",
+      "verseKey": "1:2",
+      "expectedText": "الحمد لله رب العالمين",
+      "verdict": "mistake",
+      "kind": "stopped-early",
+      "note": "first 50% only"
+    },
+    {
+      "id": "skipped-2_255",
+      "audio": "clips/skipped-2_255.wav",
+      "verseKey": "2:255",
+      "expectedText": "الله لا إله إلا هو الحي القيوم لا تأخذه سنة ولا نوم له ما في السموات وما في الأرض من ذا الذي يشفع عنده إلا بإذنه يعلم ما بين أيديهم وما خلفهم ولا يحيطون بشيء من علمه إلا بما شاء وسع كرسيه السموات والأرض ولا يئوده حفظهما وهو العلي العظيم",
+      "verdict": "mistake",
+      "kind": "skipped-middle",
+      "note": "25% cut out of the middle"
+    },
+    {
+      "id": "skipped-2_285",
+      "audio": "clips/skipped-2_285.wav",
+      "verseKey": "2:285",
+      "expectedText": "آمن الرسول بما أنزل إليه من ربه والمؤمنون كل آمن بالله وملائكته وكتبه ورسله لا نفرق بين أحد من رسله وقالوا سمعنا وأطعنا غفرانك ربنا وإليك المصير",
+      "verdict": "mistake",
+      "kind": "skipped-middle",
+      "note": "25% cut out of the middle"
+    },
+    {
+      "id": "skipped-2_286",
+      "audio": "clips/skipped-2_286.wav",
+      "verseKey": "2:286",
+      "expectedText": "لا يكلف الله نفسا إلا وسعها لها ما كسبت وعليها ما اكتسبت ربنا لا تؤاخذنا إن نسينا أو أخطأنا ربنا ولا تحمل علينا إصرا كما حملته على الذين من قبلنا ربنا ولا تحملنا ما لا طاقة لنا به واعف عنا واغفر لنا وارحمنا أنت مولانا فانصرنا على القوم الكافرين",
+      "verdict": "mistake",
+      "kind": "skipped-middle",
+      "note": "25% cut out of the middle"
+    },
+    {
+      "id": "wrong-ending-2_285",
+      "audio": "clips/wrong-ending-2_285.wav",
+      "verseKey": "2:285",
+      "expectedText": "آمن الرسول بما أنزل إليه من ربه والمؤمنون كل آمن بالله وملائكته وكتبه ورسله لا نفرق بين أحد من رسله وقالوا سمعنا وأطعنا غفرانك ربنا وإليك المصير",
+      "verdict": "mistake",
+      "kind": "wrong-ending",
+      "note": "ends with 2:286 instead"
+    },
+    {
+      "id": "wrong-ending-2_286",
+      "audio": "clips/wrong-ending-2_286.wav",
+      "verseKey": "2:286",
+      "expectedText": "لا يكلف الله نفسا إلا وسعها لها ما كسبت وعليها ما اكتسبت ربنا لا تؤاخذنا إن نسينا أو أخطأنا ربنا ولا تحمل علينا إصرا كما حملته على الذين من قبلنا ربنا ولا تحملنا ما لا طاقة لنا به واعف عنا واغفر لنا وارحمنا أنت مولانا فانصرنا على القوم الكافرين",
+      "verdict": "mistake",
+      "kind": "wrong-ending",
+      "note": "ends with 2:285 instead"
+    },
+    {
+      "id": "wrong-ending-112_1",
+      "audio": "clips/wrong-ending-112_1.wav",
+      "verseKey": "112:1",
+      "expectedText": "قل هو الله أحد",
+      "verdict": "mistake",
+      "kind": "wrong-ending",
+      "note": "ends with 112:2 instead"
+    },
+    {
+      "id": "wrong-verse-112_2",
+      "audio": "clips/wrong-verse-112_2.wav",
+      "verseKey": "112:2",
+      "expectedText": "الله الصمد",
+      "verdict": "mistake",
+      "kind": "wrong-verse",
+      "note": "recited 112:3"
+    },
+    {
+      "id": "wrong-verse-1_3",
+      "audio": "clips/wrong-verse-1_3.wav",
+      "verseKey": "1:3",
+      "expectedText": "الرحمن الرحيم",
+      "verdict": "mistake",
+      "kind": "wrong-verse",
+      "note": "recited 1:4"
+    },
+    {
+      "id": "wrong-verse-2_285",
+      "audio": "clips/wrong-verse-2_285.wav",
+      "verseKey": "2:285",
+      "expectedText": "آمن الرسول بما أنزل إليه من ربه والمؤمنون كل آمن بالله وملائكته وكتبه ورسله لا نفرق بين أحد من رسله وقالوا سمعنا وأطعنا غفرانك ربنا وإليك المصير",
+      "verdict": "mistake",
+      "kind": "wrong-verse",
+      "note": "recited 2:286"
+    },
+    {
+      "id": "hesitation-2_255",
+      "audio": "clips/hesitation-2_255.wav",
+      "verseKey": "2:255",
+      "expectedText": "الله لا إله إلا هو الحي القيوم لا تأخذه سنة ولا نوم له ما في السموات وما في الأرض من ذا الذي يشفع عنده إلا بإذنه يعلم ما بين أيديهم وما خلفهم ولا يحيطون بشيء من علمه إلا بما شاء وسع كرسيه السموات والأرض ولا يئوده حفظهما وهو العلي العظيم",
+      "verdict": "correct",
+      "kind": "hesitation",
+      "note": "2.5s pause mid-verse, words all correct"
+    },
+    {
+      "id": "hesitation-1_2",
+      "audio": "clips/hesitation-1_2.wav",
+      "verseKey": "1:2",
+      "expectedText": "الحمد لله رب العالمين",
+      "verdict": "correct",
+      "kind": "hesitation",
+      "note": "2.5s pause mid-verse, words all correct"
+    }
+  ]
+}
