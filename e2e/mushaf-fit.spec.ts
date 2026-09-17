@@ -308,3 +308,51 @@ test("keeps stating the right page while reading down a long surah", async ({
   // few the spy happened to subscribe to when the surah opened.
   expect(Math.abs(reading.stated - reading.shown!)).toBeLessThanOrEqual(1);
 });
+
+/*
+ * Radix puts `pointer-events: none` on the body while a modal is open. Every
+ * sheet in the reader is opened from a dropdown menu item, so a menu is
+ * closing while a dialog is opening and both are doing that bookkeeping at
+ * once - and the style was being left behind. Closing the reading preferences
+ * left nothing on the page clickable for the rest of the visit.
+ */
+test("gives the page back its clicks when a sheet is closed", async ({
+  page,
+}) => {
+  await page.goto("/quran/page/3");
+  await page.waitForSelector(".mushaf-line__verse", { timeout: 30_000 });
+
+  const openFromMenu = async (item: string) => {
+    await page.getByRole("button", { name: "خيارات القراءة" }).click();
+    await page.getByRole("menuitem", { name: item }).click();
+  };
+
+  for (const [item, close] of [
+    ["تفضيلات القراءة", "done"],
+    ["تفضيلات القراءة", "escape"],
+    ["السور", "escape"],
+  ] as const) {
+    await openFromMenu(item);
+    await expect(page.getByRole("dialog")).toBeVisible();
+
+    if (close === "done") {
+      await page.getByRole("button", { name: "تم" }).click();
+    } else {
+      await page.keyboard.press("Escape");
+    }
+    await expect(page.getByRole("dialog")).toBeHidden();
+
+    await expect
+      .poll(() =>
+        page.evaluate(() => getComputedStyle(document.body).pointerEvents),
+      )
+      .toBe("auto");
+
+    // The real proof: something on the page can still be used.
+    const before = page.url();
+    await page
+      .getByRole("button", { name: "الصفحة التالية" })
+      .click({ timeout: 5_000 });
+    await expect.poll(() => page.url()).not.toBe(before);
+  }
+});

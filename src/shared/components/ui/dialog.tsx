@@ -3,7 +3,45 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 
-const Dialog = DialogPrimitive.Root;
+/*
+ * Radix puts `pointer-events: none` on the body while a modal is open and
+ * takes it off again on close. Every sheet in the reader is opened from a
+ * dropdown menu item, so a menu is closing while a dialog is opening and both
+ * are doing that same bookkeeping in the same tick. The style was being left
+ * behind: closing the reading preferences left the body at
+ * `pointer-events: none`, and nothing on the page could be clicked again for
+ * the rest of the visit.
+ *
+ * This has to sit on the root. The surface below stays mounted whether the
+ * dialog is open or shut - only the portal's children come and go - so a
+ * cleanup there never runs on close.
+ *
+ * Once closed, and once Radix has had its own turn, the page gets its clicks
+ * back - unless another modal is still up and still wants them gone.
+ */
+function Dialog({
+  open,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) {
+  React.useEffect(() => {
+    if (open) return;
+
+    const frame = requestAnimationFrame(() => {
+      const stillOpen = document.querySelector(
+        '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"], [role="menu"][data-state="open"]',
+      );
+      if (stillOpen) return;
+      if (document.body.style.pointerEvents === "none") {
+        document.body.style.removeProperty("pointer-events");
+      }
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [open]);
+
+  return <DialogPrimitive.Root open={open} {...props} />;
+}
+
 const DialogPortal = DialogPrimitive.Portal;
 
 const DialogOverlay = React.forwardRef<

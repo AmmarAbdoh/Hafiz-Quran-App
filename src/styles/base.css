@@ -261,6 +261,18 @@ textarea {
   );
 }
 
+/*
+ * Tailwind 4's preflight sets `cursor: default` on buttons, where 3 left the
+ * browser's own `pointer`. Nothing in the app said otherwise, so every
+ * button, switch and icon control in it told the pointer it was not a
+ * control. Disabled ones are left alone.
+ */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="switch"]:not(:disabled) {
+  cursor: pointer;
+}
+
 .mushaf-reader-header {
   position: sticky;
   inset-block-start: 0;
