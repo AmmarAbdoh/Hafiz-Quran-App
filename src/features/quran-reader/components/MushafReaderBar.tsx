@@ -35,14 +35,12 @@ export function MushafReaderBar({
   const { t } = useTranslation("reader");
   const { locale } = useLocale();
 
-  const location = [
-    juzNumber
-      ? t("status.juz", { juz: formatNumber(juzNumber, locale) })
-      : null,
-    hizbNumber
-      ? t("status.hizb", { hizb: formatNumber(hizbNumber, locale) })
-      : null,
-  ].filter((part): part is string => part !== null);
+  const juzLabel = juzNumber
+    ? t("status.juz", { juz: formatNumber(juzNumber, locale) })
+    : null;
+  const hizbLabel = hizbNumber
+    ? t("status.hizb", { hizb: formatNumber(hizbNumber, locale) })
+    : null;
 
   return (
     /*
@@ -53,17 +51,16 @@ export function MushafReaderBar({
      * surah rail. A printed mushaf centres the page number in its footer.
      *
      * The grid centres the control against the bar rather than against its
-     * sibling, so it cannot drift when the juz text grows or a third element
-     * arrives in the trailing cell.
+     * siblings, so it cannot drift when either label grows or shrinks.
+     *
+     * Juz sits in the leading cell and hizb in the trailing one - the near
+     * and far corners of a printed mushaf's own footer - rather than the two
+     * combined in one cell, which is where the page previously ran out of
+     * width to put anything else.
      */
     <div className="mx-auto grid min-h-13 w-full max-w-content grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 pointer-fine:min-h-11 sm:px-6">
       <p className="flex min-w-0 items-center gap-1.5 text-label text-muted-foreground">
-        {location.map((part, index) => (
-          <span key={part} className="flex items-center gap-1.5 truncate">
-            {index > 0 ? <span aria-hidden="true">·</span> : null}
-            {part}
-          </span>
-        ))}
+        {juzLabel ? <span className="truncate">{juzLabel}</span> : null}
       </p>
 
       <div className="flex justify-center">
@@ -80,8 +77,9 @@ export function MushafReaderBar({
         )}
       </div>
 
-      {/* Reserved: the natural home for a bookmark or repeat affordance. */}
-      <span aria-hidden="true" />
+      <p className="flex min-w-0 items-center justify-end gap-1.5 text-label text-muted-foreground">
+        {hizbLabel ? <span className="truncate">{hizbLabel}</span> : null}
+      </p>
     </div>
   );
 }
