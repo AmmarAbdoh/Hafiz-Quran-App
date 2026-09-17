@@ -257,6 +257,16 @@ export function MushafSurahViewer({
    * The request now mounts what it needs and is held until it lands, so it
    * survives both the mount it triggers and the font load that gates the
    * page tree existing at all.
+   *
+   * A page that is already there is scrolled to on the spot, in the click's
+   * own turn. Routing every request through state cost a whole render before
+   * the first pixel moved - 140ms of nothing after a press, on a control
+   * whose entire job is to feel immediate.
+   *
+   * Turning a page is a command, not a reading movement, so it lands at once
+   * rather than gliding: the smooth default spent another ~530ms travelling.
+   * Following a recitation still glides - that is scrollIntoView elsewhere in
+   * this file, and it is a different thing.
    */
   useEffect(() => {
     if (!scrollToPageRef) return;
@@ -264,6 +274,9 @@ export function MushafSurahViewer({
     scrollToPageRef.current = (page: number) => {
       const index = surahPages.indexOf(page);
       if (index < 0) return;
+      const container = scrollContainerRef ?? { current: null };
+      if (scrollMushafToPage(mushafRef, container, page, "auto")) return;
+
       setMountedCount((current) =>
         Math.max(current, Math.min(surahPages.length, index + PAGE_MOUNT_STEP)),
       );
@@ -273,7 +286,7 @@ export function MushafSurahViewer({
     return () => {
       scrollToPageRef.current = null;
     };
-  }, [scrollToPageRef, surahPages]);
+  }, [scrollToPageRef, scrollContainerRef, surahPages]);
 
   useEffect(() => {
     if (pendingScrollPage === null) return;
@@ -281,6 +294,7 @@ export function MushafSurahViewer({
       mushafRef,
       scrollContainerRef ?? { current: null },
       pendingScrollPage,
+      "auto",
     );
     if (landed) setPendingScrollPage(null);
   }, [pendingScrollPage, mountedCount, surahFontsLoading, scrollContainerRef]);
