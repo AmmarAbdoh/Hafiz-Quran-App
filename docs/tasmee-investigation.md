@@ -296,12 +296,106 @@ integration with a known-good pipeline instead of a hope.
 
 ---
 
+## 7. Training your own — reconsidered
+
+The earlier verdict answered the wrong question. It assumed the motive was
+**accuracy**, where there is nothing to beat. The actual motive is
+**licensing**, and on that the reasoning holds up. What follows corrects it.
+
+### The bind, stated exactly
+
+|                                    | permissive licence | CTC / no language model        |
+| ---------------------------------- | ------------------ | ------------------------------ |
+| `tarteel-ai/whisper-base-ar-quran` | **Apache-2.0**     | no — Whisper decoder, and §1.3 |
+| `Quran-Lab/zipformer_p-arabic-v3`  | no — NPL-1.2       | **yes**                        |
+| `Muno459/fastconformer-quran`      | no — NPL-1.1       | **yes**                        |
+
+Off the shelf you may have a permissive licence **or** the architecture that
+does not hide mistakes. Not both. Training is the only thing that produces
+both, which is why the instinct was right.
+
+Note that `tarteel-ai/whisper-base-ar-quran` is Apache-2.0 with **20,620
+downloads and 182 likes** — the most-used Qur'an ASR by a wide margin, and
+free of any no-profit restriction. If the licence is the dominant worry and
+the language-model problem can be mitigated, that model is available today
+for nothing.
+
+### The ingredients are genuinely clean
+
+|                                                                                                  | licence        |
+| ------------------------------------------------------------------------------------------------ | -------------- |
+| `tarteel-ai/everyayah` — 187,785 train / 23,473 test / 23,474 val recordings, ~263GB train audio | **MIT**        |
+| `facebook/w2v-bert-2.0` — SeamlessM4T speech encoder                                             | **MIT**        |
+| `facebook/wav2vec2-xls-r-300m` — built for CTC fine-tuning                                       | **Apache-2.0** |
+| `openai/whisper-base`                                                                            | Apache-2.0     |
+
+`facebook/mms-1b-all` is **CC-BY-NC** — the same restriction being escaped,
+so it is out.
+
+**MIT encoder + MIT dataset → a CTC model owned outright, with no
+restriction inherited.** That path exists and nothing blocks it. By ASR
+standards ~188k labelled verse recordings across dozens of reciters is a real
+corpus, not a toy.
+
+### Three honest cautions
+
+1. **It is a project, not a weekend.** Fine-tuning a 300M-parameter encoder
+   on a corpus this size is days of GPU time and a few hundred dollars of
+   rented compute, plus the engineering around it: data pipeline, vocabulary
+   design (phoneme vs character vs BPE — and the phoneme alphabet is where
+   Quran-Lab's value actually is), training, evaluation, ONNX export,
+   quantisation. It is a **separate project from the app**, and it is the
+   kind that quietly eats months.
+
+2. **It may not reduce legal exposure the way it looks like it will.** The
+   dataset is MIT _as declared by Tarteel_. The underlying material is
+   recorded performances by named reciters, widely distributed for religious
+   purposes and rarely licensed formally. Tarteel declaring MIT does not by
+   itself settle the reciters' rights in their performances. Training on
+   aggregated recitation recordings may carry **more** ambiguity than using a
+   model whose licence is written down and explicit — which is the opposite
+   of the intent. Relying on the declared MIT licence in good faith is a
+   defensible position; believing it removes all rights questions is not.
+
+3. **The restriction may cost nothing.** Artqiy describes itself as "a free,
+   non-commercial app... we do not sell content or place ads". If that is
+   permanent, NPL-1.2 takes away nothing real, and the whole exercise buys an
+   option that will never be exercised.
+
+### Recommended sequencing
+
+**Build the feature against the best available model, behind an interface.
+Decide on training once the feature is known to be worth owning.**
+
+Almost none of this work is model-specific: the fixture set, the forced
+alignment, the per-word confidence, the highlighting UX, the mistake
+taxonomy, the offline word list from `aya_text_emlaey`. All of it survives a
+model swap. The model is the one replaceable part — so replace it last, when
+you know what you are replacing it for.
+
+Sequenced that way, training becomes a decision made with evidence: _this
+feature is good, people rely on it, and the licence now genuinely blocks
+something I want to do._ Sequenced the other way it is months of ML work
+before knowing whether the feature is any good — and §1 is what that looks
+like when it goes wrong.
+
+**One thing to do now, cheaply:** keep the model behind a narrow interface —
+audio in, per-word confidence out. The existing `contract.ts` is already the
+right instinct. That single decision is what keeps the training option open
+without paying for it today.
+
+---
+
 ## Sources
 
 - [Quran-Lab/zipformer_p-arabic-v3](https://huggingface.co/Quran-Lab/zipformer_p-arabic-v3) — 65.5M params, PER 1.43%, streaming, "no language model, anywhere"
 - [Muno459/fastconformer-quran](https://huggingface.co/Muno459/fastconformer-quran) — 114.6M params, WER 5.41%, pronunciation head
 - [Muno459/fastconformer-quran-streaming](https://huggingface.co/Muno459/fastconformer-quran-streaming) — cache-aware streaming variant
 - [k2-fsa/sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — browser WASM builds, streaming Zipformer
+- [tarteel-ai/everyayah](https://huggingface.co/datasets/tarteel-ai/everyayah) — MIT, 187,785 train recordings
+- [tarteel-ai/whisper-base-ar-quran](https://huggingface.co/tarteel-ai/whisper-base-ar-quran) — Apache-2.0, 20,620 downloads
+- [facebook/w2v-bert-2.0](https://huggingface.co/facebook/w2v-bert-2.0) — MIT speech encoder
+- [facebook/wav2vec2-xls-r-300m](https://huggingface.co/facebook/wav2vec2-xls-r-300m) — Apache-2.0, built for CTC fine-tuning
 
 - [tarteel-ai/whisper-base-ar-quran](https://huggingface.co/tarteel-ai/whisper-base-ar-quran) — 5.75% WER
 - [tarteel-ai on Hugging Face](https://huggingface.co/tarteel-ai) — models and the `everyayah` dataset
