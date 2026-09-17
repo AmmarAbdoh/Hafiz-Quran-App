@@ -2,9 +2,13 @@
 
 **Written for:** the person deciding what to build, before any code is written.
 
-This does not recommend a model. It establishes what went wrong, reframes the
-problem, prices the options, and proposes one cheap experiment that settles
-the question with evidence instead of opinion.
+This establishes what went wrong, reframes the problem, and narrows the field
+to two candidates.
+
+**Decided (2026-09-17):** no tajweed judging in v1 · a 150-400MB download is
+acceptable, so on-device is on the table and audio never has to leave the
+device · word-by-word highlighting is wanted, but may be deferred if it is
+what makes this hard.
 
 ---
 
@@ -47,7 +51,25 @@ shared three-letter roots, so near-neighbours are everywhere in a page of
 Quran. This accepts wrong recitation constantly, which is worse than
 rejecting correct recitation — it silently teaches mistakes.
 
-### 1.3 It throws away the one thing that makes this problem easy
+### 1.3 A general ASR actively hides the mistakes you are looking for
+
+This is the deepest of the four, and it is not about accuracy.
+
+Whisper is an encoder-decoder whose decoder carries a language model. Given
+half-recognised audio of a famous verse, it emits the verse it _expects_ -
+that is what makes it good at transcription and useless here. It silently
+repairs the reciter's mistake before the matcher ever sees it, so the app
+says "correct" precisely when the reciter most needed to be told otherwise.
+
+A bigger Whisper is a _better_ repairer. Scaling the model up makes this
+worse, not better.
+
+The Quran-Lab model card names the principle directly: **"no language model,
+anywhere"** - LM rescoring would mask recitation errors. Any model chosen for
+tasmee' has to be judged on whether it will report what was actually said,
+not what should have been said.
+
+### 1.4 It throws away the one thing that makes this problem easy
 
 The pipeline is: record → free transcription → normalise → fuzzy match.
 
@@ -56,7 +78,7 @@ transcription asks the model to solve a far harder problem — _what words were
 these, out of all Arabic_ — and then we try to repair its guess with string
 distance. See §2.
 
-### 1.4 It needs the network, per verse
+### 1.5 It needs the network, per verse
 
 `services/pageWordText.ts` fetches word-level text from `api.quran.com` for
 every verse, at practice time. That breaks the offline promise of the PWA and
@@ -102,105 +124,163 @@ guess.
 
 ---
 
-## 3. The options, with real numbers
+## 3. What actually exists — and it is better than expected
 
-### On-device
+The field has moved. Purpose-built Qur'an CTC models are published, recent,
+and in ONNX. Two are serious candidates; both are **exactly the architecture
+§2 argues for**, and neither is a general ASR.
 
-| option                                   | download | notes                                             |
-| ---------------------------------------- | -------- | ------------------------------------------------- |
-| generic whisper-tiny _(today's default)_ | ~40MB    | fast, unusable accuracy for this                  |
-| Tarteel tiny (Quran) ONNX                | ~150MB   | Quran-tuned, already wired up as an option        |
-| Tarteel base (Quran) ONNX                | ~400MB   | **5.75% WER** reported; heavy first load          |
-| CTC acoustic model + alignment           | smaller  | no free-decoding, so a smaller model goes further |
+|                 | `Quran-Lab/zipformer_p-arabic-v3`                                             | `Muno459/fastconformer-quran`                        |
+| --------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------- |
+| params          | **65.5M**                                                                     | 114.6M                                               |
+| architecture    | Zipformer2 + CTC                                                              | FastConformer Large + CTC                            |
+| output          | phonemes — 251-symbol Qur'anic alphabet (madd, ghunna, qalqalah, ikhfaa)      | fully diacritized Arabic words                       |
+| accuracy        | **PER 1.43%** studio · **3.65% real phone recordings** · 9.10% unseen reciter | **WER 5.41%**                                        |
+| streaming       | **yes** — cache-aware chunks, 70x realtime on an iPhone 15 Pro                | offline; separate `-streaming` repo                  |
+| error detection | forced alignment (model card recommends it over run-length)                   | `pronunciation_head.pt`, ~80% sensitivity at ~9% FPR |
+| updated         | 2026-08-28                                                                    | 2026-08-15                                           |
+| licence         | NPL-1.2                                                                       | NPL-1.1                                              |
 
-WebGPU gives roughly **5–10× over WASM** for this class of model, needs
-~1–1.5GB VRAM for a ~400MB model, and is reliable on Chromium; Firefox's ONNX
-WebGPU path is flaky. Transformers.js falls back to WASM automatically —
-which is where a phone without WebGPU lands, and where "it was slow" comes
-from.
+For comparison, `fastconformer-quran` reports beating **Tarteel's production
+model (9.56% WER)** and NVIDIA's own FastConformer (7.44%). The Tarteel model
+this app currently offers as its "good" option is the weakest of the three.
 
-**On-device buys:** offline, zero cost, no recitation audio leaving the
-device — which matters more here than in most apps.
-**On-device costs:** a 150–400MB first download, and the worst devices get
-the worst experience.
+**Both are small.** 65.5M parameters is _smaller than Whisper base_, and far
+smaller than the 400MB download the current Tarteel option asks for. The
+constraint you accepted turns out not to be needed.
 
-### Hosted
+### Three things this changes
+
+1. **Word-by-word is not the hard part any more.** The zipformer is streaming
+   and frame-synchronous by design — 6.8ms per chunk. The thing you were
+   ready to defer is the thing this architecture does naturally. It was only
+   hard because Whisper is the wrong shape for it.
+2. **Phonemes are a better product than words.** A phoneme model can say
+   _which sound_ was wrong inside a word. A word model can only say the word
+   was wrong. Even with tajweed judging ruled out for v1, the tajweed-aware
+   alphabet is there when you want it.
+3. **The runtime has to change.** Neither runs under Transformers.js. They
+   need **sherpa-onnx** (which ships browser WASM builds, with streaming
+   Zipformer demos) or raw `onnxruntime-web`. See §4.
+
+### The licence is a real decision
+
+Both carry the **Quran-Lab No-Profit Licence**. Free to use, study and
+redistribute; commercial use restricted.
+
+The app already describes itself as _"a free, non-commercial app for reading,
+memorization, and review"_, so this fits what Artqiy is today — but adopting
+these models **forecloses ever charging for it**. That is a decision to make
+deliberately now, not to discover later.
+
+### Hosted, for completeness
 
 | provider                      | cost/hour audio |
 | ----------------------------- | --------------- |
-| Groq (whisper-large-v3-turbo) | **$0.04**       |
+| Groq (whisper-large-v3-turbo) | $0.04           |
 | ElevenLabs Scribe v2 (batch)  | $0.22           |
 | Deepgram Nova-3 (batch)       | ~$0.26          |
-| Deepgram (streaming)          | ~$0.46          |
 
-At Groq's rate, 30 minutes of recitation a day is about **$0.60 per user per
-month**. Trivial for personal use; a real line item if this is ever shared
-widely and free.
-
-**Hosted buys:** a large accurate model with no download, same on every
-device.
-**Hosted costs:** a backend and API keys the app does not currently have,
-latency on every phrase, no offline, and recitation audio going to a third
-party.
+Now much less attractive: these are all general ASR, so §1.3 applies to every
+one of them. They would transcribe beautifully and hide the mistakes.
 
 ### Training your own
 
-**Recommended against.** Tarteel fine-tuned Whisper on their `everyayah`
-dataset and published 5.75% WER. Matching that needs comparable labelled
-recitation data and is a months-long detour from a memorization app. The
-honest version of "train my own" here is _fine-tune an existing Quran model
-on my own voice_ — worth considering **only** if §5 shows a general model
-fails specifically on your recitation.
+**Recommended against, more strongly than before.** Two teams have published
+Qur'an-specific CTC models in the last month, one at 1.43% PER. There is
+nothing here for a solo developer to beat.
+
+## 4. The real cost: the runtime, not the model
+
+This is the honest price of the recommendation, and the main thing that could
+make it a bad idea.
+
+Today the worker calls one function and gets everything free:
+
+```ts
+pipeline("automatic-speech-recognition", modelId, { dtype });
+```
+
+Transformers.js does feature extraction, batching, decoding and tokenisation
+behind that. **Neither candidate runs under it.** Going this way means owning,
+in TypeScript:
+
+- **feature extraction** — log-mel / fbank frames at 16kHz, matching exactly
+  what the model was trained on (a mismatch here degrades silently, and is
+  the classic way these integrations fail)
+- **streaming cache management** — cache-aware chunks with the right left
+  context, carried between chunks
+- **CTC decoding** — greedy is enough; no beam search, no LM (§1.3)
+- **forced alignment** — the expected tokens against the frame posteriors,
+  plus per-word confidence
+- **phoneme mapping** — for the zipformer, Uthmani text to its 251-symbol
+  alphabet
+
+Two ways to get it:
+
+|                | sherpa-onnx WASM                             | `onnxruntime-web` directly   |
+| -------------- | -------------------------------------------- | ---------------------------- |
+| what you get   | features, streaming, CTC decoding, all of it | the tensors and nothing else |
+| what you write | glue, plus alignment                         | everything in the list above |
+| cost           | a WASM bundle alongside the model            | no extra bundle beyond ORT   |
+| control        | its abstractions                             | complete                     |
+
+**sherpa-onnx is the sane starting point** — it is the k2/icefall project's
+own runtime, these models are published for it, and it has browser WASM
+builds with streaming Zipformer demos already. Write alignment on top of its
+output; do not reimplement fbank.
+
+### Still ruled out
+
+- **Training from scratch** — see §3.
+- **Free transcription + string distance** — §1.3 and §1.4.
+- **Whisper for word-by-word** — wrong shape. The rolling-window constants
+  in `practiceConfig.ts` (`PRACTICE_ROLLING_CHUNK_MS = 550`,
+  `PRACTICE_ROLLING_WINDOW_MS = 2200`) are a workaround for that, and they go
+  away with a frame-synchronous model.
 
 ---
 
-## 4. What I would rule out now
+## 5. Recommended path
 
-- **Training from scratch.** See above.
-- **Keeping free transcription + string distance.** Even with a perfect
-  model this cannot distinguish hesitation from substitution.
-- **Whisper for live word-by-word tracking.** Whisper is a sequence model
-  over 30-second windows; it is the wrong shape for "highlight the word as
-  it is recited". The current rolling-window hack (`PRACTICE_ROLLING_CHUNK_MS
-= 550`, `PRACTICE_ROLLING_WINDOW_MS = 2200`) is fighting the architecture.
-  Streaming word tracking wants a frame-synchronous CTC model.
+**Model:** `Quran-Lab/zipformer_p-arabic-v3`. Smallest, most accurate,
+streaming by design, phoneme-level, explicitly built not to hide errors, and
+it ships a `decode_with_confidence.py` to read alongside.
+**Runtime:** sherpa-onnx WASM.
+**Judgement:** forced alignment of the expected phonemes against the model's
+frame posteriors — never a transcript diff.
 
----
+`Muno459/fastconformer-quran` is the fallback: bigger and offline-only, but
+it emits words rather than phonemes, which is a shorter path to something
+working, and its `pronunciation_head` is purpose-built for mispronunciation.
 
-## 5. The experiment to run before building anything
+### Before writing app code — one day, outside the app
 
-**Do not pick an architecture from this document. Measure, on your own voice,
-in a day.**
+The fixture set is still the first deliverable, and it is still the only
+thing that answers "is this actually good".
 
-1. **Record a fixture set.** 20–30 clips of yourself reciting known pages.
-   Deliberately include: a skipped word, a substituted word, a long
-   hesitation, a wrong verse ending, and several _correct_ recitations.
-   Label what each one should be judged as. This fixture set is the real
-   deliverable — every option below gets scored against the same clips, and
-   it stays useful forever.
+1. **Fixtures.** The repo ships three demo clips; the app already streams
+   professional recitation, which gives _correct_ examples cheaply. Build the
+   _wrong_ ones by splicing: a dropped word, a word swapped from elsewhere in
+   the page, a long hesitation, a wrong verse ending. Label the verdict each
+   should get.
+   **Then add your own voice** — a learner does not sound like Alafasy, and
+   the 9.10% unseen-reciter figure is the honest warning about that.
 
-2. **Score four pipelines offline** (a script, not the app):
-   - today's: generic whisper-tiny + bag-of-characters
-   - Tarteel base ONNX + the same matcher _(isolates the model)_
-   - Tarteel base ONNX + proper alignment _(isolates the matcher)_
-   - a hosted API + proper alignment _(the ceiling)_
+2. **Score two pipelines** (a node script, not the app):
+   - zipformer + forced alignment
+   - today's whisper-tiny + bag-of-characters, as the baseline you already
+     know is bad
 
-3. **Report two numbers that matter**, not WER:
-   - **false accepts** — recited wrong, app said fine _(the one that makes it
-     worthless — it teaches mistakes)_
-   - **false rejects** — recited right, app complained _(the one that makes it
-     infuriating)_
+3. **Report false accepts and false rejects**, not WER. A false accept
+   teaches a mistake; that is the number that decides whether this ships.
 
-   plus latency from end-of-word to feedback on a real phone.
-
-The gap between rows 1 and 2 tells you whether the model was the problem. The
-gap between 2 and 3 tells you whether the matcher was. The gap between 3 and
-4 tells you whether on-device is good enough. **That is the whole decision,
-and it is one day of work.**
+If the zipformer path clears that bar on your own voice, the app work is
+integration with a known-good pipeline instead of a hope.
 
 ---
 
-## 6. Questions only you can answer
+## 6. The one question left
 
 1. **Is audio leaving the device acceptable to you?** For recitation of
    Quran, in an app you built for yourself, this may be a hard no — and if it
@@ -217,6 +297,11 @@ and it is one day of work.**
 ---
 
 ## Sources
+
+- [Quran-Lab/zipformer_p-arabic-v3](https://huggingface.co/Quran-Lab/zipformer_p-arabic-v3) — 65.5M params, PER 1.43%, streaming, "no language model, anywhere"
+- [Muno459/fastconformer-quran](https://huggingface.co/Muno459/fastconformer-quran) — 114.6M params, WER 5.41%, pronunciation head
+- [Muno459/fastconformer-quran-streaming](https://huggingface.co/Muno459/fastconformer-quran-streaming) — cache-aware streaming variant
+- [k2-fsa/sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — browser WASM builds, streaming Zipformer
 
 - [tarteel-ai/whisper-base-ar-quran](https://huggingface.co/tarteel-ai/whisper-base-ar-quran) — 5.75% WER
 - [tarteel-ai on Hugging Face](https://huggingface.co/tarteel-ai) — models and the `everyayah` dataset
