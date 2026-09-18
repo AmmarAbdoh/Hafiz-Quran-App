@@ -255,7 +255,13 @@ export async function fetchSurahAudioMeta(
       ayah,
       startMs: entry.timestamp_from,
       endMs: entry.timestamp_to,
-      durationMs: entry.duration,
+      /*
+       * Derived, not taken from `duration`, which the API returns negated:
+       * 1:1 comes back as `timestamp_from: 0, timestamp_to: 6493,
+       * duration: -6493`. Trusting it made every ayah length negative, and
+       * the surah total with it whenever the endMs fallback was not there.
+       */
+      durationMs: Math.max(0, entry.timestamp_to - entry.timestamp_from),
       chapterSegments: parseChapterAyahSegments(
         entry.segments ?? [],
         entry.timestamp_from,

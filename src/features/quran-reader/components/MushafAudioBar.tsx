@@ -5,7 +5,9 @@ import { formatNumber, useLocale } from "@/app/i18n";
 import {
   useQuranPlaybackActions,
   useQuranPlaybackState,
+  useQuranPlaybackTime,
 } from "@/features/quran-reader/context/QuranPlaybackContext";
+import { formatClock } from "@/features/quran-reader/model/playbackTime";
 import { useGoToPlayingVerse } from "@/features/quran-reader/hooks/useGoToPlayingVerse";
 import { Button } from "@/shared/components/ui/button";
 import { JUZ_NAMES, useSurahNames } from "@/domain/quran";
@@ -21,15 +23,35 @@ export function MushafAudioBar({ pageControls }: MushafAudioBarProps) {
   const { surahName, language: surahLanguage } = useSurahNames();
   const nameDir = surahLanguage === "ar" ? "rtl" : "ltr";
   const playback = useQuranPlaybackState();
+  const time = useQuranPlaybackTime();
   const actions = useQuranPlaybackActions();
   const goToPlayingVerse = useGoToPlayingVerse();
 
   if (!playback.active) return null;
 
-  const progress =
-    playback.playlistTotal > 0
+  /*
+   * Time, when the session's length is known; ayah count otherwise.
+   *
+   * Counting ayat moves the bar in jumps that have nothing to do with how
+   * long is left - a session of one long ayah and ten short ones sat at 9%
+   * through most of its running time.
+   */
+  const hasSessionClock =
+    time.sessionMs !== null &&
+    time.sessionTotalMs !== null &&
+    time.sessionTotalMs > 0;
+
+  const progress = hasSessionClock
+    ? Math.min(100, (time.sessionMs! / time.sessionTotalMs!) * 100)
+    : playback.playlistTotal > 0
       ? Math.min(100, (playback.playlistIndex / playback.playlistTotal) * 100)
       : 0;
+
+  /* Falls back to the ayah sounding now when no session total exists. */
+  const elapsedMs = hasSessionClock ? time.sessionMs! : time.ayahMs;
+  const totalMs = hasSessionClock ? time.sessionTotalMs! : time.ayahDurationMs;
+  const showClock = totalMs > 0;
+  const remainingMs = Math.max(0, totalMs - elapsedMs);
 
   const showFollowButton =
     Boolean(playback.activeVerseKey) &&
@@ -152,6 +174,33 @@ export function MushafAudioBar({ pageControls }: MushafAudioBarProps) {
                 ? ` · ${t("audio.wordHighlight")}`
                 : ""}
             </p>
+            {showClock ? (
+              /*
+               * Latin digits read left to right even in Arabic, so the clock
+               * is isolated: without it the minus sign on the remaining time
+               * lands on the wrong end of the number.
+               */
+              <p
+                className="truncate text-label tabular-nums text-muted-foreground"
+                aria-label={
+                  hasSessionClock
+                    ? t("audio.sessionRemaining", {
+                        remaining: formatClock(remainingMs, locale),
+                      })
+                    : t("audio.ayahRemaining", {
+                        remaining: formatClock(remainingMs, locale),
+                      })
+                }
+              >
+                <bdi>{formatClock(elapsedMs, locale)}</bdi>
+                {" / "}
+                <bdi>{formatClock(totalMs, locale)}</bdi>
+                <span className="mx-1" aria-hidden>
+                  ·
+                </span>
+                <bdi aria-hidden>−{formatClock(remainingMs, locale)}</bdi>
+              </p>
+            ) : null}
           </div>
         </div>
 

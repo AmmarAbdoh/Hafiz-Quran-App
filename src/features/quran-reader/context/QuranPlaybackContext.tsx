@@ -31,6 +31,11 @@ import {
   quranPlaybackReducer,
   type QuranPlaybackState,
 } from "@/features/quran-reader/model/playbackState";
+import {
+  computeSessionTime,
+  emptyPlaybackTime,
+  type PlaybackTime,
+} from "@/features/quran-reader/model/playbackTime";
 import { CancellableAudioPlayer } from "@/shared/media";
 import { claimAudioFocus, releaseAudioFocus } from "@/shared/media/audioFocus";
 
@@ -39,6 +44,8 @@ export type { QuranPlaybackState } from "@/features/quran-reader/model/playbackS
 export interface QuranPlaybackHighlightState {
   activeWordLocation: string | null;
 }
+
+export type { PlaybackTime } from "@/features/quran-reader/model/playbackTime";
 
 export interface QuranPlaybackActions {
   startListening: (session: BuiltListenSession) => Promise<void>;
@@ -113,6 +120,12 @@ const QuranPlaybackStateContext = createContext<QuranPlaybackState | null>(
 );
 const QuranPlaybackHighlightContext =
   createContext<QuranPlaybackHighlightState | null>(null);
+/*
+ * Its own context, like the highlight above it. The clock changes once a
+ * second while a recitation runs, and the reader - thousands of glyph spans -
+ * has no reason to re-render for it.
+ */
+const QuranPlaybackTimeContext = createContext<PlaybackTime | null>(null);
 const QuranPlaybackActionsContext = createContext<QuranPlaybackActions | null>(
   null,
 );
@@ -126,6 +139,8 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   const [activeWordLocation, setActiveWordLocation] = useState<string | null>(
     null,
   );
+  const [playbackTime, setPlaybackTime] =
+    useState<PlaybackTime>(emptyPlaybackTime);
 
   const audioPlayerRef = useRef<CancellableAudioPlayer | null>(null);
   if (!audioPlayerRef.current) {
@@ -159,10 +174,61 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     setActiveWordLocation(location);
   }, []);
 
+  /*
+   * timeupdate fires about four times a second; a clock reading m:ss only
+   * changes once. Publishing on the whole second keeps this to one render per
+   * second instead of four.
+   */
+  const timeListenerRef = useRef<(() => void) | null>(null);
+  const publishedSecondRef = useRef(-1);
+
+  const stopTimeSync = useCallback(() => {
+    timeListenerRef.current?.();
+    timeListenerRef.current = null;
+    publishedSecondRef.current = -1;
+  }, []);
+
+  const startTimeSync = useCallback((audio: HTMLAudioElement) => {
+    timeListenerRef.current?.();
+    publishedSecondRef.current = -1;
+
+    const publish = () => {
+      const ayahMs = audio.currentTime * 1000;
+      const second = Math.floor(ayahMs / 1000);
+      const durationMs = Number.isFinite(audio.duration)
+        ? audio.duration * 1000
+        : 0;
+      if (second === publishedSecondRef.current) return;
+      publishedSecondRef.current = second;
+
+      const session = sessionRef.current;
+      setPlaybackTime({
+        ayahMs,
+        ayahDurationMs: durationMs,
+        ...computeSessionTime({
+          playlist: session.playlist,
+          index: session.index,
+          ayahMs,
+          timestamps: session.surahTimestampsCache,
+        }),
+      });
+    };
+
+    audio.addEventListener("timeupdate", publish);
+    audio.addEventListener("loadedmetadata", publish);
+    publish();
+
+    timeListenerRef.current = () => {
+      audio.removeEventListener("timeupdate", publish);
+      audio.removeEventListener("loadedmetadata", publish);
+    };
+  }, []);
+
   const cleanupAudio = useCallback(() => {
     stopSyncLoop();
+    stopTimeSync();
     audioPlayer.stop(false);
-  }, [audioPlayer, stopSyncLoop]);
+  }, [audioPlayer, stopSyncLoop, stopTimeSync]);
 
   const cancelCurrentSession = useCallback(() => {
     operationControllerRef.current?.cancel();
@@ -170,6 +236,7 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     segmentsRef.current = [];
     sessionRef.current = createEmptySession();
     publishActiveWord(null);
+    setPlaybackTime(emptyPlaybackTime);
   }, [cleanupAudio, publishActiveWord]);
 
   const stop = useCallback(() => {
@@ -367,6 +434,7 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
         if (!controller.isCurrent(operation)) return;
         dispatch({ type: "playback-changed", playing: true, error: null });
         startWordSync(audio, operation, session.supportsWordHighlight);
+        startTimeSync(audio);
       },
       onPause: () => {
         if (controller.isCurrent(operation)) stopSyncLoop();
@@ -557,11 +625,23 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     <QuranPlaybackActionsContext.Provider value={actions}>
       <QuranPlaybackStateContext.Provider value={state}>
         <QuranPlaybackHighlightContext.Provider value={highlight}>
-          {children}
+          <QuranPlaybackTimeContext.Provider value={playbackTime}>
+            {children}
+          </QuranPlaybackTimeContext.Provider>
         </QuranPlaybackHighlightContext.Provider>
       </QuranPlaybackStateContext.Provider>
     </QuranPlaybackActionsContext.Provider>
   );
+}
+
+export function useQuranPlaybackTime(): PlaybackTime {
+  const context = useContext(QuranPlaybackTimeContext);
+  if (!context) {
+    throw new Error(
+      "useQuranPlaybackTime must be used within QuranPlaybackProvider",
+    );
+  }
+  return context;
 }
 
 export function useQuranPlaybackState(): QuranPlaybackState {

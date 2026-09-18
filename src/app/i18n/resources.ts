@@ -183,6 +183,10 @@ const ar = {
       ayahMeta: "{{surah}} — آية {{ayah}}",
       wordHighlight: "تمييز الكلمات",
       goToCurrent: "انتقل إلى صفحة الآية الجارية",
+      // Read aloud in place of the clock, which is three numbers a screen
+      // reader would otherwise announce as bare digits.
+      sessionRemaining: "بقي {{remaining}} من التلاوة",
+      ayahRemaining: "بقي {{remaining}} من الآية",
       followReading: "متابعة القراءة",
       pause: "إيقاف مؤقت",
       resume: "استئناف",
@@ -1106,6 +1110,8 @@ const en: StringTree<typeof ar> = {
       ayahMeta: "{{surah}} — ayah {{ayah}}",
       wordHighlight: "Word highlighting",
       goToCurrent: "Go to the currently playing ayah",
+      sessionRemaining: "{{remaining}} left of the recitation",
+      ayahRemaining: "{{remaining}} left of this ayah",
       followReading: "Follow reading",
       pause: "Pause recitation",
       resume: "Resume recitation",

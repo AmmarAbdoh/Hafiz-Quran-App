@@ -282,4 +282,43 @@ describe("fetchSurahAudioMeta", () => {
       ayahTimestamps: [],
     });
   });
+
+  /*
+   * The API negates this field: 1:1 really comes back as
+   * `timestamp_from: 0, timestamp_to: 6493, duration: -6493`. Taking it at
+   * face value made every ayah length negative, which is what stopped the
+   * player being able to say how long a recitation had left.
+   */
+  it("derives ayah length from the timestamps, not the negated duration", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => ({
+        audio_file: {
+          audio_url: "https://example.test/1.mp3",
+          timestamps: [
+            {
+              verse_key: "1:1",
+              timestamp_from: 0,
+              timestamp_to: 6493,
+              duration: -6493,
+            },
+            {
+              verse_key: "1:2",
+              timestamp_from: 6493,
+              timestamp_to: 11493,
+              duration: -5000,
+            },
+          ],
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const meta = await fetchSurahAudioMeta(1, 4, new AbortController().signal);
+
+    expect(meta?.ayahTimestamps.map((entry) => entry.durationMs)).toEqual([
+      6493, 5000,
+    ]);
+    expect(meta?.surahDurationMs).toBe(11493);
+  });
 });
