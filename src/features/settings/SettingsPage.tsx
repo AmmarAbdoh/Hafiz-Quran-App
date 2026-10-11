@@ -14,6 +14,7 @@ import {
   Sun,
   Volume2,
   type LucideIcon,
+  CloudDownload,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { PracticePrivacyDisclosure, PracticeSettings } from "@practice/runtime";
@@ -28,6 +29,7 @@ import { DEMO_AYAH_LABEL, RECITERS } from "@/domain/quran";
 import { useReciter, useReciterPreview, useTafseer } from "@/domain/quran";
 import { useTheme } from "@/shared/hooks/use-theme";
 import { cn } from "@/shared/lib/utils";
+import { OfflineRecitation } from "@/features/settings/components/OfflineRecitation";
 import { ReciterSelect } from "./components/ReciterSelect";
 import { WordByWordLegendDialog } from "./components/WordByWordLegendDialog";
 
@@ -231,6 +233,14 @@ export function SettingsPage() {
             count: formatNumber(RECITERS.length, locale),
           })}
         </p>
+      </SettingsSection>
+
+      <SettingsSection
+        icon={CloudDownload}
+        title={t("offlineAudio.title")}
+        description={t("offlineAudio.description")}
+      >
+        <OfflineRecitation />
       </SettingsSection>
 
       <SettingsSection

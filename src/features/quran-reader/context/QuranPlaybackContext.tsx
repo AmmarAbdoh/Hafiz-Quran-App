@@ -36,6 +36,7 @@ import {
   emptyPlaybackTime,
   type PlaybackTime,
 } from "@/features/quran-reader/model/playbackTime";
+import { cachedAudioUrl } from "@/features/quran-reader/services/audioDownloads";
 import { CancellableAudioPlayer } from "@/shared/media";
 import { claimAudioFocus, releaseAudioFocus } from "@/shared/media/audioFocus";
 
@@ -153,6 +154,8 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   const pageNavigatorRef = useRef<((verseKey: string) => void) | null>(null);
   const pendingVerseKeyRef = useRef<string | null>(null);
   const segmentsRef = useRef<WordSegment[]>([]);
+  /** Object URL for audio served from the download cache; one at a time. */
+  const blobUrlRef = useRef<string | null>(null);
   const publishedWordRef = useRef<string | null>(null);
   const sessionRef = useRef<ListenSession>(createEmptySession());
   const stateRef = useRef(state);
@@ -161,6 +164,12 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   if (!operationControllerRef.current) {
     operationControllerRef.current = new MediaOperationController();
   }
+
+  const releaseBlobUrl = useCallback(() => {
+    if (!blobUrlRef.current) return;
+    URL.revokeObjectURL(blobUrlRef.current);
+    blobUrlRef.current = null;
+  }, []);
 
   const stopSyncLoop = useCallback(() => {
     if (syncFrameRef.current === null) return;
@@ -228,7 +237,10 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     stopSyncLoop();
     stopTimeSync();
     audioPlayer.stop(false);
-  }, [audioPlayer, stopSyncLoop, stopTimeSync]);
+    // After the player has let go of the element, or the src is revoked from
+    // under it mid-play.
+    releaseBlobUrl();
+  }, [audioPlayer, releaseBlobUrl, stopSyncLoop, stopTimeSync]);
 
   const cancelCurrentSession = useCallback(() => {
     operationControllerRef.current?.cancel();
@@ -427,6 +439,26 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
       audioUrl = getAyahAudioUrl(reciter, item.surah, item.ayah);
     }
     if (!controller.isCurrent(operation)) return;
+
+    /*
+     * Downloaded recitation, when this is the file that was downloaded.
+     *
+     * Only the URL playback already settled on is looked up. A reciter with
+     * published word timings streams from that source instead, and its
+     * segment times belong to that recording - playing a different cut of
+     * the same reciter against them would drift the word highlight. Offline
+     * the timings cannot be fetched at all, the code above falls back to the
+     * per-ayah URL, and that is the one the download cache holds.
+     */
+    const offlineUrl = await cachedAudioUrl(audioUrl);
+    if (!controller.isCurrent(operation)) {
+      if (offlineUrl) URL.revokeObjectURL(offlineUrl);
+      return;
+    }
+    if (offlineUrl) {
+      blobUrlRef.current = offlineUrl;
+      audioUrl = offlineUrl;
+    }
 
     await audioPlayer.play(audioUrl, {
       signal: operation.signal,

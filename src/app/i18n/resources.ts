@@ -25,6 +25,7 @@ const ar = {
       retry: "إعادة المحاولة",
       close: "إغلاق",
       done: "تم",
+      cancel: "إلغاء",
       search: "بحث",
     },
     select: {
@@ -804,6 +805,25 @@ const ar = {
         fallbackVoice: "القارئ المختار لا يدعم التمييز؛ المثال بصوت {{name}}",
       },
     },
+    offlineAudio: {
+      title: "الاستماع دون اتصال",
+      description:
+        "نزّل تلاوة السور التي تراجعها لتسمعها بلا إنترنت. التنزيل للقارئ المختار فقط.",
+      forReciter: "التنزيل بصوت",
+      stored: "المحمَّل",
+      surahsStored: "عدد السور",
+      freeSpace: "المساحة المتاحة",
+      downloadAll: "تنزيل المصحف كاملاً (نحو {{size}})",
+      allStored: "المصحف كامل محمَّل",
+      deleteAll: "حذف الكل",
+      progress: "{{done}} من {{total}}",
+      failed: "تعذّر إكمال التنزيل. تحقق من الاتصال وحاول مرة أخرى.",
+      findSurah: "ابحث عن سورة",
+      searchPlaceholder: "اسم السورة أو رقمها…",
+      about: "نحو {{size}}",
+      downloadSurah: "تنزيل سورة {{name}}",
+      deleteSurah: "حذف تنزيل سورة {{name}}",
+    },
     interpretation: {
       title: "التفسير",
       description: "اختر التفسير الافتراضي الذي يظهر عند فتح تفاصيل الآية.",
@@ -955,6 +975,7 @@ const en: StringTree<typeof ar> = {
       retry: "Try again",
       close: "Close",
       done: "Done",
+      cancel: "Cancel",
       search: "Search",
     },
     select: {
@@ -1735,6 +1756,26 @@ const en: StringTree<typeof ar> = {
         fallbackVoice:
           "The selected reciter has no word timings; example recited by {{name}}",
       },
+    },
+    offlineAudio: {
+      title: "Listen offline",
+      description:
+        "Download the recitation of the surahs you are revising so they play without a connection. Downloads belong to the chosen reciter.",
+      forReciter: "Downloading the voice of",
+      stored: "Stored",
+      surahsStored: "Surahs",
+      freeSpace: "Free space",
+      downloadAll: "Download the whole Quran (about {{size}})",
+      allStored: "The whole Quran is stored",
+      deleteAll: "Delete all",
+      progress: "{{done}} of {{total}}",
+      failed:
+        "The download could not finish. Check your connection and try again.",
+      findSurah: "Find a surah",
+      searchPlaceholder: "Surah name or number…",
+      about: "about {{size}}",
+      downloadSurah: "Download surah {{name}}",
+      deleteSurah: "Delete the download of surah {{name}}",
     },
     interpretation: {
       title: "Interpretation",
