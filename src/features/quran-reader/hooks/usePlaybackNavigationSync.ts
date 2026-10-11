@@ -10,12 +10,18 @@ import {
   isComfortablyVisible,
   scrollTopForVerse,
 } from "@/features/quran-reader/model/followScroll";
+import {
+  maxScrollTopOf,
+  measureVerse,
+  readStageGeometry,
+} from "@/features/quran-reader/model/verseGeometry";
 import { findVersePage } from "@/features/quran-reader/model/readerPageModel";
+
+const STAGE_SELECTOR = ".mushaf-stage";
 
 interface UsePlaybackNavigationSyncOptions {
   layoutMode: MushafLayoutMode;
   currentPage: number;
-  surahPages: number[];
   mushafData: MushafVerse[];
   active: boolean;
   activeVerseKey: string | null;
@@ -24,18 +30,19 @@ interface UsePlaybackNavigationSyncOptions {
     navigator: ((verseKey: string) => void) | null,
   ) => void;
   setActiveVerseInView: (inView: boolean) => void;
+  setAutoFollowPages: (follow: boolean) => void;
 }
 
 export function usePlaybackNavigationSync({
   layoutMode,
   currentPage,
-  surahPages,
   mushafData,
   active,
   activeVerseKey,
   autoFollowPages,
   registerPageNavigator,
   setActiveVerseInView,
+  setAutoFollowPages,
 }: UsePlaybackNavigationSyncOptions): void {
   const navigate = useNavigate();
 
@@ -104,22 +111,20 @@ export function usePlaybackNavigationSync({
      * out.
      */
     const frame = requestAnimationFrame(() => {
-      const target = document.querySelector<HTMLElement>(
-        `[data-verse-key="${CSS.escape(activeVerseKey)}"]`,
-      );
-      const stage = document.querySelector<HTMLElement>(".mushaf-stage");
-      if (!target || !stage) return;
+      const geometry = readStageGeometry();
+      if (!geometry) return;
 
-      const verse = target.getBoundingClientRect();
-      const box = stage.getBoundingClientRect();
-      if (isComfortablyVisible(verse, box)) return;
+      const { stage, box, bottomInset } = geometry;
+      const verse = measureVerse(stage, activeVerseKey);
+      if (!verse || isComfortablyVisible(verse, box, bottomInset)) return;
 
       stage.scrollTo({
         top: scrollTopForVerse(
           verse,
           box,
           stage.scrollTop,
-          stage.scrollHeight - stage.clientHeight,
+          maxScrollTopOf(stage),
+          bottomInset,
         ),
         behavior: "smooth",
       });
@@ -128,18 +133,73 @@ export function usePlaybackNavigationSync({
     return () => cancelAnimationFrame(frame);
   }, [active, activeVerseKey, autoFollowPages, layoutMode]);
 
+  /*
+   * A reader who scrolls the surah themselves has taken the page in hand, and
+   * the next ayah must not drag them back. Page mode learns this from
+   * changePage; surah mode turns no pages, so it listens for the gestures
+   * that scroll. Wheel and touch say so plainly - watching scrollTop instead
+   * would have to tell the reader's scrolling from our own smooth scroll, and
+   * would guess wrong at every ayah boundary.
+   */
+  useEffect(() => {
+    if (layoutMode !== "surah" || !active || !autoFollowPages) return;
+
+    const stage = document.querySelector<HTMLElement>(STAGE_SELECTOR);
+    if (!stage) return;
+
+    const release = () => setAutoFollowPages(false);
+    stage.addEventListener("wheel", release, { passive: true });
+    stage.addEventListener("touchmove", release, { passive: true });
+
+    return () => {
+      stage.removeEventListener("wheel", release);
+      stage.removeEventListener("touchmove", release);
+    };
+  }, [active, autoFollowPages, layoutMode, setAutoFollowPages]);
+
   useEffect(() => {
     if (!active || !activeVerseKey) {
       setActiveVerseInView(false);
       return;
     }
 
-    const page = findVersePage(mushafData, activeVerseKey);
-    const inView =
-      layoutMode === "surah"
-        ? page !== null && surahPages.includes(page)
-        : page === currentPage;
-    setActiveVerseInView(inView);
+    if (layoutMode !== "surah") {
+      const page = findVersePage(mushafData, activeVerseKey);
+      setActiveVerseInView(page === currentPage);
+      return;
+    }
+
+    /*
+     * Surah mode mounts the whole surah, so "is it on the page you are
+     * looking at" was yes for every ayah of it and the button offering to
+     * take the reader back to the reciter could never appear. On screen is
+     * what the question means here, and the answer changes as they scroll.
+     */
+    let queued = 0;
+    const report = () => {
+      const geometry = readStageGeometry();
+      if (!geometry) return;
+
+      const verse = measureVerse(geometry.stage, activeVerseKey);
+      setActiveVerseInView(
+        verse !== null &&
+          isComfortablyVisible(verse, geometry.box, geometry.bottomInset),
+      );
+    };
+
+    const onScroll = () => {
+      cancelAnimationFrame(queued);
+      queued = requestAnimationFrame(report);
+    };
+
+    queued = requestAnimationFrame(report);
+    const stage = document.querySelector<HTMLElement>(STAGE_SELECTOR);
+    stage?.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(queued);
+      stage?.removeEventListener("scroll", onScroll);
+    };
   }, [
     active,
     activeVerseKey,
@@ -147,7 +207,6 @@ export function usePlaybackNavigationSync({
     layoutMode,
     mushafData,
     setActiveVerseInView,
-    surahPages,
   ]);
 
   useEffect(() => () => setActiveVerseInView(false), [setActiveVerseInView]);

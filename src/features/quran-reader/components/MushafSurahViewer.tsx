@@ -22,6 +22,12 @@ import {
   scrollMushafToPage,
   useMushafScrollPageSpy,
 } from "@/features/quran-reader/hooks/useMushafScrollPageSpy";
+import { scrollTopForVerse } from "@/features/quran-reader/model/followScroll";
+import {
+  maxScrollTopOf,
+  measureVerse,
+  readStageGeometry,
+} from "@/features/quran-reader/model/verseGeometry";
 import { loadReaderPosition } from "@/features/quran-reader/services/readerPositionStorage";
 import { useTheme } from "@/shared/hooks/use-theme";
 import {
@@ -299,6 +305,17 @@ export function MushafSurahViewer({
     if (landed) setPendingScrollPage(null);
   }, [pendingScrollPage, mountedCount, surahFontsLoading, scrollContainerRef]);
 
+  /*
+   * Where a surah opens: the position it was left at, or its start.
+   *
+   * highlightVerseKey is read through a ref rather than depended on. It is a
+   * flash that clears itself after a few seconds, and as a dependency that
+   * expiry re-ran this effect and scrolled the reader back to the top of the
+   * surah - a few seconds after every jump to an ayah, and mid-recitation.
+   */
+  const highlightVerseKeyRef = useRef(highlightVerseKey);
+  highlightVerseKeyRef.current = highlightVerseKey;
+
   useEffect(() => {
     const container = scrollContainerRef?.current;
     if (!container || surahFontsLoading) return;
@@ -308,7 +325,7 @@ export function MushafSurahViewer({
       saved?.layout === "surah" &&
       saved.surah === surahNumber &&
       saved.scrollRatio !== undefined &&
-      !highlightVerseKey
+      !highlightVerseKeyRef.current
     ) {
       const maxScroll = container.scrollHeight - container.clientHeight;
       container.scrollTo({
@@ -318,17 +335,59 @@ export function MushafSurahViewer({
       return;
     }
 
+    if (highlightVerseKeyRef.current) return;
     container.scrollTo({ top: 0, behavior: "auto" });
-  }, [surahNumber, scrollContainerRef, surahFontsLoading, highlightVerseKey]);
+  }, [surahNumber, scrollContainerRef, surahFontsLoading]);
+
+  /*
+   * Take the reader to the ayah they asked for.
+   *
+   * scrollIntoView on the first `data-verse-key` match moved nothing at all:
+   * that match is the ayah run, which a full mushaf page lays out as
+   * `display: contents`, so it has no box to bring into view. Opening a link
+   * to 2:100 left the reader at the top of the surah with the ayah 8755px
+   * below them. Measuring every part of the verse finds where it really is,
+   * and it lands where a followed recitation lands.
+   */
+  const landedOnRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!highlightVerseKey || !mushafRef.current) return;
+    if (!highlightVerseKey) {
+      landedOnRef.current = null;
+      return;
+    }
+    if (landedOnRef.current === highlightVerseKey || surahFontsLoading) return;
 
-    const target = mushafRef.current.querySelector(
-      `[data-verse-key="${highlightVerseKey}"]`,
-    );
-    target?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [highlightVerseKey, surahNumber]);
+    const geometry = readStageGeometry(scrollContainerRef?.current);
+    if (!mushafRef.current || !geometry) return;
+
+    /*
+     * Nothing to measure yet means the page holding it is still mounting -
+     * pageIndexForVerse has already asked for it. Leaving the ref unset lets
+     * the next mount, or the font load, try again.
+     */
+    const verse = measureVerse(mushafRef.current, highlightVerseKey);
+    if (!verse) return;
+
+    landedOnRef.current = highlightVerseKey;
+    const { stage, box, bottomInset } = geometry;
+    stage.scrollTo({
+      top: scrollTopForVerse(
+        verse,
+        box,
+        stage.scrollTop,
+        maxScrollTopOf(stage),
+        bottomInset,
+      ),
+      behavior: "smooth",
+    });
+  }, [
+    highlightVerseKey,
+    surahNumber,
+    scrollContainerRef,
+    surahFontsLoading,
+    mountedCount,
+  ]);
 
   useEffect(() => {
     if (!practice.active || !practice.currentWordLocation) return;

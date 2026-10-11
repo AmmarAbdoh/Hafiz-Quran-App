@@ -310,13 +310,13 @@ export function QuranReaderPage() {
   usePlaybackNavigationSync({
     layoutMode: route.layoutMode,
     currentPage: route.currentPage,
-    surahPages: surahLayout.pages,
     mushafData,
     active,
     activeVerseKey,
     autoFollowPages,
     registerPageNavigator,
     setActiveVerseInView,
+    setAutoFollowPages,
   });
 
   // Page navigation travels with whichever bar owns the bottom strip.

@@ -7,6 +7,15 @@ import {
 } from "@/features/quran-reader/context/QuranPlaybackContext";
 import { useRecitationPractice } from "@practice/runtime";
 import { useMushafVerseInteractions } from "@/features/quran-reader/hooks/useMushafVerseInteractions";
+import {
+  isComfortablyVisible,
+  scrollTopForVerse,
+} from "@/features/quran-reader/model/followScroll";
+import {
+  maxScrollTopOf,
+  measureVerse,
+  readStageGeometry,
+} from "@/features/quran-reader/model/verseGeometry";
 import { useTheme } from "@/shared/hooks/use-theme";
 import {
   buildMushafPageItems,
@@ -61,13 +70,28 @@ export function MushafViewer({
     bookmarkedSet,
   } = interactions;
 
+  /* The first `data-verse-key` match is the `display: contents` ayah run,
+     which has no box to bring into view. See measureVerse. */
   useEffect(() => {
     if (!highlightVerseKey || !mushafRef.current) return;
 
-    const target = mushafRef.current.querySelector(
-      `[data-verse-key="${highlightVerseKey}"]`,
-    );
-    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const verse = measureVerse(mushafRef.current, highlightVerseKey);
+    const geometry = readStageGeometry();
+    if (!verse || !geometry) return;
+
+    const { stage, box, bottomInset } = geometry;
+    if (isComfortablyVisible(verse, box, bottomInset)) return;
+
+    stage.scrollTo({
+      top: scrollTopForVerse(
+        verse,
+        box,
+        stage.scrollTop,
+        maxScrollTopOf(stage),
+        bottomInset,
+      ),
+      behavior: "smooth",
+    });
   }, [highlightVerseKey, pageLayout.page]);
 
   useEffect(() => {
