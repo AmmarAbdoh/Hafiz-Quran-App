@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   MushafPageView,
@@ -27,6 +28,7 @@ interface MushafPageBlockProps {
   practiceRevealedLocations?: string[];
   practiceTargetWordLocation?: string | null;
   practiceWrongFlashLocation?: string | null;
+  practiceMisreadLocations?: string[];
   bookmarkedVerseKeys?: ReadonlySet<string>;
   onWordActivate?: MushafWordActivateHandler;
   onWordPointerDown?: MushafWordPointerHandler;
@@ -52,6 +54,7 @@ export function MushafPageBlock({
   practiceRevealedLocations = EMPTY_LOCATIONS,
   practiceTargetWordLocation = null,
   practiceWrongFlashLocation = null,
+  practiceMisreadLocations = EMPTY_LOCATIONS,
   bookmarkedVerseKeys,
   onWordActivate,
   onWordPointerDown,
@@ -62,6 +65,11 @@ export function MushafPageBlock({
   surahFilter,
 }: MushafPageBlockProps) {
   const { t } = useTranslation("reader");
+  /* A list crosses the prop boundary; a set is what the lookup wants. */
+  const misreadSet = useMemo(
+    () => new Set(practiceMisreadLocations),
+    [practiceMisreadLocations],
+  );
   return (
     <MushafPageView
       pageLayout={pageLayout}
@@ -83,6 +91,7 @@ export function MushafPageBlock({
       revealedWordLocations={practiceRevealedLocations}
       practiceTargetWordLocation={practiceTargetWordLocation}
       incorrectWordLocation={practiceWrongFlashLocation}
+      misreadWordLocations={misreadSet}
       incorrectWordLabel={t("word.incorrect")}
       bookmarkedVerseKeys={bookmarkedVerseKeys}
       getSurahAccessibleLabel={(surahName) => `${t("surah")} ${surahName}`}

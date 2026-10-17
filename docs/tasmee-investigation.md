@@ -190,6 +190,157 @@ one of them. They would transcribe beautifully and hide the mistakes.
 Qur'an-specific CTC models in the last month, one at 1.43% PER. There is
 nothing here for a solo developer to beat.
 
+## 3.5 The no-model approach, measured and rejected
+
+Worth asking, since the app already holds a recitation of every ayah by
+dozens of reciters: line the reader's audio up against a reference recitation
+of the same ayah with **DTW over MFCC features**, and call the places it
+costs most the mistakes. No model, no weights, no licence, nothing owed to
+anyone.
+
+Built it (`scripts/tasmee/runners/dtw.mjs`, with MFCC and DTW written out
+rather than pulled from a package) and scored it on the same 32 fixtures.
+
+|                     | alignment cost            |
+| ------------------- | ------------------------- |
+| correct recitations | 3.54 – 4.37 (median 3.86) |
+| mistakes            | 3.57 – 4.42 (median 4.07) |
+
+**The ranges overlap almost exactly.** A wrong verse ending scored 3.57,
+below almost every correct clip; a correct Minshawi recitation scored 4.37,
+above most mistakes. There is no threshold to choose. Scored as it stands it
+rejects all 20 correct clips.
+
+The cost is dominated by **who is speaking**, not by what was said. Cepstral
+mean normalisation removes the recording level and some of the voice, and
+what remains still swamps the content. Length has the same problem: Husary's
+murattal runs 1.7–2.4x the reference's pace while Alafasy runs 1.04x, so a
+slow correct recitation reads as an insertion.
+
+The one variant that removes the speaker is DTW against the reader's **own**
+earlier recitation of the same page. That needs a correct recording to exist
+already, so it cannot help with a page being learned — which is all of
+tasmee'. It might make a "has my hifz drifted?" feature one day; it is not
+this one.
+
+**Cost of finding out: an afternoon, because the bench already existed.**
+That is what the bench is for.
+
+---
+
+## 3.6 Measured: an ungated Apache-2.0 model already does the job
+
+Before waiting on a gated model, the obvious question: how well does the
+**ungated** one do? `tarteel-ai/whisper-base-ar-quran` is Apache-2.0, needs
+no permission, and the app already lists ONNX exports of it.
+
+Scored on the same 32 fixtures, with the transcript aligned to the expected
+words by word-level edit distance rather than the bag-of-characters test:
+
+| runner                                           | false accepts | false rejects | overall   |
+| ------------------------------------------------ | ------------- | ------------- | --------- |
+| whisper-tiny + bag-of-characters _(ships today)_ | 0/12          | **18/20**     | 14/32     |
+| DTW against a reference, no model                | 0/12          | **20/20**     | 12/32     |
+| **tarteel-base + word alignment**                | **0/12**      | **0/20**      | **32/32** |
+
+And the separation is a gap, not a fitted point:
+
+```
+word error rate, correct : 0.00 … 0.10   (14 of 20 exactly 0.00)
+word error rate, mistake : 0.25 … 2.00
+```
+
+Nothing lands between 0.10 and 0.25, so any threshold in that range gives the
+same answer. It caught every skipped middle, every wrong verse, every wrong
+ending and every truncation, and it accepted both hesitation clips - the case
+that separates a real system from a crude one.
+
+### What this changes
+
+**A usable تسميع can ship today, with no gate and no permission**, on a
+permissively licensed model.
+
+### What it does not change
+
+**Latency, which rules this model out for live word-by-word.** Median 7.8s
+per verse, p90 12.5s, worst 19.1s - and that is Node on a desktop, not WASM
+on a phone. Fine for "recite an ayah, then be told how it went". Useless for
+highlighting a word as it is recited, exactly as §4 predicted of Whisper's
+shape.
+
+So the two models are not competing; they are different features:
+
+|                    | model                              | licence             | what it supports        |
+| ------------------ | ---------------------------------- | ------------------- | ----------------------- |
+| recite then review | tarteel-base (Apache-2.0, ungated) | free of restriction | ship now                |
+| live word-by-word  | Quran-Lab zipformer (NPL, gated)   | no-profit           | streaming, 70x realtime |
+
+### One prediction that did not hold
+
+§1.3 argued a general ASR's language model would repair the reciter's mistake
+into the expected verse, hiding it. On this set it largely did not: asked for
+`قل هو الله أحد` it reported `قل هو الله أمد`, the wrong word actually
+spoken. Fine-tuning on recitation seems to have weakened the decoder's pull
+toward the canonical text rather than strengthened it. The concern was
+reasonable and the measurement did not support it.
+
+---
+
+## 3.7 How much faster can it be made, and what speed cannot fix
+
+Asked whether the 7.8s could be tuned down to live word-by-word. Two
+different answers.
+
+### Tuning works, and the small model is free
+
+Same 32 fixtures, same matcher, varying only the model and the encoder
+precision:
+
+|                                | accuracy  | median     | worst   |
+| ------------------------------ | --------- | ---------- | ------- |
+| tarteel **base**, fp32 encoder | 32/32     | 7829ms     | 19110ms |
+| tarteel **tiny**, fp32 encoder | **32/32** | **3019ms** | 6749ms  |
+| tarteel tiny, q8 encoder       | 31/32     | 2842ms     | 7015ms  |
+
+**The tiny model is 2.6x faster at identical accuracy on this set**, so the
+base model is simply the wrong choice here. Quantising the encoder buys
+almost nothing more and costs a correct recitation, so the encoder stays
+fp32.
+
+Unmeasured, and the largest remaining lever: **WebGPU**. All of the above is
+Node on a CPU. The published figure for this class of model is 5-10x over
+WASM, which would put a short ayah under a second - but headless Chromium
+here has no GPU adapter, so that is quoted, not measured. Worth checking in
+your own Chrome before planning around it.
+
+### Speed is not what stops word-by-word
+
+Even at a tenth of a second, **Whisper cannot highlight a word as it is
+said**, and no tuning changes that.
+
+It is an encoder-decoder over a fixed 30-second window: it consumes a whole
+chunk of audio and then emits text for all of it. There is no "the word being
+said right now" to read out of it, because nothing inside it is aligned to
+the passing of time. Making it faster makes the _whole chunk_ arrive sooner;
+it does not make the chunk smaller.
+
+That is why the rolling-window constants in `practiceConfig.ts`
+(`PRACTICE_ROLLING_CHUNK_MS = 550`, `PRACTICE_ROLLING_WINDOW_MS = 2200`) felt
+like a fight: they are an attempt to simulate streaming by re-running a
+non-streaming model on overlapping windows.
+
+| wanted                                             | needs                                      | available                        |
+| -------------------------------------------------- | ------------------------------------------ | -------------------------------- |
+| "that ayah was right / wrong", ~1s after finishing | any accurate model                         | **tarteel tiny, today, ungated** |
+| this word, lit as you say it                       | a frame-synchronous model (CTC/transducer) | the zipformer, if its gate opens |
+
+So word-by-word is not a tuning problem, it is an architecture one. The good
+news is that the first row is genuinely useful on its own, ships now, and
+every part of it except the model - the fixtures, the alignment, the mistake
+taxonomy, the UI - is what the second row would reuse.
+
+---
+
 ## 4. The real cost: the runtime, not the model
 
 This is the honest price of the recommendation, and the main thing that could

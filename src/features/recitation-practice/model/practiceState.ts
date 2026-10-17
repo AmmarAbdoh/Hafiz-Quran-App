@@ -1,4 +1,5 @@
 import type {
+  MisreadWord,
   PracticeErrorCode,
   RecitationPracticeState,
   RecitationPracticeTelemetry,
@@ -15,6 +16,7 @@ export const initialRecitationPracticeState: RecitationPracticeState = {
   lastTranscript: "",
   wrongFlashLocation: null,
   revealedLocations: [],
+  misreadWords: [],
   progressIndex: 0,
   totalWords: 0,
   completed: false,
@@ -42,6 +44,7 @@ export type PracticeStateAction =
       type: "progress-advanced";
       progressIndex: number;
       revealedLocations: string[];
+      misreadWords: MisreadWord[];
       currentWordLocation: string | null;
       transcript: string;
       completed: boolean;
@@ -107,6 +110,7 @@ export function recitationPracticeReducer(
         ...state,
         progressIndex: action.progressIndex,
         revealedLocations: action.revealedLocations,
+        misreadWords: action.misreadWords,
         currentWordLocation: action.currentWordLocation,
         completed: action.completed,
         phase: action.completed ? "completed" : "listening",

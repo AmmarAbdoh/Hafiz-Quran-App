@@ -40,6 +40,7 @@ interface MushafPageProps {
   revealedWordLocations?: ReadonlySet<string>;
   practiceTargetWordLocation?: string | null;
   incorrectWordLocation?: string | null;
+  misreadWordLocations?: ReadonlySet<string>;
   incorrectWordLabel?: string;
   getSurahAccessibleLabel?: (surahName: string) => string;
   verseTextByKey?: ReadonlyMap<string, string>;
@@ -72,6 +73,7 @@ export function MushafPage({
   revealedWordLocations,
   practiceTargetWordLocation = null,
   incorrectWordLocation = null,
+  misreadWordLocations,
   incorrectWordLabel,
   getSurahAccessibleLabel,
   verseTextByKey,
@@ -144,6 +146,7 @@ export function MushafPage({
             revealedWordLocations={revealedWordLocations}
             practiceTargetWordLocation={practiceTargetWordLocation}
             incorrectWordLocation={incorrectWordLocation}
+            misreadWordLocations={misreadWordLocations}
             incorrectWordLabel={incorrectWordLabel}
             verseTextByKey={verseTextByKey}
             bookmarkedVerseKeys={bookmarkedVerseKeys}

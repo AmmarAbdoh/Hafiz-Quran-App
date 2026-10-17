@@ -6,14 +6,12 @@ import {
   useMemo,
   useReducer,
   useRef,
-  useState,
   type ReactNode,
 } from "react";
 import {
   SURAH_AYAH_COUNTS,
   fetchSurahAudioMeta,
   fetchVerseAudioData,
-  findActiveWordLocation,
   getAyahAudioUrl,
   getQuranComRecitationId,
   mergeWordSegments,
@@ -22,20 +20,14 @@ import {
   type WordSegment,
 } from "@/domain/quran";
 import type { BuiltListenSession } from "@/features/quran-reader/model/listenPlanTypes";
-import {
-  MediaOperationController,
-  type MediaOperation,
-} from "@/features/quran-reader/services/mediaOperationController";
+import { MediaOperationController } from "@/features/quran-reader/services/mediaOperationController";
 import {
   initialQuranPlaybackState,
   quranPlaybackReducer,
   type QuranPlaybackState,
 } from "@/features/quran-reader/model/playbackState";
-import {
-  computeSessionTime,
-  emptyPlaybackTime,
-  type PlaybackTime,
-} from "@/features/quran-reader/model/playbackTime";
+import type { PlaybackTime } from "@/features/quran-reader/model/playbackTime";
+import { usePlaybackAudioSync } from "@/features/quran-reader/hooks/usePlaybackAudioSync";
 import { cachedAudioUrl } from "@/features/quran-reader/services/audioDownloads";
 import { CancellableAudioPlayer } from "@/shared/media";
 import { claimAudioFocus, releaseAudioFocus } from "@/shared/media/audioFocus";
@@ -137,12 +129,6 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     quranPlaybackReducer,
     initialQuranPlaybackState,
   );
-  const [activeWordLocation, setActiveWordLocation] = useState<string | null>(
-    null,
-  );
-  const [playbackTime, setPlaybackTime] =
-    useState<PlaybackTime>(emptyPlaybackTime);
-
   const audioPlayerRef = useRef<CancellableAudioPlayer | null>(null);
   if (!audioPlayerRef.current) {
     audioPlayerRef.current = new CancellableAudioPlayer();
@@ -150,13 +136,9 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   const audioPlayer = audioPlayerRef.current;
   const audioOwnerRef = useRef({ stop: () => {} });
   const stopRef = useRef<() => void>(() => {});
-  const syncFrameRef = useRef<number | null>(null);
   const pageNavigatorRef = useRef<((verseKey: string) => void) | null>(null);
   const pendingVerseKeyRef = useRef<string | null>(null);
   const segmentsRef = useRef<WordSegment[]>([]);
-  /** Object URL for audio served from the download cache; one at a time. */
-  const blobUrlRef = useRef<string | null>(null);
-  const publishedWordRef = useRef<string | null>(null);
   const sessionRef = useRef<ListenSession>(createEmptySession());
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -165,91 +147,33 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     operationControllerRef.current = new MediaOperationController();
   }
 
-  const releaseBlobUrl = useCallback(() => {
-    if (!blobUrlRef.current) return;
-    URL.revokeObjectURL(blobUrlRef.current);
-    blobUrlRef.current = null;
-  }, []);
-
-  const stopSyncLoop = useCallback(() => {
-    if (syncFrameRef.current === null) return;
-    cancelAnimationFrame(syncFrameRef.current);
-    syncFrameRef.current = null;
-  }, []);
-
-  const publishActiveWord = useCallback((location: string | null) => {
-    if (publishedWordRef.current === location) return;
-    publishedWordRef.current = location;
-    setActiveWordLocation(location);
-  }, []);
-
-  /*
-   * timeupdate fires about four times a second; a clock reading m:ss only
-   * changes once. Publishing on the whole second keeps this to one render per
-   * second instead of four.
-   */
-  const timeListenerRef = useRef<(() => void) | null>(null);
-  const publishedSecondRef = useRef(-1);
-
-  const stopTimeSync = useCallback(() => {
-    timeListenerRef.current?.();
-    timeListenerRef.current = null;
-    publishedSecondRef.current = -1;
-  }, []);
-
-  const startTimeSync = useCallback((audio: HTMLAudioElement) => {
-    timeListenerRef.current?.();
-    publishedSecondRef.current = -1;
-
-    const publish = () => {
-      const ayahMs = audio.currentTime * 1000;
-      const second = Math.floor(ayahMs / 1000);
-      const durationMs = Number.isFinite(audio.duration)
-        ? audio.duration * 1000
-        : 0;
-      if (second === publishedSecondRef.current) return;
-      publishedSecondRef.current = second;
-
-      const session = sessionRef.current;
-      setPlaybackTime({
-        ayahMs,
-        ayahDurationMs: durationMs,
-        ...computeSessionTime({
-          playlist: session.playlist,
-          index: session.index,
-          ayahMs,
-          timestamps: session.surahTimestampsCache,
-        }),
-      });
-    };
-
-    audio.addEventListener("timeupdate", publish);
-    audio.addEventListener("loadedmetadata", publish);
-    publish();
-
-    timeListenerRef.current = () => {
-      audio.removeEventListener("timeupdate", publish);
-      audio.removeEventListener("loadedmetadata", publish);
-    };
-  }, []);
+  const {
+    activeWordLocation,
+    playbackTime,
+    publishActiveWord,
+    startWordSync,
+    startTimeSync,
+    holdBlobUrl,
+    releaseBlobUrl,
+    stopAll: stopAudioSync,
+    resetPublished,
+  } = usePlaybackAudioSync({ segmentsRef, sessionRef });
 
   const cleanupAudio = useCallback(() => {
-    stopSyncLoop();
-    stopTimeSync();
+    stopAudioSync();
     audioPlayer.stop(false);
     // After the player has let go of the element, or the src is revoked from
     // under it mid-play.
     releaseBlobUrl();
-  }, [audioPlayer, releaseBlobUrl, stopSyncLoop, stopTimeSync]);
+  }, [audioPlayer, releaseBlobUrl, stopAudioSync]);
 
   const cancelCurrentSession = useCallback(() => {
     operationControllerRef.current?.cancel();
     cleanupAudio();
     segmentsRef.current = [];
     sessionRef.current = createEmptySession();
-    publishActiveWord(null);
-    setPlaybackTime(emptyPlaybackTime);
-  }, [cleanupAudio, publishActiveWord]);
+    resetPublished();
+  }, [cleanupAudio, resetPublished]);
 
   const stop = useCallback(() => {
     releaseAudioFocus(audioOwnerRef.current);
@@ -258,41 +182,6 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   }, [cancelCurrentSession]);
   stopRef.current = stop;
   audioOwnerRef.current.stop = () => stopRef.current();
-
-  const startWordSync = useCallback(
-    (
-      audio: HTMLAudioElement,
-      operation: MediaOperation,
-      supportsWordHighlight: boolean,
-    ) => {
-      stopSyncLoop();
-      if (!supportsWordHighlight) {
-        publishActiveWord(null);
-        return;
-      }
-
-      const sync = () => {
-        const controller = operationControllerRef.current;
-        if (
-          !controller?.isCurrent(operation) ||
-          audioPlayer.currentAudio !== audio
-        ) {
-          return;
-        }
-
-        publishActiveWord(
-          findActiveWordLocation(segmentsRef.current, audio.currentTime * 1000),
-        );
-
-        if (!audio.paused && !audio.ended) {
-          syncFrameRef.current = requestAnimationFrame(sync);
-        }
-      };
-
-      syncFrameRef.current = requestAnimationFrame(sync);
-    },
-    [audioPlayer, publishActiveWord, stopSyncLoop],
-  );
 
   const playAtIndexRef = useRef<(index: number) => Promise<void>>(() =>
     Promise.resolve(),
@@ -456,7 +345,7 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (offlineUrl) {
-      blobUrlRef.current = offlineUrl;
+      holdBlobUrl(offlineUrl);
       audioUrl = offlineUrl;
     }
 
@@ -465,21 +354,29 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
       onPlaying: ({ audio }) => {
         if (!controller.isCurrent(operation)) return;
         dispatch({ type: "playback-changed", playing: true, error: null });
-        startWordSync(audio, operation, session.supportsWordHighlight);
+        startWordSync(
+          audio,
+          {
+            isCurrent: () =>
+              Boolean(operationControllerRef.current?.isCurrent(operation)) &&
+              audioPlayer.currentAudio === audio,
+          },
+          session.supportsWordHighlight,
+        );
         startTimeSync(audio);
       },
       onPause: () => {
-        if (controller.isCurrent(operation)) stopSyncLoop();
+        if (controller.isCurrent(operation)) stopAudioSync();
       },
       onEnded: () => {
         if (!controller.isCurrent(operation)) return;
-        stopSyncLoop();
+        stopAudioSync();
         publishActiveWord(null);
         advanceAfterAyahRef.current();
       },
       onError: () => {
         if (!controller.isCurrent(operation)) return;
-        stopSyncLoop();
+        stopAudioSync();
         dispatch({
           type: "playback-changed",
           playing: false,

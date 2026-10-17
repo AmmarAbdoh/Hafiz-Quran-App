@@ -16,6 +16,8 @@ interface MushafWordGlyphProps {
   practiceTarget?: boolean;
   hidden?: boolean;
   incorrect?: boolean;
+  /** Said wrongly earlier in this run, and still wanting work. */
+  misread?: boolean;
   bookmarked?: boolean;
   incorrectLabel?: string;
   wordZIndex?: number;
@@ -37,6 +39,7 @@ export function MushafWordGlyph({
   practiceTarget = false,
   hidden = false,
   incorrect = false,
+  misread = false,
   incorrectLabel,
   bookmarked = false,
   wordZIndex,
@@ -57,6 +60,7 @@ export function MushafWordGlyph({
     practiceTarget && "mushaf-word--reciting",
     hidden && "mushaf-word--practice-hidden",
     incorrect && "mushaf-word--practice-wrong",
+    misread && !incorrect && "mushaf-word--practice-misread",
   );
   const style: MushafGlyphStyle | undefined = fontReady
     ? {

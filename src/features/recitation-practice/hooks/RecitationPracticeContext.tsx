@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import type {
+  MisreadWord,
   PracticeErrorCode,
   RecitationPracticeTelemetry,
   RecitationPracticeValue,
@@ -114,6 +115,8 @@ export function RecitationPracticeProvider({
   const sessionIdRef = useRef(0);
   const expectedWordsRef = useRef<ExpectedPracticeWord[]>([]);
   const alignerRef = useRef<AlignerState>(createAlignerState());
+  /** Every word misread so far in this run, in the order they were passed. */
+  const misreadRef = useRef<MisreadWord[]>([]);
   const pendingTranscribeRef = useRef<PendingTranscription | null>(null);
   const transcribeGenerationRef = useRef(0);
   const activeTranscriptionRef = useRef<PendingTranscription | null>(null);
@@ -167,6 +170,7 @@ export function RecitationPracticeProvider({
     transcribeGenerationRef.current = 0;
     expectedWordsRef.current = [];
     alignerRef.current = createAlignerState();
+    misreadRef.current = [];
   }, [disposeWorkers]);
 
   const stopPractice = useCallback(() => {
@@ -218,6 +222,25 @@ export function RecitationPracticeProvider({
       if (match.revealedLocations.length > 0) {
         alignerRef.current = { pointer: match.newPointer };
       }
+      /*
+       * Kept for the whole run, not just this phrase: the point is to leave
+       * the reader a page with every word that needs work still marked.
+       */
+      for (const location of match.wrongLocations) {
+        if (misreadRef.current.some((word) => word.location === location)) {
+          continue;
+        }
+        const word = expected.find((item) => item.location === location);
+        if (!word) continue;
+        misreadRef.current = [
+          ...misreadRef.current,
+          {
+            location,
+            verseKey: word.verseKey,
+            text: word.displayText,
+          },
+        ];
+      }
 
       const done = isPracticeComplete(expected, alignerRef.current);
       if (done) {
@@ -236,6 +259,7 @@ export function RecitationPracticeProvider({
           expected,
           alignerRef.current.pointer,
         ),
+        misreadWords: misreadRef.current,
         currentWordLocation: getCurrentWordLocation(
           expected,
           alignerRef.current.pointer,
@@ -532,6 +556,7 @@ export function RecitationPracticeProvider({
 
         expectedWordsRef.current = expected;
         alignerRef.current = createAlignerState();
+        misreadRef.current = [];
         completedRef.current = false;
         dispatch({
           type: "expected-words-ready",

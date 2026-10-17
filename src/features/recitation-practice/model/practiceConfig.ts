@@ -14,8 +14,17 @@ const WHISPER_MODEL_SOFTMILLS_BASE_QURAN =
   "softmills/whisper-base-ar-quran-onnx";
 const WHISPER_MODEL_ARABIC_LEGACY = "onnx-community/whisper-base-ar-ONNX";
 
-/** Tiny is faster for pause-based practice. */
-export const DEFAULT_PRACTICE_MODEL_ID = WHISPER_MODEL_GENERIC_TINY;
+/*
+ * A Qur'an-tuned model, not a generic one.
+ *
+ * The default was generic whisper-tiny - the smallest multilingual model
+ * OpenAI shipped, on classical Arabic - so the configuration everybody tried
+ * was the worst one available. Measured against 32 labelled clips
+ * (scripts/tasmee), generic whisper-tiny with the old matcher rejected 18 of
+ * 20 correct recitations; this model with word alignment got all 32 right,
+ * and at a median 3.0s against the base model's 7.8s for the same score.
+ */
+export const DEFAULT_PRACTICE_MODEL_ID = WHISPER_MODEL_TARTEEL_TINY_QURAN;
 
 export const PRACTICE_MODEL_OPTIONS: Record<
   string,
@@ -65,10 +74,17 @@ export const PRACTICE_MIN_ROLLING_MS = 350;
 export const PRACTICE_SPEECH_RMS_THRESHOLD = 0.012;
 export const PRACTICE_WRONG_FLASH_MS = 700;
 
+/*
+ * Carried onto the current default rather than onto generic tiny.
+ *
+ * Anyone holding one of these ids tried the feature when it did not work.
+ * Leaving them on a generic model would leave them there; the point of the
+ * migration is to move them to the one that does.
+ */
 const LEGACY_MODEL_MIGRATION: Record<string, string> = {
-  [WHISPER_MODEL_LEGACY_ONNX_SMALL]: WHISPER_MODEL_GENERIC_TINY,
-  [WHISPER_MODEL_LEGACY_ONNX_TINY]: WHISPER_MODEL_GENERIC_TINY,
-  [WHISPER_MODEL_ARABIC_LEGACY]: WHISPER_MODEL_GENERIC_TINY,
+  [WHISPER_MODEL_LEGACY_ONNX_SMALL]: DEFAULT_PRACTICE_MODEL_ID,
+  [WHISPER_MODEL_LEGACY_ONNX_TINY]: DEFAULT_PRACTICE_MODEL_ID,
+  [WHISPER_MODEL_ARABIC_LEGACY]: DEFAULT_PRACTICE_MODEL_ID,
 };
 
 export function migratePracticeModelId(stored: string | null): string {

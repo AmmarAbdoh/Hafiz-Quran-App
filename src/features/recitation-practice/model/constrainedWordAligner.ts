@@ -1,4 +1,4 @@
-import { normalizeArabicForMatch } from "@/shared/lib/arabic-normalize";
+import { recitationMatchKey } from "@/features/recitation-practice/model/alignRecitation";
 
 export interface ExpectedPracticeWord {
   location: string;
@@ -31,7 +31,9 @@ export function buildExpectedWord(
     verseKey,
     text,
     displayText: plain,
-    normalized: normalizeArabicForMatch(plain),
+    /* Keyed the same way the aligner keys the transcript, so the mushaf's
+       superscript alef and a transcript's plain alef meet. */
+    normalized: recitationMatchKey(plain),
   };
 }
 

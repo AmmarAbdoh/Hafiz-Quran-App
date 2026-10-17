@@ -1,5 +1,6 @@
 import { Fragment, createElement } from "react";
 import type {
+  PracticeSummaryProps,
   RecitationPracticeProviderProps,
   RecitationPracticeTelemetry,
   RecitationPracticeValue,
@@ -34,6 +35,10 @@ export function PracticeSettings() {
 export function PracticePrivacyDisclosure() {
   return null;
 }
+
+/* A run can never finish when practice is off, so there is nothing to report. */
+export const PracticeSummary: (props: PracticeSummaryProps) => null = () =>
+  null;
 
 export function RecitationPracticeProvider({
   children,

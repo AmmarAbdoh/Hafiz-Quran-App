@@ -35,20 +35,3 @@ export function tokenizeArabicTranscript(text: string): string[] {
   if (!normalized) return [];
   return normalized.split(/\s+/).filter(Boolean);
 }
-
-export function arabicTokensSimilar(spoken: string, expected: string): boolean {
-  if (!spoken || !expected) return false;
-  if (spoken === expected) return true;
-  if (spoken.includes(expected) || expected.includes(spoken)) return true;
-
-  const minLen = Math.min(spoken.length, expected.length);
-  if (minLen < 2) return spoken === expected;
-
-  let matches = 0;
-  const shorter = spoken.length <= expected.length ? spoken : expected;
-  const longer = spoken.length > expected.length ? spoken : expected;
-  for (const char of shorter) {
-    if (longer.includes(char)) matches += 1;
-  }
-  return matches / shorter.length >= 0.75;
-}

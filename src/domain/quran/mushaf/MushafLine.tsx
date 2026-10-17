@@ -27,6 +27,7 @@ interface MushafLineProps {
   revealedWordLocations?: ReadonlySet<string>;
   practiceTargetWordLocation?: string | null;
   incorrectWordLocation?: string | null;
+  misreadWordLocations?: ReadonlySet<string>;
   incorrectWordLabel?: string;
   bookmarkedVerseKeys?: ReadonlySet<string>;
   onWordActivate?: MushafWordActivateHandler;
@@ -86,6 +87,7 @@ export function MushafLine({
   revealedWordLocations = EMPTY_LOCATIONS,
   practiceTargetWordLocation = null,
   incorrectWordLocation = null,
+  misreadWordLocations = EMPTY_LOCATIONS,
   incorrectWordLabel,
   bookmarkedVerseKeys,
   onWordActivate,
@@ -130,6 +132,10 @@ export function MushafLine({
         }
         hidden={hidden}
         incorrect={practiceMode && incorrectWordLocation === word.location}
+        /* Not gated on practice mode: the set is empty unless a run found
+           something, and the marks are meant to outlast the run so the page
+           still says what to work on once the recitation has finished. */
+        misread={misreadWordLocations.has(word.location)}
         incorrectLabel={incorrectWordLabel}
         bookmarked={
           word.char_type === "end" &&

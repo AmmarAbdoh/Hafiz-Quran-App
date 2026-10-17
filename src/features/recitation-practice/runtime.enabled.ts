@@ -1,6 +1,7 @@
 export {
   PracticePrivacyDisclosure,
   PracticeSettings,
+  PracticeSummary,
   RecitationPracticeProvider,
   useRecitationPractice,
   useRecitationPracticeTelemetry,

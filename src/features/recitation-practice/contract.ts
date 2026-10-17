@@ -13,6 +13,13 @@ export type PracticeErrorCode =
   | "workerUnavailable"
   | "startFailed";
 
+export interface MisreadWord {
+  location: string;
+  verseKey: string;
+  /** As the page reads it, without tashkeel. */
+  text: string;
+}
+
 export interface RecitationPracticeState {
   active: boolean;
   phase: PracticePhase;
@@ -24,6 +31,16 @@ export interface RecitationPracticeState {
   lastTranscript: string;
   wrongFlashLocation: string | null;
   revealedLocations: string[];
+  /**
+   * Words passed but not said as the page has them.
+   *
+   * Distinct from the wrong flash, which is a moment: these persist, so at
+   * the end of a run the reader can be shown every word that needs work
+   * rather than only the one that was wrong a second ago. Carries the word
+   * itself, not just where it was, because the summary has to name it
+   * without going back to the page for it.
+   */
+  misreadWords: MisreadWord[];
   progressIndex: number;
   totalWords: number;
   completed: boolean;
@@ -45,4 +62,12 @@ export interface RecitationPracticeValue extends RecitationPracticeState {
 
 export interface RecitationPracticeProviderProps {
   children: ReactNode;
+}
+
+export interface PracticeSummaryProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  misreadWords: MisreadWord[];
+  totalWords: number;
+  onPractiseAgain: () => void;
 }

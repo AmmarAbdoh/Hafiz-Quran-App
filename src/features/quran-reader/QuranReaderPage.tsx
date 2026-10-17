@@ -12,6 +12,8 @@ import {
   MushafPageSkeleton,
   preloadQcfFontsForReaderPage,
   useQuranData,
+  type MushafPageLayout,
+  type MushafWord,
 } from "@/domain/quran";
 import { AyahSearchDialog } from "@/features/quran-reader/components/AyahSearchDialog";
 import { ListenOptionsDialog } from "@/features/quran-reader/components/ListenOptionsDialog";
@@ -44,6 +46,7 @@ import { useReaderPreferences } from "@/features/quran-reader/hooks/useReaderPre
 import { useSurahPageNavigation } from "@/features/quran-reader/hooks/useSurahPageNavigation";
 import { useVerseHighlight } from "@/features/quran-reader/hooks/useVerseHighlight";
 import {
+  PracticeSummary,
   RECITATION_PRACTICE_AVAILABLE as RECITATION_PRACTICE_ENABLED,
   useRecitationPractice,
 } from "@practice/runtime";
@@ -53,6 +56,13 @@ import { cn } from "@/shared/lib/utils";
 import "./quran-reader.css";
 
 const DEFAULT_TOTAL_PAGES = 604;
+
+/** Everything on the page a reciter is expected to say; ayah marks are not. */
+function recitableWordsOf(pageLayout: MushafPageLayout): MushafWord[] {
+  return pageLayout.lines
+    .flatMap((line) => line.words)
+    .filter((word) => word.char_type !== "end");
+}
 
 export function QuranReaderPage() {
   const { t } = useTranslation("reader");
@@ -86,6 +96,9 @@ export function QuranReaderPage() {
   const {
     active: practiceActive,
     loadingModel: practiceLoading,
+    completed: practiceCompleted,
+    misreadWords: practiceMisreadWords,
+    totalWords: practiceTotalWords,
     startPractice,
     stopPractice,
   } = useRecitationPractice();
@@ -167,6 +180,12 @@ export function QuranReaderPage() {
   const practiceMode = RECITATION_PRACTICE_ENABLED && practiceActive;
   const readerChrome = useReaderChrome(!practiceMode);
   const [pageAnnouncement, setPageAnnouncement] = useState("");
+  /*
+   * The summary opens the moment a run finishes and stays shut once read.
+   * Whatever starts the next run clears the dismissal, so no effect has to
+   * watch `completed` to decide when the sheet may open again.
+   */
+  const [summaryDismissed, setSummaryDismissed] = useState(false);
   const skipPageAnnouncementRef = useRef(true);
 
   const currentAyah =
@@ -243,10 +262,8 @@ export function QuranReaderPage() {
     }
 
     stopPlayback();
-    const pageWords = currentPageLayout.lines
-      .flatMap((line) => line.words)
-      .filter((word) => word.char_type !== "end");
-    await startPractice(pageWords);
+    setSummaryDismissed(false);
+    await startPractice(recitableWordsOf(currentPageLayout));
   }, [
     currentPageLayout,
     practiceActive,
@@ -254,6 +271,14 @@ export function QuranReaderPage() {
     stopPlayback,
     stopPractice,
   ]);
+
+  // Straight into another run from the summary, without closing it first:
+  // starting one resets the state the sheet is reading.
+  const reciteAgain = useCallback(() => {
+    if (!RECITATION_PRACTICE_ENABLED || !currentPageLayout) return;
+    setSummaryDismissed(false);
+    void startPractice(recitableWordsOf(currentPageLayout));
+  }, [currentPageLayout, startPractice]);
 
   useEffect(() => {
     if (route.layoutMode !== "page") return;
@@ -475,6 +500,14 @@ export function QuranReaderPage() {
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {pageAnnouncement}
       </div>
+
+      <PracticeSummary
+        open={practiceCompleted && !summaryDismissed}
+        onOpenChange={(open) => setSummaryDismissed(!open)}
+        misreadWords={practiceMisreadWords}
+        totalWords={practiceTotalWords}
+        onPractiseAgain={reciteAgain}
+      />
 
       <ReadingPreferencesSheet
         open={overlays.readingPreferencesOpen}

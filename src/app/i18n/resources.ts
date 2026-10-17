@@ -200,6 +200,18 @@ const ar = {
       error: "تعذر تشغيل التلاوة.",
     },
     practice: {
+      summary: {
+        title: "نتيجة التسميع",
+        clean: "تلاوة سليمة.",
+        cleanDetail: "لم تُخطئ في أي كلمة.",
+        needWork_one: "كلمة واحدة تحتاج مراجعة من {{total}}.",
+        needWork_two: "كلمتان تحتاجان مراجعة من {{total}}.",
+        needWork_few: "{{words}} كلمات تحتاج مراجعة من {{total}}.",
+        needWork_many: "{{words}} كلمة تحتاج مراجعة من {{total}}.",
+        needWork_other: "{{words}} كلمة تحتاج مراجعة من {{total}}.",
+        ayah: "آية {{reference}}",
+        again: "أعد التسميع",
+      },
       title: "وضع التسميع",
       preparing: "جاري تجهيز الصفحة…",
       loadingModel: "جاري تحميل نموذج التعرف على الصوت…",
@@ -1145,6 +1157,20 @@ const en: StringTree<typeof ar> = {
       error: "The recitation could not be played.",
     },
     practice: {
+      summary: {
+        title: "How the recitation went",
+        clean: "Recited correctly.",
+        cleanDetail: "No word was misread.",
+        needWork_one: "One word of {{total}} needs another look.",
+        /* Mirrors the Arabic plural forms so both locales share a shape.
+           English selects only one and other; the rest are never chosen. */
+        needWork_two: "{{words}} words of {{total}} need another look.",
+        needWork_few: "{{words}} words of {{total}} need another look.",
+        needWork_many: "{{words}} words of {{total}} need another look.",
+        needWork_other: "{{words}} words of {{total}} need another look.",
+        ayah: "ayah {{reference}}",
+        again: "Recite again",
+      },
       title: "Recitation practice",
       preparing: "Preparing this page…",
       loadingModel: "Loading the speech recognition model…",

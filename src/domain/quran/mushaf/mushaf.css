@@ -399,6 +399,18 @@
     animation: mushaf-practice-wrong-shake 0.45s ease;
   }
 
+  /*
+   * Said wrongly earlier and still wanting work, as distinct from the shake
+   * above, which is the moment it happened. Underlined rather than coloured:
+   * the glyph colour carries tajweed, and overriding it would say something
+   * about the recitation rules that is not true.
+   */
+  .mushaf-word--practice-misread {
+    text-decoration: underline wavy var(--destructive);
+    text-decoration-skip-ink: none;
+    text-underline-offset: 0.35em;
+  }
+
   .mushaf-word--practice-wrong.mushaf-word-plain {
     color: var(--destructive);
   }

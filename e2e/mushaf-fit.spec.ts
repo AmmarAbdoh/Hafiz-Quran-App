@@ -262,16 +262,36 @@ test("keeps stating the right page while reading down a long surah", async ({
   await page.waitForSelector("[data-mushaf-page]", { timeout: 30_000 });
   await page.evaluate(() => document.fonts.ready);
 
-  // Read downwards, which is what mounts more pages, until well past the
-  // handful the surah opens with.
-  for (let step = 0; step < 25; step += 1) {
-    await page.evaluate(() => {
+  /*
+   * Read downwards, which is what mounts more pages, until well past the
+   * handful the surah opens with.
+   *
+   * Driven by what has mounted rather than by a fixed number of sleeps: with
+   * 25 of them this ran 44-51s against a 60s timeout, so it passed alone and
+   * failed whenever the machine was busy. It now stops as soon as it is deep
+   * enough, and gives up scrolling if mounting stalls rather than sleeping
+   * through the rest of its budget.
+   */
+  const DEEP_ENOUGH = 18;
+  let mounted = 0;
+  for (let step = 0; step < 40; step += 1) {
+    const grew = await page.evaluate(() => {
       const stage = document.querySelector(".mushaf-stage");
       if (stage) stage.scrollTop = stage.scrollHeight;
+      return document.querySelectorAll("[data-mushaf-page]").length;
     });
-    await page.waitForTimeout(140);
+    if (grew >= DEEP_ENOUGH) {
+      mounted = grew;
+      break;
+    }
+    if (grew === mounted && step > 4) break;
+    mounted = grew;
+    await page.waitForTimeout(120);
   }
-  await page.waitForTimeout(1000);
+  expect(mounted).toBeGreaterThanOrEqual(DEEP_ENOUGH);
+
+  // Let the scroll spy publish against what is now mounted.
+  await page.waitForTimeout(600);
 
   const reading = await page.evaluate(() => {
     const pill = document.querySelector('button[aria-label="انتقل إلى صفحة"]');

@@ -42,6 +42,12 @@ export function MushafViewer({
   const playback = useQuranPlaybackState();
   const { activeWordLocation } = useQuranPlaybackHighlight();
   const practice = useRecitationPractice();
+  /* Memoised for identity, not for cost: the page below turns this into a
+     Set, and a fresh array every render would rebuild it every render. */
+  const misreadLocations = useMemo(
+    () => practice.misreadWords.map((word) => word.location),
+    [practice.misreadWords],
+  );
 
   const wordsByLocation = useMemo(() => {
     const map = new Map<string, MushafWord>();
@@ -131,6 +137,7 @@ export function MushafViewer({
         practiceRevealedLocations={practice.revealedLocations}
         practiceTargetWordLocation={practice.currentWordLocation}
         practiceWrongFlashLocation={practice.wrongFlashLocation}
+        practiceMisreadLocations={misreadLocations}
         bookmarkedVerseKeys={bookmarkedSet}
         onWordActivate={activateWord}
         onWordPointerDown={handlePointerDown}
