@@ -28,7 +28,6 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
 import type { MushafLayoutMode } from "@/features/quran-reader/model/quranReaderRoutes";
-import { RECITATION_PRACTICE_AVAILABLE as RECITATION_PRACTICE_ENABLED } from "@practice/runtime";
 import { useTheme } from "@/shared/hooks/use-theme";
 
 type MushafReaderHeaderProps = MushafReaderHeaderState;
@@ -38,6 +37,7 @@ export function MushafReaderHeader({
   layoutMode,
   practiceActive,
   practiceLoading,
+  practiceReady,
   onLayoutModeChange,
   onOpenSurahDrawer,
   onOpenAyahSearch,
@@ -89,122 +89,150 @@ export function MushafReaderHeader({
           </bdi>
         </h1>
 
-        <DropdownMenu dir={i18n.dir()}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="justify-self-end"
-              aria-label={t("header.more")}
-              title={t("header.more")}
-            >
-              {/* Not SlidersHorizontal: that is the Preferences item's own
-                  icon, one level down inside this very menu. */}
-              <MoreHorizontal className="h-5 w-5" aria-hidden />
-            </Button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent align={rtl ? "start" : "end"}>
+        <div className="flex items-center justify-self-end">
+          {/*
+            تسميع is the reason the reader exists for someone memorising, so
+            it is a control of its own. It spent its first life as the fifth
+            item of an overflow menu, behind a build flag, where nobody found
+            it.
+          */}
+          <Button
+            type="button"
+            variant={practiceActive ? "default" : "ghost"}
+            size="icon"
+            className="shrink-0"
+            onClick={onTogglePractice}
+            /*
+             * Never disabled while a run is going, because then this is the
+             * stop button. `practiceReady` follows the page the reader is
+             * scrolled to, and in surah view that can stop resolving in the
+             * middle of a run - which disabled the only way to stop.
+             */
+            disabled={!practiceActive && (!practiceReady || practiceLoading)}
+            /*
+             * The name says what pressing it does, so it carries the state
+             * on its own. `aria-pressed` as well made a screen reader
+             * announce "stop recitation, pressed", which says both things at
+             * once and settles neither.
+             */
+            aria-label={
+              practiceActive ? t("practice.stop") : t("header.practice")
+            }
+            title={practiceActive ? t("practice.stop") : t("header.practice")}
+          >
             {/*
+              Gated on `!practiceActive` this could never appear: the run is
+              marked active before the model starts loading, so the spinner
+              had no moment in which to show.
+            */}
+            {practiceLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+            ) : (
+              <Mic className="h-5 w-5" aria-hidden />
+            )}
+          </Button>
+
+          <DropdownMenu dir={i18n.dir()}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={t("header.more")}
+                title={t("header.more")}
+              >
+                {/* Not SlidersHorizontal: that is the Preferences item's own
+                  icon, one level down inside this very menu. */}
+                <MoreHorizontal className="h-5 w-5" aria-hidden />
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align={rtl ? "start" : "end"}>
+              {/*
               Layout decides how the reader is moved through - a page turns on
               a swipe, a surah scrolls - and it used to sit three levels down,
               inside the preferences sheet, stating only "Surah" or "Page".
               Opening this menu now shows which one is in force and what each
               one does.
             */}
-            <DropdownMenuLabel>{t("layout.label")}</DropdownMenuLabel>
-            <DropdownMenuRadioGroup
-              value={layoutMode}
-              onValueChange={(value) =>
-                onLayoutModeChange(value as MushafLayoutMode)
-              }
-            >
-              {layoutOptions.map((option) => (
-                <DropdownMenuRadioItem
-                  key={option.value}
-                  value={option.value}
-                  /* The name and the hint are separate blocks, and the
+              <DropdownMenuLabel>{t("layout.label")}</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={layoutMode}
+                onValueChange={(value) =>
+                  onLayoutModeChange(value as MushafLayoutMode)
+                }
+              >
+                {layoutOptions.map((option) => (
+                  <DropdownMenuRadioItem
+                    key={option.value}
+                    value={option.value}
+                    /* The name and the hint are separate blocks, and the
                      accessible name computed from them runs the two together
                      with no pause - "PageOne mushaf page". Composing it here
                      keeps the two apart. */
-                  aria-label={`${option.label}. ${option.hint}`}
-                >
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate font-medium">{option.label}</span>
-                    <span className="truncate text-muted-foreground">
-                      {option.hint}
+                    aria-label={`${option.label}. ${option.hint}`}
+                  >
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate font-medium">
+                        {option.label}
+                      </span>
+                      <span className="truncate text-muted-foreground">
+                        {option.hint}
+                      </span>
                     </span>
-                  </span>
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
 
-            <DropdownMenuSeparator />
+              <DropdownMenuSeparator />
 
-            {/*
+              {/*
               Radix hands onSelect the select event. The reader's listen action
               takes an optional preset, so it has to be called with no argument
               or the event stands in for the current page and surah.
             */}
-            <DropdownMenuItem onSelect={() => onOpenListenOptions()}>
-              <Volume2 className="h-4 w-4 shrink-0" aria-hidden />
-              {t("header.listen")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onOpenSurahDrawer}>
-              <List className="h-4 w-4 shrink-0" aria-hidden />
-              {t("header.surahs")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onOpenAyahSearch}>
-              <Search className="h-4 w-4 shrink-0" aria-hidden />
-              {t("header.searchAyah")}
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem onSelect={onOpenReadingPreferences}>
-              <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden />
-              {t("preferences.title")}
-            </DropdownMenuItem>
-
-            {RECITATION_PRACTICE_ENABLED && (
-              <DropdownMenuItem
-                onSelect={onTogglePractice}
-                disabled={practiceLoading && !practiceActive}
-              >
-                {practiceLoading && !practiceActive ? (
-                  <Loader2
-                    className="h-4 w-4 shrink-0 animate-spin"
-                    aria-hidden
-                  />
-                ) : (
-                  <Mic className="h-4 w-4 shrink-0" aria-hidden />
-                )}
-                {t("header.practice")}
+              <DropdownMenuItem onSelect={() => onOpenListenOptions()}>
+                <Volume2 className="h-4 w-4 shrink-0" aria-hidden />
+                {t("header.listen")}
               </DropdownMenuItem>
-            )}
+              <DropdownMenuItem onSelect={onOpenSurahDrawer}>
+                <List className="h-4 w-4 shrink-0" aria-hidden />
+                {t("header.surahs")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onOpenAyahSearch}>
+                <Search className="h-4 w-4 shrink-0" aria-hidden />
+                {t("header.searchAyah")}
+              </DropdownMenuItem>
 
-            <DropdownMenuSeparator />
+              <DropdownMenuSeparator />
 
-            <DropdownMenuItem onSelect={toggleTheme}>
-              {theme === "dark" ? (
-                <Sun className="h-4 w-4 shrink-0" aria-hidden />
-              ) : (
-                <Moon className="h-4 w-4 shrink-0" aria-hidden />
-              )}
-              {theme === "dark"
-                ? t("header.switchToLight")
-                : t("header.switchToDark")}
-            </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onOpenReadingPreferences}>
+                <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden />
+                {t("preferences.title")}
+              </DropdownMenuItem>
 
-            <DropdownMenuItem asChild>
-              <Link to="/settings">
-                <Settings className="h-4 w-4 shrink-0" aria-hidden />
-                {t("header.settings")}
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem onSelect={toggleTheme}>
+                {theme === "dark" ? (
+                  <Sun className="h-4 w-4 shrink-0" aria-hidden />
+                ) : (
+                  <Moon className="h-4 w-4 shrink-0" aria-hidden />
+                )}
+                {theme === "dark"
+                  ? t("header.switchToLight")
+                  : t("header.switchToDark")}
+              </DropdownMenuItem>
+
+              <DropdownMenuItem asChild>
+                <Link to="/settings">
+                  <Settings className="h-4 w-4 shrink-0" aria-hidden />
+                  {t("header.settings")}
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </header>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { Outlet, useParams } from "react-router-dom";
 import { QuranDataProvider, useQuranData } from "@/domain/quran";
-import { RecitationPracticeProvider } from "@practice/runtime";
+import { RecitationPracticeProvider } from "@/features/recitation-practice";
 
 function ReaderLayoutLoader({ children }: { children: ReactNode }) {
   const { pageNumber, surahNumber } = useParams<{

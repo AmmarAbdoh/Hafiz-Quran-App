@@ -47,9 +47,8 @@ import { useSurahPageNavigation } from "@/features/quran-reader/hooks/useSurahPa
 import { useVerseHighlight } from "@/features/quran-reader/hooks/useVerseHighlight";
 import {
   PracticeSummary,
-  RECITATION_PRACTICE_AVAILABLE as RECITATION_PRACTICE_ENABLED,
   useRecitationPractice,
-} from "@practice/runtime";
+} from "@/features/recitation-practice";
 import { Button } from "@/shared/components/ui/button";
 import { useTheme } from "@/shared/hooks/use-theme";
 import { cn } from "@/shared/lib/utils";
@@ -58,10 +57,27 @@ import "./quran-reader.css";
 const DEFAULT_TOTAL_PAGES = 604;
 
 /** Everything on the page a reciter is expected to say; ayah marks are not. */
-function recitableWordsOf(pageLayout: MushafPageLayout): MushafWord[] {
+/**
+ * The words of a page a recitation can be judged against.
+ *
+ * `onlySurah` restricts it to one surah, which surah view needs: it renders
+ * a single surah, so the rest of a shared page is not on screen. Judging the
+ * whole page there waited for words the reader could not see - on page 601,
+ * which carries the end of العاديات through to الهمزة, a run started in one
+ * surah could never finish.
+ */
+function recitableWordsOf(
+  pageLayout: MushafPageLayout,
+  onlySurah?: number,
+): MushafWord[] {
   return pageLayout.lines
     .flatMap((line) => line.words)
-    .filter((word) => word.char_type !== "end");
+    .filter(
+      (word) =>
+        word.char_type !== "end" &&
+        (onlySurah === undefined ||
+          Number(word.verse_key.split(":")[0]) === onlySurah),
+    );
 }
 
 export function QuranReaderPage() {
@@ -97,14 +113,21 @@ export function QuranReaderPage() {
     active: practiceActive,
     loadingModel: practiceLoading,
     completed: practiceCompleted,
+    error: practiceError,
     misreadWords: practiceMisreadWords,
     totalWords: practiceTotalWords,
+    progressIndex: practiceProgressIndex,
+    stoppedShort: practiceStoppedShort,
+    saveRun,
     startPractice,
     stopPractice,
+    finishPractice,
   } = useRecitationPractice();
   const { theme } = useTheme();
 
   const layoutRef = useRef<HTMLDivElement>(null);
+  /** The words the current run was started on; see `togglePractice`. */
+  const recitedWordsRef = useRef<MushafWord[] | null>(null);
   const mushafStageRef = useRef<HTMLDivElement>(null);
   const swipeNavigationRef = useRef({
     onNext: () => {},
@@ -177,8 +200,7 @@ export function QuranReaderPage() {
   // Practice takes over the page surface, so it stops the page responding to
   // taps and swipes. Listening does not: page turns stay live while a recitation
   // plays, otherwise the whole page reads as unresponsive.
-  const practiceMode = RECITATION_PRACTICE_ENABLED && practiceActive;
-  const readerChrome = useReaderChrome(!practiceMode);
+  const readerChrome = useReaderChrome(!practiceActive);
   const [pageAnnouncement, setPageAnnouncement] = useState("");
   /*
    * The summary opens the moment a run finishes and stays shut once read.
@@ -246,39 +268,70 @@ export function QuranReaderPage() {
   useReaderGestures({
     containerRef: mushafStageRef,
     swipeEnabled:
-      !practiceMode && route.layoutMode === "page" && !loading && !error,
-    tapEnabled: !practiceMode,
+      !practiceActive && route.layoutMode === "page" && !loading && !error,
+    tapEnabled: !practiceActive,
     onTap: handleStageTap,
     onSwipeNext: handleSwipeNext,
     onSwipePrevious: handleSwipePrevious,
   });
 
-  const togglePractice = useCallback(async () => {
-    if (!RECITATION_PRACTICE_ENABLED || !currentPageLayout) return;
+  /*
+   * A recitation is judged against one page of the mushaf, so surah view has
+   * to say which one: the page it is scrolled to. It used to have no answer,
+   * and تسميع there did nothing at all.
+   */
+  const practicePageLayout =
+    route.layoutMode === "page"
+      ? currentPageLayout
+      : (surahLayout.pageLayouts.find(
+          (layout) => layout.page === surahNavigation.visiblePage,
+        ) ?? null);
 
+  /* Page view shows the whole page; surah view shows one surah of it. */
+  const practiceOnlySurah =
+    route.layoutMode === "page" ? undefined : route.currentSurahNumber;
+
+  const togglePractice = useCallback(async () => {
+    /*
+     * The same as the bar's stop button, which it shares a label with: the
+     * run is scored, not thrown away. Discarding it from here took a page
+     * recited almost to the end with it, and no summary.
+     */
     if (practiceActive) {
-      stopPractice();
+      finishPractice();
       return;
     }
+    if (!practicePageLayout) return;
 
     stopPlayback();
     setSummaryDismissed(false);
-    await startPractice(recitableWordsOf(currentPageLayout));
+    /*
+     * Held for "recite again", which must repeat the page that was just
+     * judged. In surah view the cursor scrolls the page under the reader as
+     * it follows the recitation, so by the time the summary opens the
+     * visible page can be the next one - and the button started that
+     * instead of the page in the summary.
+     */
+    const words = recitableWordsOf(practicePageLayout, practiceOnlySurah);
+    recitedWordsRef.current = words;
+    await startPractice(words);
   }, [
-    currentPageLayout,
+    finishPractice,
     practiceActive,
+    practiceOnlySurah,
+    practicePageLayout,
     startPractice,
     stopPlayback,
-    stopPractice,
   ]);
 
   // Straight into another run from the summary, without closing it first:
   // starting one resets the state the sheet is reading.
   const reciteAgain = useCallback(() => {
-    if (!RECITATION_PRACTICE_ENABLED || !currentPageLayout) return;
+    const words = recitedWordsRef.current;
+    if (!words) return;
     setSummaryDismissed(false);
-    void startPractice(recitableWordsOf(currentPageLayout));
-  }, [currentPageLayout, startPractice]);
+    void startPractice(words);
+  }, [startPractice]);
 
   useEffect(() => {
     if (route.layoutMode !== "page") return;
@@ -320,6 +373,7 @@ export function QuranReaderPage() {
     onOpenListenOptions: overlays.openListenOptions,
     onOpenReadingPreferences: overlays.openReadingPreferences,
     onTogglePractice: togglePractice,
+    practiceReady: practicePageLayout !== null,
   });
 
   useReaderKeyboardNavigation({
@@ -381,15 +435,25 @@ export function QuranReaderPage() {
       showControls={readerChrome.controlsVisible}
     />
   );
-  if (practiceMode) {
+  /*
+   * A practice error left on screen yields to playback: once the reader has
+   * moved on and pressed play, hiding the pause and seek controls behind a
+   * notice about the last run leaves them no way to stop the audio.
+   */
+  if (practiceActive) {
     bottomBar = <PracticeAudioBar pageControls={pageControls} />;
   } else if (active) {
     // The playback row owns the strip and carries page navigation itself.
     bottomBar = <MushafAudioBar pageControls={pageControls} />;
+  } else if (practiceError) {
+    bottomBar = <PracticeAudioBar pageControls={pageControls} />;
   }
 
   const bottomChromeClassName = cn(
-    !practiceMode && !active && "mushaf-bottom-chrome--controls",
+    !practiceActive &&
+      !practiceError &&
+      !active &&
+      "mushaf-bottom-chrome--controls",
   );
 
   // The dock stays mounted in every reader state so the space it reserves at the
@@ -506,6 +570,11 @@ export function QuranReaderPage() {
         onOpenChange={(open) => setSummaryDismissed(!open)}
         misreadWords={practiceMisreadWords}
         totalWords={practiceTotalWords}
+        progressIndex={practiceProgressIndex}
+        stoppedShort={practiceStoppedShort}
+        /* Development only, and the bundler folds the whole control away
+           with it: this writes to the dev server's own disk. */
+        onSaveRun={import.meta.env.DEV ? saveRun : undefined}
         onPractiseAgain={reciteAgain}
       />
 

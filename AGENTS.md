@@ -8,4 +8,4 @@
 - Preserve Quran and tafseer fidelity, migrate persisted user data, and keep Arabic content explicitly RTL.
 - Build accessible Arabic and English interfaces and verify both directions.
 - Remove dead code, data, assets, and dependencies only after proving they are unreferenced or superseded.
-- Run `npm run check`, both build modes, and relevant data/UI tests before handoff.
+- Run `npm run check`, `npm run build`, and relevant data/UI tests before handoff.

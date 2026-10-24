@@ -13,21 +13,20 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { readWavAsFloat32 } from "./lib/audio.mjs";
+import { flag } from "./lib/args.mjs";
 
-const FIXTURES = path.resolve("scripts/tasmee/fixtures");
-
-function arg(flag, fallback) {
-  const index = process.argv.indexOf(flag);
-  return index === -1 ? fallback : process.argv[index + 1];
-}
+const FIXTURES = path.resolve(flag("fixtures", "scripts/tasmee/fixtures"));
 
 function pct(value, total) {
   return total === 0 ? "n/a" : `${((value / total) * 100).toFixed(1)}%`;
 }
 
 async function main() {
-  const runnerName = arg("--runner", "baseline");
-  const runnerPath = path.join(FIXTURES, "..", "runners", `${runnerName}.mjs`);
+  const runnerName = flag("runner", "baseline");
+  const runnerPath = path.resolve(
+    "scripts/tasmee/runners",
+    `${runnerName}.mjs`,
+  );
   const runner = await import(pathToFileURL(runnerPath).href);
 
   const manifest = JSON.parse(
@@ -49,6 +48,8 @@ async function main() {
       outcome = await judge({
         audio,
         verseKey: clip.verseKey,
+        /* A passage clip covers several; a single-ayah clip covers one. */
+        verseKeys: clip.verseKeys ?? [clip.verseKey],
         expectedText: clip.expectedText,
         expectedWords: clip.expectedText.split(/\s+/).filter(Boolean),
       });
@@ -115,7 +116,7 @@ async function main() {
     console.log(`  ${kind.padEnd(18)} ${right}/${total}`);
   }
 
-  const jsonOut = arg("--json");
+  const jsonOut = flag("json");
   if (jsonOut) {
     await writeFile(
       jsonOut,

@@ -28,18 +28,30 @@ export async function createJudge() {
 
 `verdict` is the only field scored. Everything else is for reading.
 
-## Adding the zipformer
+## What is here
 
-`baseline.mjs` is here to be beaten, not kept. The real comparison is against
-`Quran-Lab/zipformer_p-arabic-v3`, which needs two things first:
+| runner                  | what it is                                                           |
+| ----------------------- | -------------------------------------------------------------------- |
+| `baseline.mjs`          | here to be beaten, not kept                                          |
+| `dtw.mjs`               | template matching on MFCCs; no model                                 |
+| `tarteel.mjs`           | the comparison target                                                |
+| `zipformer.mjs`         | free decode, then an edit distance against the expected text         |
+| `zipformer-aligned.mjs` | forced alignment only — the verdict with the cursor blinded          |
+| `zipformer-app.mjs`     | **what the app does**: forced alignment plus the live cursor's skips |
 
-1. **Accept the gate.** Sign in to Hugging Face, open the model page, accept
-   the terms. It is auto-approved. The files cannot be downloaded otherwise.
-2. **A runtime.** The model is Zipformer2 + CTC and does not run under
-   Transformers.js. Use sherpa-onnx (it ships browser and Node WASM builds,
-   with streaming Zipformer examples) rather than reimplementing fbank.
+`zipformer.mjs` is kept to show the difference the question makes: a free
+decode asks "what did he say?" and then diffs, which is a blunt error rate
+that loses a wrong ending in the arithmetic of a long verse. The aligned
+runners ask "did he say _this_?" and get a calibrated probability per word.
+See `docs/tasmee-investigation.md` §2.
 
-Then write `zipformer.mjs` against the contract above. The judgement should be
-a **forced alignment** of `expectedWords` against the model's frame
-posteriors — never a diff of free transcript against expected text. That
-distinction is the whole point; see `docs/tasmee-investigation.md` §2.
+`zipformer-aligned.mjs` and `zipformer-app.mjs` differ in one input, and both
+call the app's own `findMisreadWords`, so the gap between them is exactly what
+the cursor's evidence is worth — currently 22.2% of mistakes missed against
+12.1%. `docs/tasmee-improvements.md` has the measurements.
+
+Requirements for all three zipformer runners: the weights in `.models/`
+(`TASMEE_ZIPFORMER_DIR` to move them) and Hugging Face gate acceptance to
+fetch them in the first place. They run under `onnxruntime-node`, sharing the
+app's own filterbank, symbol table and CTC code so the bench cannot drift
+from what ships.

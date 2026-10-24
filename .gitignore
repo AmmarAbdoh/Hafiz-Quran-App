@@ -10,7 +10,6 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-dist-practice
 coverage
 playwright-report
 test-results
@@ -34,3 +33,42 @@ test-results
 scripts/tasmee/fixtures/clips/
 scripts/tasmee/fixtures/.work/
 scripts/tasmee/fixtures/recorded/
+scripts/tasmee/fixtures/.scores.json
+scripts/tasmee/fixtures/.emissions.json
+# The large set is 546MB of generated audio; rebuild with
+# `node scripts/tasmee/build-word-fixtures.mjs`.
+scripts/tasmee/fixtures-large/clips/
+scripts/tasmee/fixtures-large/.work/
+scripts/tasmee/fixtures-large/.scores.json
+scripts/tasmee/fixtures-large/.emissions.json
+
+# Page-length passages: `node scripts/tasmee/build-page-fixtures.mjs`.
+scripts/tasmee/fixtures-page/clips/
+scripts/tasmee/fixtures-page/.work/
+scripts/tasmee/fixtures-page/.scores.json
+scripts/tasmee/fixtures-page/.emissions.json
+
+# Ordinary people reciting, from the CC0 Tarteel.io half of
+# ashraf-ali/quran-data on Hugging Face: 18,415 clips, 47.4 hours, 5.5GB.
+# Everything here is derived, so none of it is committed - the manifest is
+# rebuilt from the dataset's own index by
+# `node scripts/tasmee/build-learner-fixtures.mjs`, which is.
+scripts/tasmee/fixtures-learner/manifest.json
+scripts/tasmee/fixtures-learner/clips
+scripts/tasmee/fixtures-learner/.work/
+scripts/tasmee/fixtures-learner/.scores.json
+scripts/tasmee/fixtures-learner/.emissions.json
+
+# A systematic sample of the above for `evaluate.mjs`, which is serial:
+# `node scripts/tasmee/sample-fixtures.mjs --count 1000`. It references the
+# full set's audio rather than copying it.
+scripts/tasmee/fixtures-learner-sample/
+
+# Gated model weights, fetched locally and never committed
+.models/
+
+# Progress log from `node scripts/tasmee/measure.mjs`.
+scripts/tasmee/.measure.log
+
+# Local knowledge graph from graphify; rebuild with `/graphify .`.
+graphify-out/

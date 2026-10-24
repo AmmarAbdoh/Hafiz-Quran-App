@@ -10,15 +10,19 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(rootDirectory, "src"),
-      "@practice/runtime": path.resolve(
-        rootDirectory,
-        "src/features/recitation-practice/runtime.enabled.ts",
-      ),
     },
   },
   test: {
     environment: "node",
     globals: true,
+    /*
+     * The streaming recogniser is the default only where its gated weights
+     * are actually on the machine, which `vite.config.ts` answers for the dev
+     * server. The unit tests stand in for a machine that has them, so the
+     * streaming runtime is the one they exercise; the two tests that care
+     * about the other answer stub this themselves.
+     */
+    env: { VITE_PRACTICE_MODELS_PRESENT: "true" },
     setupFiles: ["./src/test/setup.ts"],
     exclude: [...configDefaults.exclude, "e2e/**"],
     // Component tests that mount the full provider stack need more than the

@@ -204,11 +204,39 @@ const ar = {
         title: "نتيجة التسميع",
         clean: "تلاوة سليمة.",
         cleanDetail: "لم تُخطئ في أي كلمة.",
+        /* Leaving part of the page out is not a mistake in a word, so it is
+           said on its own terms: how much you recited, out of the page. Not
+           "you stopped at" - the same rule catches opening halfway down, and
+           that reciter did not stop anywhere. */
+        stoppedShort: "سمّعت {{reached}} من {{total}} كلمة.",
+        stoppedShortDetail: "ما سمّعته كان سليمًا، لكنك لم تُكمل الصفحة.",
+        /* Development only: the controls that save a run as a fixture. */
+        keepRun: "احفظ هذا التسميع للتجربة والقياس",
+        keepRunNote: "ما الذي أخطأت فيه؟",
+        keepRunSave: "احفظ",
         needWork_one: "كلمة واحدة تحتاج مراجعة من {{total}}.",
         needWork_two: "كلمتان تحتاجان مراجعة من {{total}}.",
         needWork_few: "{{words}} كلمات تحتاج مراجعة من {{total}}.",
         needWork_many: "{{words}} كلمة تحتاج مراجعة من {{total}}.",
         needWork_other: "{{words}} كلمة تحتاج مراجعة من {{total}}.",
+        /* What arrived in the word's place, as letters rather than as a word
+           - see `phonemesAsLetters`. Labelled as heard for that reason: it
+           is the sounds, and presenting it as text to read would be wrong. */
+        heard: "سُمِع:",
+        /* Got it wrong, went back, got it right. The audio supports the
+           word, so only the live cursor ever saw this happen. */
+        stumbled: "تعثّرت ثم صحّحت",
+        /* The frames where this word should have been support no sound at
+           all, which on the bench is what a word removed from the audio
+           looks like. */
+        nothingHeard: "لم نسمع هذه الكلمة",
+        /* Its own sounds were there, but not firmly enough to accept. Said
+           without blame: the recogniser's doubt and the reciter's mistake
+           look the same here, and only one of them is theirs. */
+        unclear: "سمِعناها لكن غير واضحة",
+        /* Stopped at it and moved on. The surest line in the summary:
+           the reader reported this one themselves. */
+        gaveUp: "توقفت عندها وتجاوزتها",
         ayah: "آية {{reference}}",
         again: "أعد التسميع",
       },
@@ -221,6 +249,30 @@ const ar = {
       analyzing: "يتحقق مما قلته…",
       memoryHidden: "اقرأ من الذاكرة — الآيات مخفية",
       memoryVisible: "اقرأ من الذاكرة — الآيات ظاهرة",
+      /* It now stops the run rather than only sounding a tone, so it says
+         so: the cursor waits at the word and will not move past it. */
+      stopOnMistakeOn: "التوقّف عند الخطأ: مُفعّل",
+      stopOnMistakeOff: "التوقّف عند الخطأ: متوقف",
+      /* The run is stopped at a word and waiting. Said without blame: the
+         recogniser's doubt and a real mistake look the same from here. */
+      held: "متوقفون عند كلمة",
+      heldAt: "قُل الكلمة لتكمل",
+      revealHeld: "أرنِي الكلمة",
+      skipHeld: "تجاوزها",
+      debugTitle: "تشخيص",
+      debugNothingYet: "لم يُسمَع شيء بعد",
+      debugHint: "ما سمعه النموذج مقابل ما تتوقعه الصفحة. للتشخيص فقط.",
+      debugHeard: "سُمِع",
+      debugExpected: "المتوقع",
+      debugLevel: "مستوى الصوت",
+      debugPeak: "الذروة",
+      debugAccepted: "مرّ من البوابة",
+      debugBlocks: "مقطعًا",
+      debugClipped: "تشويه (قص)",
+      debugRate: "معدل العيّنات",
+      debugDevice: "الميكروفون",
+      debugOn: "التشخيص: مُفعّل",
+      debugOff: "التشخيص: متوقف",
       showAyat: "إظهار الآيات",
       hideAyat: "إخفاء الآيات",
       stop: "إيقاف التسميع",
@@ -236,7 +288,16 @@ const ar = {
         recognition: "حدث خطأ أثناء التعرف على الصوت.",
         workerUnavailable: "خدمة التعرف على الصوت غير متاحة.",
         startFailed: "تعذر بدء وضع التسميع.",
+        /* Something *was* heard: this only happens once the recogniser
+           has emitted phonemes, so the microphone is the least likely
+           cause and used to be the only one named. Reciting a different
+           page, or moving past every word, both land here. */
+        nothingHeard:
+          "سمِعنا صوتًا لا يطابق هذه الصفحة. تأكد أنك على الصفحة الصحيحة.",
+        verdictFailed: "تعذر تقييم التلاوة.",
       },
+      dismissError: "إخفاء الرسالة",
+      redownloadModel: "أعد تنزيل النموذج",
     },
     tajweed: {
       colored: "تجويد ملوّن",
@@ -856,11 +917,22 @@ const ar = {
       description:
         "عند تفعيل الميزة، يعمل نموذج التعرف محلياً بعد تنزيله لأول مرة.",
       modelLabel: "نموذج التعرف على الصوت",
+      strictLabel: "شدِّد في التصحيح",
+      /* The trade is stated rather than implied: this picks a point on a
+         measured curve, it does not switch on "better". */
+      strictHint:
+        "يُعلِّم كل كلمة ضعيفة بدل التغاضي عن واحدة في كل آية: يلتقط ضعف الأخطاء تقريبًا، لكنه ينبّه خطأً على تلاوة سليمة من كل ست عشرة.",
       searchPlaceholder: "ابحث عن نموذج…",
       clearCache: "مسح نماذج التسميع المحمّلة",
       clearingCache: "جارٍ مسح النماذج…",
       localNote:
-        "لا يُرسل صوت الميكروفون إلى خوادم Tarteel. يحتاج تنزيل النموذج الأول إلى اتصال بالإنترنت.",
+        "لا يُرسل صوت الميكروفون إلى أي خادم. يحتاج تنزيل النموذج الأول إلى اتصال بالإنترنت.",
+      models: {
+        streaming: { label: "تسميع مباشر — Quran-Lab (موصى به)" },
+        tarteelTiny: { label: "قرآن — Tarteel Tiny (موصى به)" },
+        genericTiny: { label: "عام — Whisper Tiny" },
+        genericSmall: { label: "عام — Whisper Small" },
+      },
     },
     privacy: {
       title: "الخصوصية والتخزين",
@@ -1161,6 +1233,12 @@ const en: StringTree<typeof ar> = {
         title: "How the recitation went",
         clean: "Recited correctly.",
         cleanDetail: "No word was misread.",
+        stoppedShort: "You recited {{reached}} of {{total}} words.",
+        stoppedShortDetail:
+          "What you recited was right, but you did not finish the page.",
+        keepRun: "Keep this run for measurement",
+        keepRunNote: "What did you get wrong?",
+        keepRunSave: "Save",
         needWork_one: "One word of {{total}} needs another look.",
         /* Mirrors the Arabic plural forms so both locales share a shape.
            English selects only one and other; the rest are never chosen. */
@@ -1168,6 +1246,11 @@ const en: StringTree<typeof ar> = {
         needWork_few: "{{words}} words of {{total}} need another look.",
         needWork_many: "{{words}} words of {{total}} need another look.",
         needWork_other: "{{words}} words of {{total}} need another look.",
+        heard: "Heard:",
+        stumbled: "Stumbled, then corrected",
+        nothingHeard: "Nothing was heard here",
+        unclear: "Heard, but not clearly enough",
+        gaveUp: "You stopped here and moved on",
         ayah: "ayah {{reference}}",
         again: "Recite again",
       },
@@ -1180,6 +1263,27 @@ const en: StringTree<typeof ar> = {
       analyzing: "Checking what you said…",
       memoryHidden: "Recite from memory — ayahs are hidden.",
       memoryVisible: "Recite from memory — ayahs are visible.",
+      stopOnMistakeOn: "Stop me at a mistake: on",
+      stopOnMistakeOff: "Stop me at a mistake: off",
+      held: "Stopped at a word",
+      heldAt: "Say the word to carry on",
+      revealHeld: "Show me the word",
+      skipHeld: "Move past it",
+      debugTitle: "Diagnostics",
+      debugNothingYet: "nothing heard yet",
+      debugHint:
+        "What the model heard against what the page expects. For debugging only.",
+      debugHeard: "Heard",
+      debugExpected: "Expected",
+      debugLevel: "Mic level",
+      debugPeak: "peak",
+      debugAccepted: "Passed the gate",
+      debugBlocks: "blocks",
+      debugClipped: "Clipping",
+      debugRate: "Sample rate",
+      debugDevice: "Microphone",
+      debugOn: "Diagnostics: on",
+      debugOff: "Diagnostics: off",
       showAyat: "Show ayahs",
       hideAyat: "Hide ayahs",
       stop: "Stop practice",
@@ -1195,7 +1299,12 @@ const en: StringTree<typeof ar> = {
         recognition: "Speech recognition encountered an error.",
         workerUnavailable: "Speech recognition is unavailable.",
         startFailed: "Recitation practice could not be started.",
+        nothingHeard:
+          "Something was heard, but none of it matched this page. Check you are on the right page.",
+        verdictFailed: "The recitation could not be checked.",
       },
+      dismissError: "Dismiss this message",
+      redownloadModel: "Download the model again",
     },
     tajweed: {
       colored: "Color-coded tajweed",
@@ -1824,11 +1933,20 @@ const en: StringTree<typeof ar> = {
       description:
         "When enabled, speech recognition runs locally after the model is downloaded once.",
       modelLabel: "Speech recognition model",
+      strictLabel: "Correct me strictly",
+      strictHint:
+        "Marks every weak word instead of forgiving one an ayah: catches about twice as many mistakes, and wrongly flags about one correct recitation in sixteen.",
       searchPlaceholder: "Search models…",
       clearCache: "Remove downloaded practice models",
       clearingCache: "Removing models…",
       localNote:
-        "Microphone audio is not sent to Tarteel servers. The first model download requires an internet connection.",
+        "Microphone audio is never sent to a server. The first model download requires an internet connection.",
+      models: {
+        streaming: { label: "Live recitation — Quran-Lab (recommended)" },
+        tarteelTiny: { label: "Qur'an — Tarteel Tiny (recommended)" },
+        genericTiny: { label: "General — Whisper Tiny" },
+        genericSmall: { label: "General — Whisper Small" },
+      },
     },
     privacy: {
       title: "Privacy and storage",

@@ -2,9 +2,17 @@
 .claude
 coverage
 dist
-dist-practice
 node_modules
 playwright-report
 public/data/quran
 test-results
 package-lock.json
+
+# Generated caches from scripts/tasmee/sweep.mjs and cursor.mjs
+scripts/tasmee/fixtures-large/.scores.json
+scripts/tasmee/fixtures-large/.emissions.json
+scripts/tasmee/fixtures/.scores.json
+scripts/tasmee/fixtures/.emissions.json
+scripts/tasmee/fixtures-page/.scores.json
+scripts/tasmee/fixtures-page/.emissions.json
+scripts/tasmee/.measure.log

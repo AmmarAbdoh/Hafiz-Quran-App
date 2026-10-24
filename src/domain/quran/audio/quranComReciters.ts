@@ -1,5 +1,12 @@
-/** Maps app reciter ids to Quran.com recitation ids (for segments and timing). */
-const RECITER_QURAN_COM_IDS: Record<string, number> = {
+/**
+ * Maps app reciter ids to Quran.com recitation ids (for segments and timing).
+ *
+ * Exported because the تسميع bench builds its fixtures from these same
+ * recitations, and word-level mistakes can only be cut for reciters whose
+ * timestamps Quran.com publishes - so this list is exactly the set of voices
+ * the bench can cover. Keeping it in one place stops the two drifting.
+ */
+export const RECITER_QURAN_COM_IDS: Record<string, number> = {
   "ea-Alafasy_128kbps": 7,
   "ea-Abdurrahmaan_As-Sudais_192kbps": 3,
   "ea-Abu_Bakr_Ash-Shaatree_128kbps": 4,

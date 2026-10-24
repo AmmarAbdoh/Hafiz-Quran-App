@@ -18,6 +18,71 @@ node scripts/tasmee/build-fixtures.mjs        # ~1 min, needs ffmpeg + network
 node scripts/tasmee/evaluate.mjs --runner baseline
 ```
 
+For the pipeline the app actually runs, against the large set:
+
+```bash
+node scripts/tasmee/build-word-fixtures.mjs   # 663 clips from word timestamps
+node scripts/tasmee/evaluate.mjs --runner zipformer-app   --fixtures scripts/tasmee/fixtures-large
+```
+
+Each script below caches its model pass, so only the first run costs ten
+minutes and every question after it is answered in a second:
+
+| script          | what it answers                                                                                    |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| `sweep.mjs`     | per-word alignment scores, and the threshold curve over them                                       |
+| `rules.mjs`     | whether a different shape of verdict rule does better                                              |
+| `aggregate.mjs` | how a word's many phonemes should become one score                                                 |
+| `cursor.mjs`    | whether the **live cursor** keeps up: words lit, stalls, spurious skips                            |
+| `skips.mjs`     | what the cursor's report is worth to the verdict, and how strictly to believe it                   |
+| `stumbles.mjs`  | what the cursor's stumble is worth: how often it fires on a clean run, and what listing it catches |
+| `dropped.mjs`   | which sounds the model does not emit, per expected unit and per word-opening unit                  |
+
+## Three fixture sets, and what each is for
+
+| set              | clips | each clip     | what only it can show                               |
+| ---------------- | ----- | ------------- | --------------------------------------------------- |
+| `fixtures`       | 32    | one ayah      | the original curated mistakes; too small to tune on |
+| `fixtures-large` | 663   | one ayah      | enough mistakes to choose a rule from               |
+| `fixtures-page`  | 171   | 3.6 ayat avg. | everything that only goes wrong at page scale       |
+
+`build-page-fixtures.mjs` makes the third from audio the second already
+cached, so it downloads no recitation. It exists because two things the reader
+does on every run are invisible on a single ayah:
+
+- The cursor's **resync searches the whole passage**, so a false match gets
+  likelier the longer the passage. A page offers roughly ten times as many
+  places to go wrong as one ayah, and that is what "it seem I can skip" turned
+  out to be. Three phonemes in common now only move it within eight words;
+  further than that the whole six-phoneme stray run has to agree, and the
+  nearest match wins in either direction so going back over a few words is
+  followed back rather than carried ahead.
+- The **one-weak-word tolerance is per ayah**, so a page spends that budget
+  once per ayah. Whether a real mistake in the ninth ayah still stands out is
+  not a question one ayah can answer.
+
+It also carries two mistake kinds that cannot exist in a single ayah:
+`ayah-dropped`, a whole verse missed out, and `ayah-repeated`, a verse recited
+twice — which must **pass**, because going back over an ayah is how people
+memorise.
+
+`cursor.mjs`, `skips.mjs` and `stumbles.mjs` exist because everything else
+here measures the verdict, and the cursor — the part a reciter watches — went
+unmeasured until it was reported broken from real use.
+
+`dropped.mjs` answers "is this sound the model's problem or this
+microphone's". It was written because a learner was stopped for twenty-six
+seconds at فَوَيلْ لِّلْمُصَلِّينَ having recited it correctly: the model
+emitted every phoneme of it but the opening فَ, three attempts running, while
+over the correct clips here that symbol is heard 99.2% of the time. Before
+changing the cursor for one reciter, check what the model does for everyone.
+
+`stumbles.mjs` measures the one mistake no pass over the audio can find. A
+word said wrongly and then said correctly is in the recording twice; the
+alignment places each label once and places it on the attempt that supports
+it, so the word scores well and the run comes back clean. Only the live cursor
+was there for the first attempt.
+
 `build-fixtures.mjs` pulls per-ayah recitation from everyayah.com — the same
 source the app already streams — and constructs mistakes from it. Per-ayah
 files give exact verse boundaries, so a mistake can be built without the

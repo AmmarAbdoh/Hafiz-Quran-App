@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "scripts/**/*.mjs",
-    "src/features/recitation-practice/runtime.disabled.ts"
+    "src/features/recitation-practice/workers/zipformer.worker.ts"
   ],
   "project": [
     "src/**/*.{ts,tsx,css}",

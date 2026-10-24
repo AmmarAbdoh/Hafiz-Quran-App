@@ -16,7 +16,7 @@ import {
   useQuranPlaybackHighlight,
   useQuranPlaybackState,
 } from "@/features/quran-reader/context/QuranPlaybackContext";
-import { useRecitationPractice } from "@practice/runtime";
+import { useRecitationPractice } from "@/features/recitation-practice";
 import { useMushafVerseInteractions } from "@/features/quran-reader/hooks/useMushafVerseInteractions";
 import {
   scrollMushafToPage,
@@ -83,9 +83,51 @@ export function MushafSurahViewer({
   const practice = useRecitationPractice();
   /* Memoised for identity, not for cost: the page below turns this into a
      Set, and a fresh array every render would rebuild it every render. */
+  /*
+   * The word the reciter is stuck on carries the same red line as one they
+   * got wrong earlier. The flash beside it is a moment; being held at a word
+   * needs a mark that lasts until they get past it.
+   */
+  /*
+   * Which page each word sits on, so a run can blank its own page and no
+   * others.
+   *
+   * Surah view mounts several pages at once, and `hideAyat` was applied to
+   * every one of them - while only the page being recited can ever be
+   * revealed, because `revealedLocations` holds that page's words alone. The
+   * pages around it were therefore blanked for the whole run with nothing
+   * able to bring them back. Built from the layouts rather than per word, so
+   * following the cursor does not rebuild it every 480ms.
+   */
+  const pageOfLocation = useMemo(() => {
+    const pages = new Map<string, number>();
+    for (const layout of pageLayouts) {
+      for (const line of layout.lines) {
+        for (const word of line.words) pages.set(word.location, word.page);
+      }
+    }
+    return pages;
+  }, [pageLayouts]);
+
+  /* Null between the last word and the verdict, where hiding is already off
+     because the run is complete. */
+  const practicePage = practice.currentWordLocation
+    ? (pageOfLocation.get(practice.currentWordLocation) ?? null)
+    : null;
+
   const misreadLocations = useMemo(
-    () => practice.misreadWords.map((word) => word.location),
-    [practice.misreadWords],
+    () => [
+      ...practice.misreadWords.map((word) => word.location),
+      ...(practice.wrongFlashLocation ? [practice.wrongFlashLocation] : []),
+      /* The streaming engine holds the run at the word instead of flashing
+         it, so the mark has to follow the hold as well. */
+      ...(practice.heldAtLocation ? [practice.heldAtLocation] : []),
+    ],
+    [
+      practice.misreadWords,
+      practice.wrongFlashLocation,
+      practice.heldAtLocation,
+    ],
   );
 
   const surahPageLayouts = useMemo(
@@ -466,7 +508,12 @@ export function MushafSurahViewer({
             }
             recitationWordLocation={activeWordLocation}
             practiceMode={practice.active && !practice.completed}
-            practiceHideAyat={practice.hideAyat}
+            practiceHideAyat={
+              practice.hideAyat &&
+              practice.active &&
+              !practice.completed &&
+              pageLayout.page === practicePage
+            }
             practiceRevealedLocations={practice.revealedLocations}
             practiceTargetWordLocation={practice.currentWordLocation}
             practiceWrongFlashLocation={practice.wrongFlashLocation}

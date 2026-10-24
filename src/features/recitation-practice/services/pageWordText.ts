@@ -58,6 +58,14 @@ async function fetchVerseWordsMap(
   return map;
 }
 
+/** A verse's words as the mushaf divides them, in order. */
+export async function fetchVerseWordTexts(verseKey: string): Promise<string[]> {
+  const words = await fetchVerseWordsMap(verseKey);
+  return [...words.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, word]) => word.raw);
+}
+
 export async function buildPageExpectedWords(
   words: MushafWord[],
 ): Promise<ExpectedPracticeWord[]> {

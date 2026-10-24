@@ -567,6 +567,64 @@ without paying for it today.
 
 ---
 
+## 8. The gated model, measured (2026-10-17)
+
+Access to `Quran-Lab/zipformer_p-arabic-v3` was granted, and it answers the
+question this document has circled since §1.
+
+### What it is
+
+A 65.5M-parameter streaming Zipformer2 with a CTC head, emitting a 251-symbol
+Qur'anic phonetic alphabet. Its design note is the point: **"no language
+model, anywhere."** No transducer, no LM rescoring, no text prior - because an
+LM silently repairs a reciter's mistake, which is exactly what §1.3 predicted
+would sink a Whisper-based judge. The 69MB int8 ONNX export is less than half
+the 150MB Whisper download it replaces.
+
+### Measured here, on our own fixtures
+
+Run with `scripts/tasmee/runners/zipformer.mjs`, scored against the canonical
+phonemisation the model ships (`ordered_quran_phonemes.json`), unit-level
+edit distance:
+
+|                                           | result                                             |
+| ----------------------------------------- | -------------------------------------------------- |
+| mean phoneme error rate, 20 correct clips | **3.08%** (worst 16.7%)                            |
+| verdicts correct                          | **31 of 32**                                       |
+| decode speed                              | 6.3s of audio in 281ms, ~22x faster than real time |
+| model load                                | 1.5s                                               |
+
+Al-Fatihah 1:2 came back as `ءَلحَمدُلِللَااهِرَببِلعَاالَمِۦۦۦۦن` - identical
+to the gold phonemisation, character for character, with gemination (`رَببِ`)
+and madd length (`ۦۦۦۦ`) both present.
+
+For contrast, the Whisper tiny model that was shipping, measured the same day
+on studio Husary audio: 27% word error rate at best, and **73%** at the 2.2s
+chunk size the app actually used. It was never close.
+
+### It does not repair mistakes
+
+The `wrong-verse` clips transcribe faithfully as the wrong verse, the
+`stopped` clips as a truncated utterance. That is the no-LM property doing
+what it promised, and it is the property no Whisper variant could offer.
+
+### The one miss, and what it tells us
+
+`wrong-ending-112_1` was judged correct. The model _did_ hear the error -
+`ءَمَدڇ` where the verse has `ءَحَدڇ` - but one wrong unit in a ten-unit verse
+is 10%, under the 18% threshold. The rate denominator is the problem, not the
+recogniser: the same "one slip in a short passage" trap that
+`alignRecitation` already reasons about for words. The app's judgement needs
+an absolute-error floor for short verses, or a confidence gate, rather than a
+bare rate.
+
+### Still open
+
+A browser cannot authenticate to a gated repository, so shipping this means
+serving the weights from Artqiy's own origin. NPL-1.2 permits copying and a
+free hosted service (§6), but Quran-Lab gate access manually and should be
+asked rather than inferred from the licence text.
+
 ## Sources
 
 - [Quran-Lab/zipformer_p-arabic-v3](https://huggingface.co/Quran-Lab/zipformer_p-arabic-v3) — 65.5M params, PER 1.43%, streaming, "no language model, anywhere"

@@ -7,11 +7,10 @@ import { LocaleProvider } from "@/app/i18n";
 import { ThemeProvider } from "@/shared/hooks/use-theme";
 import { MushafReaderHeader } from "./MushafReaderHeader";
 
-const noop = () => {};
-
 function renderHeader(
   overrides: Partial<Parameters<typeof MushafReaderHeader>[0]> = {},
 ) {
+  const onTogglePractice = vi.fn();
   const onOpenReadingPreferences = vi.fn();
   const onOpenListenOptions = vi.fn();
   const onOpenSurahDrawer = vi.fn();
@@ -33,13 +32,14 @@ function renderHeader(
                   mushafData={[]}
                   practiceActive={false}
                   practiceLoading={false}
+                  practiceReady
                   onLayoutModeChange={onLayoutModeChange}
                   onSurahSelect={vi.fn()}
                   onOpenSurahDrawer={onOpenSurahDrawer}
                   onOpenAyahSearch={onOpenAyahSearch}
                   onOpenListenOptions={onOpenListenOptions}
                   onOpenReadingPreferences={onOpenReadingPreferences}
-                  onTogglePractice={noop}
+                  onTogglePractice={onTogglePractice}
                   {...overrides}
                 />
               }
@@ -50,6 +50,7 @@ function renderHeader(
     </MemoryRouter>,
   );
   return {
+    onTogglePractice,
     onOpenReadingPreferences,
     onOpenListenOptions,
     onOpenSurahDrawer,
@@ -177,5 +178,54 @@ describe("MushafReaderHeader", () => {
     expect(onOpenListenOptions).toHaveBeenCalledWith();
     expect(onOpenSurahDrawer).toHaveBeenCalled();
     expect(onOpenAyahSearch).toHaveBeenCalled();
+  });
+});
+
+describe("the تسميع control", () => {
+  /**
+   * It was the fifth item of an overflow menu, behind a build flag. Being
+   * found is the whole point of the change, so the test is that it is a
+   * control on the header itself.
+   */
+  it("sits on the header rather than inside the menu", () => {
+    renderHeader();
+
+    expect(screen.getByRole("button", { name: "تسميع" })).toBeInTheDocument();
+  });
+
+  it("starts a recitation when pressed", () => {
+    const { onTogglePractice } = renderHeader();
+
+    fireEvent.click(screen.getByRole("button", { name: "تسميع" }));
+
+    expect(onTogglePractice).toHaveBeenCalledOnce();
+  });
+
+  it("offers to stop once a recitation is running", () => {
+    renderHeader({ practiceActive: true });
+
+    /* The name alone says what pressing it does; see the control's comment
+       on why `aria-pressed` is not set as well. */
+    const control = screen.getByRole("button", { name: "إيقاف التسميع" });
+    expect(control).not.toHaveAttribute("aria-pressed");
+    expect(control).toBeEnabled();
+  });
+
+  /*
+   * In surah view the page a run is judged against is whichever one the
+   * reader is scrolled to, so it can stop resolving mid-run - and that was
+   * disabling the only way to stop.
+   */
+  it("can still be stopped when the page it judges goes away", () => {
+    renderHeader({ practiceActive: true, practiceReady: false });
+
+    expect(screen.getByRole("button", { name: "إيقاف التسميع" })).toBeEnabled();
+  });
+
+  /* Pressing it before the page it would judge has loaded cannot work. */
+  it("waits for the page it would judge", () => {
+    renderHeader({ practiceReady: false });
+
+    expect(screen.getByRole("button", { name: "تسميع" })).toBeDisabled();
   });
 });

@@ -19,10 +19,7 @@
     "noUncheckedIndexedAccess": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@practice/runtime": [
-        "./src/features/recitation-practice/runtime.enabled.ts"
-      ]
+      "@/*": ["./src/*"]
     },
     "types": ["vite/client", "vitest/globals"]
   },

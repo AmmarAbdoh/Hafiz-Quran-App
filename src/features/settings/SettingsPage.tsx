@@ -17,7 +17,10 @@ import {
   CloudDownload,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { PracticePrivacyDisclosure, PracticeSettings } from "@practice/runtime";
+import {
+  PracticePrivacyDisclosure,
+  PracticeSettings,
+} from "@/features/recitation-practice";
 import { formatNumber, useLocale } from "@/app/i18n";
 import { PageContainer } from "@/shared/components/PageContainer";
 import { Panel } from "@/shared/components/Panel";

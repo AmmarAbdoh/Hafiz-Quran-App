@@ -5,7 +5,7 @@ import {
   useQuranPlaybackHighlight,
   useQuranPlaybackState,
 } from "@/features/quran-reader/context/QuranPlaybackContext";
-import { useRecitationPractice } from "@practice/runtime";
+import { useRecitationPractice } from "@/features/recitation-practice";
 import { useMushafVerseInteractions } from "@/features/quran-reader/hooks/useMushafVerseInteractions";
 import {
   isComfortablyVisible,
@@ -44,9 +44,24 @@ export function MushafViewer({
   const practice = useRecitationPractice();
   /* Memoised for identity, not for cost: the page below turns this into a
      Set, and a fresh array every render would rebuild it every render. */
+  /*
+   * The word the reciter is stuck on carries the same red line as one they
+   * got wrong earlier. The flash beside it is a moment; being held at a word
+   * needs a mark that lasts until they get past it.
+   */
   const misreadLocations = useMemo(
-    () => practice.misreadWords.map((word) => word.location),
-    [practice.misreadWords],
+    () => [
+      ...practice.misreadWords.map((word) => word.location),
+      ...(practice.wrongFlashLocation ? [practice.wrongFlashLocation] : []),
+      /* The streaming engine holds the run at the word instead of flashing
+         it, so the mark has to follow the hold as well. */
+      ...(practice.heldAtLocation ? [practice.heldAtLocation] : []),
+    ],
+    [
+      practice.misreadWords,
+      practice.wrongFlashLocation,
+      practice.heldAtLocation,
+    ],
   );
 
   const wordsByLocation = useMemo(() => {
@@ -133,7 +148,13 @@ export function MushafViewer({
         recitationVerseKey={practice.active ? null : playback.activeVerseKey}
         recitationWordLocation={activeWordLocation}
         practiceMode={practice.active && !practice.completed}
-        practiceHideAyat={practice.hideAyat}
+        /* For the whole run, not only once it is listening: gated on
+           `listening` the text sat in plain view for the entire model
+           download, which is the one thing someone memorising must not
+           see. */
+        practiceHideAyat={
+          practice.hideAyat && practice.active && !practice.completed
+        }
         practiceRevealedLocations={practice.revealedLocations}
         practiceTargetWordLocation={practice.currentWordLocation}
         practiceWrongFlashLocation={practice.wrongFlashLocation}

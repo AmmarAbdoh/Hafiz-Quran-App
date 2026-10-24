@@ -10,7 +10,6 @@ export default tseslint.config(
     ignores: [
       "coverage",
       "dist",
-      "dist-practice",
       "node_modules",
       "playwright-report",
       "public/data/quran",

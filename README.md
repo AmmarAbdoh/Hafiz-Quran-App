@@ -53,25 +53,24 @@ Generation sources, attribution, and legacy fidelity hashes live under `scripts/
 npm run check
 ```
 
-The complete gate checks formatting, both TypeScript projects, zero-warning lint, unit/component coverage, dead code, Quran data invariants, the production dependency audit, default/practice builds, bundle budgets, and Playwright/Axe flows.
+The complete gate checks formatting, both TypeScript projects, zero-warning lint, unit/component coverage, dead code, Quran data invariants, the production dependency audit, the build, bundle budgets, and Playwright/Axe flows.
 
 Useful focused commands:
 
-| Command                  | Purpose                                                |
-| ------------------------ | ------------------------------------------------------ |
-| `npm run test`           | Run unit and component tests                           |
-| `npm run test:e2e`       | Run browser and accessibility smoke tests              |
-| `npm run lint`           | Run type-aware ESLint with zero warnings               |
-| `npm run typecheck`      | Check application and tool configuration projects      |
-| `npm run build`          | Build the default app without practice model artifacts |
-| `npm run build:practice` | Build the optional recitation-practice variant         |
-| `npm run build:budget`   | Enforce output size, file-count, and isolation budgets |
+| Command                | Purpose                                               |
+| ---------------------- | ----------------------------------------------------- |
+| `npm run test`         | Run unit and component tests                          |
+| `npm run test:e2e`     | Run browser and accessibility smoke tests             |
+| `npm run lint`         | Run type-aware ESLint with zero warnings              |
+| `npm run typecheck`    | Check application and tool configuration projects     |
+| `npm run build`        | Build the app                                         |
+| `npm run build:budget` | Enforce output size, file-count, and precache budgets |
 
 Install the Playwright browser once with `npm run test:e2e:install`.
 
 ## Privacy and external requests
 
-There are no accounts or analytics. Preferences and quiz history remain in browser storage. Quran text, metadata, layouts, and tafsir are served as local static files. Recitation playback requests audio from the configured Quran audio hosts. When the optional practice build is enabled, speech-model files are downloaded from Hugging Face and microphone audio is processed locally in the browser; it is not uploaded by this app.
+There are no accounts or analytics. Preferences and quiz history remain in browser storage. Quran text, metadata, layouts, and tafsir are served as local static files. Recitation playback requests audio from the configured Quran audio hosts. Starting تسميع downloads the speech model once and then keeps it in the browser: the default streaming recogniser comes from wherever the build points `VITE_PRACTICE_MODEL_URL` (the app's own host unless configured otherwise), and the optional Whisper models come from Hugging Face. Microphone audio is recognised locally in the browser and is not uploaded by this app.
 
 These external requests and storage behaviors are also disclosed in Arabic and English in Settings.
 

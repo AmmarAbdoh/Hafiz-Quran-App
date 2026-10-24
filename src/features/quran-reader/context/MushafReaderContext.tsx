@@ -26,6 +26,8 @@ export interface MushafReaderHeaderState {
   mushafData: MushafVerse[];
   practiceActive: boolean;
   practiceLoading: boolean;
+  /** False while the page a recitation would be judged against is still loading. */
+  practiceReady: boolean;
   onLayoutModeChange: (mode: MushafLayoutMode) => void;
   onSurahSelect: (surahIndex: number) => void;
   onOpenSurahDrawer: () => void;

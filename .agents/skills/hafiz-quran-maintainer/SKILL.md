@@ -63,7 +63,6 @@ Run the narrowest relevant tests while iterating, then run the full repository g
 ```text
 npm run check
 npm run build
-npm run build:practice
 ```
 
-For data changes, also run `npm run data:verify`. For user-facing flows, run component tests and the relevant Playwright/Axe smoke tests. Verify the default build has no Whisper, Transformers, ONNX, worker, or ORT WASM artifacts and remains within repository budgets.
+For data changes, also run `npm run data:verify`. For user-facing flows, run component tests and the relevant Playwright/Axe smoke tests. The speech model's runtime ships with the app but must stay out of the service worker's precache, so it is fetched only when someone starts تسميع; `npm run build:budget` enforces that and the rest of the repository budgets.
