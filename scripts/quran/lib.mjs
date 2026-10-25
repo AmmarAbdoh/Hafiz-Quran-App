@@ -147,3 +147,44 @@ export function verseKey(surah, ayah) {
 export function sum(values) {
   return values.reduce((total, value) => total + value, 0);
 }
+
+/*
+ * Every word on the page and line it names itself.
+ *
+ * The source layout was fetched page by page from the Quran.com API and
+ * stored by the page that was asked for, not by the page each word records.
+ * On 29 pages that put the end of the previous page's text on the next one:
+ * page 120 stopped before 5:77, and page 121 drew 5:77 after 5:82 in a font
+ * that has none of its glyphs - "مح مخ مم نج" where the ayah should be.
+ *
+ * Each word's own `page` and `line` agree with the verse data's page and
+ * line span, so they are the authority. Only where a word is filed changes:
+ * no word, text value or field is added, dropped or rewritten, and within a
+ * line the words stay in the mushaf's order. Pages and lines are rebuilt in
+ * the source's own shape, `{ page, lines: [{ line, words }] }`.
+ */
+export function placeWordsOnTheirPages(pages) {
+  const byPage = new Map();
+  for (const page of pages) {
+    for (const line of page.lines) {
+      for (const word of line.words) {
+        const lines = byPage.get(word.page) ?? new Map();
+        const words = lines.get(word.line) ?? [];
+        words.push(word);
+        lines.set(word.line, words);
+        byPage.set(word.page, lines);
+      }
+    }
+  }
+  const order = (word) => [word.sura, word.aya, word.word];
+  const byReading = (a, b) => {
+    const [x, y] = [order(a), order(b)];
+    return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+  };
+  return pages.map(({ page }) => ({
+    page,
+    lines: [...(byPage.get(page) ?? new Map())]
+      .sort(([a], [b]) => a - b)
+      .map(([line, words]) => ({ line, words: words.sort(byReading) })),
+  }));
+}

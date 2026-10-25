@@ -26,9 +26,15 @@ import {
   quranPlaybackReducer,
   type QuranPlaybackState,
 } from "@/features/quran-reader/model/playbackState";
-import type { PlaybackTime } from "@/features/quran-reader/model/playbackTime";
+import {
+  playlistIndexAt,
+  type PlaybackTime,
+} from "@/features/quran-reader/model/playbackTime";
 import { usePlaybackAudioSync } from "@/features/quran-reader/hooks/usePlaybackAudioSync";
-import { cachedAudioUrl } from "@/features/quran-reader/services/audioDownloads";
+import {
+  cachedAudioUrl,
+  hasCachedAudio,
+} from "@/features/quran-reader/services/audioDownloads";
 import { CancellableAudioPlayer } from "@/shared/media";
 import { claimAudioFocus, releaseAudioFocus } from "@/shared/media/audioFocus";
 
@@ -60,6 +66,13 @@ export interface QuranPlaybackActions {
     navigator: ((verseKey: string) => void) | null,
   ) => void;
   goToVerse: (verseKey: string) => void;
+  /**
+   * Carry on from another ayah of the session: `index` into its playlist, or
+   * a point along it from 0 to 1 - where the progress line was tapped. The
+   * page turns to it, as it does when a recitation reaches a new page.
+   */
+  seekToItem: (index: number) => void;
+  seekToFraction: (fraction: number) => void;
   setActiveVerseInView: (inView: boolean) => void;
   setAutoFollowPages: (follow: boolean) => void;
 }
@@ -97,6 +110,72 @@ function createEmptySession(): ListenSession {
     quranComId: null,
     supportsWordHighlight: false,
     surahTimestampsCache: new Map(),
+  };
+}
+
+/** Where an ayah's recording is, and its word timings when it has them. */
+interface ResolvedAyahAudio {
+  audioUrl: string;
+  segments: WordSegment[];
+}
+
+type Reciter = Parameters<typeof getAyahAudioUrl>[0];
+
+const ayahKey = (item: { surah: number; ayah: number }) =>
+  `${item.surah}:${item.ayah}`;
+
+/**
+ * Find an ayah's recording: Quran.com's, with word timings, for a reciter it
+ * publishes them for, and the reciter's per-ayah file otherwise - or when the
+ * lookup fails, which is what keeps a recitation going offline. Throws only
+ * when `signal` was aborted.
+ */
+async function resolveAyahAudio(
+  session: ListenSession,
+  item: { surah: number; ayah: number },
+  reciter: Reciter,
+  signal: AbortSignal,
+): Promise<ResolvedAyahAudio> {
+  if (session.quranComId) {
+    try {
+      let timestamps = session.surahTimestampsCache.get(item.surah);
+      if (!timestamps) {
+        const metadata = await fetchSurahAudioMeta(
+          item.surah,
+          session.quranComId,
+          signal,
+        );
+        timestamps = metadata?.ayahTimestamps ?? [];
+        session.surahTimestampsCache.set(item.surah, timestamps);
+      }
+
+      const verseAudio = await fetchVerseAudioData(
+        ayahKey(item),
+        session.quranComId,
+        signal,
+      );
+      if (verseAudio) {
+        const chapterEntry = timestamps.find(
+          (entry) => entry.ayah === item.ayah,
+        );
+        return {
+          audioUrl: verseAudio.audioUrl,
+          segments: chapterEntry
+            ? mergeWordSegments(
+                verseAudio.segments,
+                chapterEntry.chapterSegments,
+                verseAudio.wordsByPosition,
+              )
+            : verseAudio.segments,
+        };
+      }
+    } catch (error) {
+      if (signal.aborted) throw error;
+    }
+  }
+  return {
+    audioUrl: getAyahAudioUrl(reciter, item.surah, item.ayah),
+    segments: [],
   };
 }
 
@@ -146,6 +225,14 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   if (!operationControllerRef.current) {
     operationControllerRef.current = new MediaOperationController();
   }
+  /*
+   * The next ayah, looked up while the current one plays; see `prefetchNext`.
+   * Keyed by ayah, and aborted with the session rather than with the item:
+   * the item's own operation ends at the very moment the next one starts,
+   * which is when the lookup has to be there.
+   */
+  const upcomingRef = useRef(new Map<string, Promise<ResolvedAyahAudio>>());
+  const upcomingAbortRef = useRef(new AbortController());
 
   const {
     activeWordLocation,
@@ -169,11 +256,15 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
 
   const cancelCurrentSession = useCallback(() => {
     operationControllerRef.current?.cancel();
+    upcomingAbortRef.current.abort();
+    upcomingAbortRef.current = new AbortController();
+    upcomingRef.current.clear();
+    audioPlayer.clearPreload();
     cleanupAudio();
     segmentsRef.current = [];
     sessionRef.current = createEmptySession();
     resetPublished();
-  }, [cleanupAudio, resetPublished]);
+  }, [audioPlayer, cleanupAudio, resetPublished]);
 
   const stop = useCallback(() => {
     releaseAudioFocus(audioOwnerRef.current);
@@ -186,6 +277,30 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
   const playAtIndexRef = useRef<(index: number) => Promise<void>>(() =>
     Promise.resolve(),
   );
+
+  /**
+   * Have the ayah after this one ready before this one ends.
+   *
+   * Its lookup and its audio are both fetched now, so the gap between ayat is
+   * the recording's own pause and not a network wait. Only the next item in
+   * the playlist: a repeated ayah replays a file the browser already holds,
+   * and looking further ahead would spend data on ayat the reader may stop
+   * before. A downloaded recording is local already and is left alone.
+   */
+  const prefetchNext = (session: ListenSession, index: number) => {
+    const next = session.playlist[index + 1];
+    if (!next || upcomingRef.current.has(ayahKey(next))) return;
+    const signal = upcomingAbortRef.current.signal;
+    const pending = resolveAyahAudio(session, next, reciter, signal);
+    upcomingRef.current.set(ayahKey(next), pending);
+    void pending.then(
+      async ({ audioUrl }) => {
+        if (signal.aborted || (await hasCachedAudio(audioUrl))) return;
+        if (!signal.aborted) audioPlayer.preload(audioUrl);
+      },
+      () => {},
+    );
+  };
   const advanceAfterAyahRef = useRef<() => void>(() => undefined);
 
   advanceAfterAyahRef.current = () => {
@@ -284,50 +399,23 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     segmentsRef.current = [];
     presentCurrentItem();
 
-    let audioUrl: string | null = null;
-    if (session.quranComId) {
-      try {
-        let timestamps = session.surahTimestampsCache.get(item.surah);
-        if (!timestamps) {
-          const metadata = await fetchSurahAudioMeta(
-            item.surah,
-            session.quranComId,
-            operation.signal,
-          );
-          if (!controller.isCurrent(operation)) return;
-          timestamps = metadata?.ayahTimestamps ?? [];
-          session.surahTimestampsCache.set(item.surah, timestamps);
-        }
-
-        const verseAudio = await fetchVerseAudioData(
-          `${item.surah}:${item.ayah}`,
-          session.quranComId,
-          operation.signal,
-        );
-        if (!controller.isCurrent(operation)) return;
-
-        if (verseAudio) {
-          const chapterEntry = timestamps.find(
-            (entry) => entry.ayah === item.ayah,
-          );
-          segmentsRef.current = chapterEntry
-            ? mergeWordSegments(
-                verseAudio.segments,
-                chapterEntry.chapterSegments,
-                verseAudio.wordsByPosition,
-              )
-            : verseAudio.segments;
-          audioUrl = verseAudio.audioUrl;
-        }
-      } catch {
-        if (!controller.isCurrent(operation)) return;
-      }
-    }
-
-    if (!audioUrl) {
-      audioUrl = getAyahAudioUrl(reciter, item.surah, item.ayah);
+    /* Looked up already, if the last ayah had time to; see `prefetchNext`. */
+    const upcoming = upcomingRef.current.get(ayahKey(item));
+    upcomingRef.current.delete(ayahKey(item));
+    let resolved: ResolvedAyahAudio;
+    try {
+      resolved = await (upcoming ??
+        resolveAyahAudio(session, item, reciter, operation.signal));
+    } catch {
+      if (!controller.isCurrent(operation)) return;
+      resolved = {
+        audioUrl: getAyahAudioUrl(reciter, item.surah, item.ayah),
+        segments: [],
+      };
     }
     if (!controller.isCurrent(operation)) return;
+    segmentsRef.current = resolved.segments;
+    let audioUrl = resolved.audioUrl;
 
     /*
      * Downloaded recitation, when this is the file that was downloaded.
@@ -364,6 +452,7 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
           session.supportsWordHighlight,
         );
         startTimeSync(audio);
+        prefetchNext(session, index);
       },
       onPause: () => {
         if (controller.isCurrent(operation)) stopAudioSync();
@@ -517,6 +606,36 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "auto-follow-changed", follow });
   }, []);
 
+  const seekToItem = useCallback(
+    (index: number) => {
+      const session = sessionRef.current;
+      const item = session.playlist[index];
+      if (!item || !stateRef.current.active) return;
+      /* A repeated ayah sought to is heard its full number of times. */
+      if (session.repeatEachAyah && session.repeatMode === "count") {
+        session.unitRepeatLeft = session.repeatCount;
+      }
+      setAutoFollowPages(true);
+      goToVerse(`${item.surah}:${item.ayah}`);
+      void playAtIndexRef.current(index);
+    },
+    [goToVerse, setAutoFollowPages],
+  );
+
+  const seekToFraction = useCallback(
+    (fraction: number) => {
+      const session = sessionRef.current;
+      seekToItem(
+        playlistIndexAt({
+          playlist: session.playlist,
+          fraction,
+          timestamps: session.surahTimestampsCache,
+        }),
+      );
+    },
+    [seekToItem],
+  );
+
   useEffect(() => cancelCurrentSession, [cancelCurrentSession]);
 
   const actions = useMemo<QuranPlaybackActions>(
@@ -529,6 +648,8 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
       stop,
       registerPageNavigator,
       goToVerse,
+      seekToItem,
+      seekToFraction,
       setActiveVerseInView,
       setAutoFollowPages,
     }),
@@ -541,6 +662,8 @@ export function QuranPlaybackProvider({ children }: { children: ReactNode }) {
       stop,
       registerPageNavigator,
       goToVerse,
+      seekToItem,
+      seekToFraction,
       setActiveVerseInView,
       setAutoFollowPages,
     ],

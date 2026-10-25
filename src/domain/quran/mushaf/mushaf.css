@@ -141,13 +141,20 @@
    * stage rather than sized from the viewport: the page fits the box it is
    * given, exactly like `object-fit: contain`.
    *
-   * Both ratios are the ones the app already used, kept deliberately so no
-   * page becomes denser or sparser than before:
    *   --mushaf-measure-ratio  17.45 = 64.5vh / 3.7vh  (line width : font size)
-   *   --mushaf-leading-ratio   1.824 = 6.75vh / 3.7vh (line height : font size)
+   *   --mushaf-leading-ratio   2.0                     (line height : font size)
    * A spread line has a fixed word count, so glyph size is bound to the line
    * width - the two have to scale together or the surplus spills past the
    * inline end.
+   *
+   * The leading was 1.824, inherited from the old 6.75vh / 3.7vh pair rather
+   * than measured, and it was too tight for these glyphs: across every 13th
+   * page, the ink of two adjacent lines needs 1.89x the font size at the
+   * median and up to 2.22x, so the marks of one line touched the letters of
+   * the next. 2.0 clears the median with room. On a phone the page is bound
+   * by its width, so the extra height comes out of empty space below the page
+   * and the type does not shrink; on a short or wide screen it shrinks about
+   * 9%, which is the price of a harakah not sitting on the line above.
    *
    * Height is budgeted for the 15-line Madani grid (`MUSHAF_LINES_PER_PAGE`),
    * which `buildFullWordLines` pads every page out to. Because the scale
@@ -157,7 +164,7 @@
    */
   .mushaf-page--full {
     --mushaf-measure-ratio: 17.45;
-    --mushaf-leading-ratio: 1.824;
+    --mushaf-leading-ratio: 2;
     --mushaf-page-rows: 15;
     --mushaf-gutter-inline: 1.5rem;
     --mushaf-gutter-block: 3rem;
@@ -250,7 +257,13 @@
     align-items: center;
     justify-content: space-between;
     direction: rtl;
-    overflow: clip;
+    /*
+     * Clipped along the line only. A glyph's marks rise past the line box -
+     * up to 1.57x the font size above the baseline - and clipping both axes
+     * cut the top off them: the waqf sign over عَدُوٌّ at 2:36 lost its top.
+     */
+    overflow-x: clip;
+    overflow-y: visible;
     font-size: var(--mushaf-font-size);
     line-height: var(--mushaf-line-height);
   }

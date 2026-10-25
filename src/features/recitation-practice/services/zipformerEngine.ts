@@ -37,8 +37,19 @@ export interface ZipformerEngine {
     spans: { from: number; to: number }[],
   ) => void;
   push: (samples: Float32Array) => void;
-  /** Ask for the verdict on words `from` to `to`; answers through `onScores`. */
-  score: (words: { from: number; to: number }) => void;
+  /**
+   * Ask for the verdict on words `from` to `to`; answers through `onScores`,
+   * once per request and in the order asked.
+   *
+   * `continuing` keeps listening: the reciter has gone on to the next page,
+   * which `expect` names once it is known.
+   */
+  score: (
+    words: { from: number; to: number },
+    options?: { continuing: boolean },
+  ) => void;
+  /** The next page's words, for a recitation that carries on to it. */
+  expect: (labels: number[], spans: { from: number; to: number }[]) => void;
   /** False once the worker has died, after which a new engine is needed. */
   readonly usable: boolean;
   stop: () => void;
@@ -157,7 +168,15 @@ export async function startZipformer(
       worker.postMessage({ type: "expect", labels, spans });
     },
     push: (samples) => worker.postMessage({ type: "audio", samples }),
-    score: ({ from, to }) => worker.postMessage({ type: "score", from, to }),
+    score: ({ from, to }, options) =>
+      worker.postMessage({
+        type: "score",
+        from,
+        to,
+        continuing: options?.continuing ?? false,
+      }),
+    expect: (labels, spans) =>
+      worker.postMessage({ type: "expect", labels, spans }),
     get usable() {
       return usable;
     },

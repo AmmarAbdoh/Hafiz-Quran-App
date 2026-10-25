@@ -24,6 +24,7 @@ import { ReadingPreferencesSheet } from "@/features/quran-reader/components/Read
 import { MushafSurahViewer } from "@/features/quran-reader/components/MushafSurahViewer";
 import { MushafViewer } from "@/features/quran-reader/components/MushafViewer";
 import { PageControls } from "@/features/quran-reader/components/PageControls";
+import { PlaybackScrollFollower } from "@/features/quran-reader/components/PlaybackScrollFollower";
 import { PracticeAudioBar } from "@/features/quran-reader/components/PracticeAudioBar";
 import { SurahDrawer } from "@/features/quran-reader/components/SurahDrawer";
 import { TajweedLegendDialog } from "@/features/quran-reader/components/TajweedLegendDialog";
@@ -291,6 +292,45 @@ export function QuranReaderPage() {
   const practiceOnlySurah =
     route.layoutMode === "page" ? undefined : route.currentSurahNumber;
 
+  /**
+   * The page after the one being recited, turned to on screen.
+   *
+   * Asked for by the recitation as each page is finished, so it can carry on
+   * for as long as the reader does. In page view the next page of the mushaf
+   * is opened; in surah view it is the next page of the surah, which is
+   * already on screen and scrolled to by the cursor - and the surah's last
+   * page is where the run ends, since nothing past it is shown.
+   *
+   * Reassigned every render so it reads the reader as it is now, not as it
+   * was when the run started; the run holds only `continueRecitation`.
+   */
+  const recitedPageRef = useRef<{ first: number; current: number } | null>(
+    null,
+  );
+  const continueRecitationRef = useRef(
+    (): Promise<MushafWord[] | null> => Promise.resolve(null),
+  );
+  continueRecitationRef.current = async () => {
+    const recited = recitedPageRef.current;
+    if (!recited) return null;
+    const next = recited.current + 1;
+    if (route.layoutMode === "page") {
+      if (next > totalPages) return null;
+      const layout = await loadPageLayout(next);
+      recited.current = next;
+      navigation.changePage(next, { followPractice: true });
+      return recitableWordsOf(layout);
+    }
+    const layout = surahLayout.pageLayouts.find((page) => page.page === next);
+    if (!layout) return null;
+    recited.current = next;
+    return recitableWordsOf(layout, practiceOnlySurah);
+  };
+  const continueRecitation = useCallback(
+    () => continueRecitationRef.current(),
+    [],
+  );
+
   const togglePractice = useCallback(async () => {
     /*
      * The same as the bar's stop button, which it shares a label with: the
@@ -314,8 +354,13 @@ export function QuranReaderPage() {
      */
     const words = recitableWordsOf(practicePageLayout, practiceOnlySurah);
     recitedWordsRef.current = words;
-    await startPractice(words);
+    recitedPageRef.current = {
+      first: practicePageLayout.page,
+      current: practicePageLayout.page,
+    };
+    await startPractice(words, { continueWith: continueRecitation });
   }, [
+    continueRecitation,
     finishPractice,
     practiceActive,
     practiceOnlySurah,
@@ -324,14 +369,22 @@ export function QuranReaderPage() {
     stopPlayback,
   ]);
 
-  // Straight into another run from the summary, without closing it first:
-  // starting one resets the state the sheet is reading.
+  /*
+   * Straight into another run from the summary, without closing it first:
+   * starting one resets the state the sheet is reading. From the page the
+   * last run began on, which a run over several pages has long since left.
+   */
   const reciteAgain = useCallback(() => {
     const words = recitedWordsRef.current;
-    if (!words) return;
+    const recited = recitedPageRef.current;
+    if (!words || !recited) return;
     setSummaryDismissed(false);
-    void startPractice(words);
-  }, [startPractice]);
+    if (route.layoutMode === "page" && recited.current !== recited.first) {
+      navigation.changePage(recited.first, { followPractice: true });
+    }
+    recited.current = recited.first;
+    void startPractice(words, { continueWith: continueRecitation });
+  }, [continueRecitation, navigation, route.layoutMode, startPractice]);
 
   useEffect(() => {
     if (route.layoutMode !== "page") return;
@@ -565,6 +618,7 @@ export function QuranReaderPage() {
         {pageAnnouncement}
       </div>
 
+      <PlaybackScrollFollower page={statusPage} />
       <PracticeSummary
         open={practiceCompleted && !summaryDismissed}
         onOpenChange={(open) => setSummaryDismissed(!open)}

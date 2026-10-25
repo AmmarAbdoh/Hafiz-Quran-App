@@ -1064,3 +1064,245 @@ describe("a word whose opening phoneme never arrives", () => {
     expect(progress.currentLocations).toEqual(["x:1"]);
   });
 });
+
+/*
+ * "I said it right the first time, it didn't move, so I thought I was wrong
+ * and tried other versions." Al-Baqarah 2:32 as a learner said it: the تَ of
+ * أَنتَ came through as ننننَ with تَ the runner-up at 28%, and the ل of
+ * ٱلْعَلِيمُ not at all.
+ */
+describe("a word the recogniser half-misheard", () => {
+  const ANTA_AL_ALIM: ExpectedWord[] = [
+    { locations: ["2:32:10"], units: ["ءَ", "ںںں", "تَ"] },
+    { locations: ["2:32:11"], units: ["ل", "عَ", "لِ", "ۦۦ", "مُ"] },
+    { locations: ["2:32:12"], units: ["ل", "حَ", "كِ", "ۦۦۦۦ", "م"] },
+  ];
+
+  const misheard = (runnerUp: number): PhonemeEmission[] => [
+    ...say(["ءَ", "ںںں"]),
+    {
+      id: 2,
+      symbol: "ننننَ",
+      confidence: 0.65,
+      seconds: 0.08,
+      alternatives: [{ symbol: "تَ", probability: runnerUp }],
+    },
+  ];
+
+  it("takes the page's sound when the recogniser gave it as a close runner-up", () => {
+    const tracker = createPhonemeTracker(ANTA_AL_ALIM, {
+      acceptRunnerUpAt: 0.2,
+    });
+
+    const progress = advanceTracker(tracker, misheard(0.28));
+
+    expect(progress.completed).toEqual([{ locations: ["2:32:10"] }]);
+    expect(progress.currentLocations).toEqual(["2:32:11"]);
+  });
+
+  it("does not take a runner-up the recogniser barely considered", () => {
+    const tracker = createPhonemeTracker(ANTA_AL_ALIM, {
+      acceptRunnerUpAt: 0.2,
+    });
+
+    const progress = advanceTracker(tracker, misheard(0.08));
+
+    expect(progress.completed).toEqual([]);
+    expect(progress.currentLocations).toEqual(["2:32:10"]);
+  });
+
+  it("catches up once what follows is plainly the page", () => {
+    const tracker = createPhonemeTracker(ANTA_AL_ALIM, { catchUp: true });
+
+    /* تَ misheard, ل never heard, then ٱلْعَلِيمُ itself. */
+    const progress = advanceTracker(
+      tracker,
+      say(["ءَ", "ںںں", "ننننَ", "عَ", "لِ", "ۦۦ", "مُ"]),
+    );
+
+    expect(progress.completed.flatMap((word) => word.locations)).toEqual([
+      "2:32:10",
+      "2:32:11",
+    ]);
+    expect(progress.skipped).toEqual([]);
+    expect(progress.stumbles).toEqual([]);
+    expect(progress.currentLocations).toEqual(["2:32:12"]);
+  });
+
+  it("waits, as it used to, with catching up turned off", () => {
+    const tracker = createPhonemeTracker(ANTA_AL_ALIM, { catchUp: false });
+
+    const progress = advanceTracker(
+      tracker,
+      say(["ءَ", "ںںں", "ننننَ", "عَ", "لِ", "ۦۦ", "مُ"]),
+    );
+
+    expect(progress.completed).toEqual([]);
+    expect(progress.currentLocations).toEqual(["2:32:10"]);
+  });
+
+  /* Catching up looks past a misheard sound, never past a missing word. */
+  it("reports a short word it moved over unheard as passed over", () => {
+    const words: ExpectedWord[] = [
+      { locations: ["x:1"], units: ["قَ", "اا", "لَ"] },
+      { locations: ["x:2"], units: ["فِ"] },
+      { locations: ["x:3"], units: ["ل", "ءَ", "ر", "ضِ"] },
+    ];
+    const tracker = createPhonemeTracker(words, { catchUp: true });
+
+    /* قال, then straight to الأرض: فِ was never said. */
+    const progress = advanceTracker(
+      tracker,
+      say(["قَ", "اا", "لَ", "ل", "ءَ", "ر"]),
+    );
+
+    expect(progress.skipped).toEqual(["x:2"]);
+    expect(progress.completed.flatMap((word) => word.locations)).toEqual([
+      "x:1",
+    ]);
+  });
+
+  it("does not carry a held reciter past a word they did not say", () => {
+    const words: ExpectedWord[] = [
+      { locations: ["x:1"], units: ["قَ", "اا", "لَ"] },
+      { locations: ["x:2"], units: ["فِ"] },
+      { locations: ["x:3"], units: ["ل", "ءَ", "ر", "ضِ"] },
+    ];
+    const tracker = createPhonemeTracker(words, { catchUp: true });
+    advanceTracker(tracker, say(["قَ", "اا", "لَ"]));
+    holdAt(tracker, 1);
+
+    const progress = advanceTracker(tracker, say(["ل", "ءَ", "ر"]));
+
+    expect(progress.skipped).toEqual([]);
+    expect(progress.currentLocations).toEqual(["x:2"]);
+  });
+});
+
+/*
+ * The last word of a page, said and faded: its closing sound is quiet at a
+ * pause and often never emitted. Carrying on into the next page used to
+ * leave the cursor waiting for it, so the page never turned.
+ */
+describe("the end of a passage the reciter carries on from", () => {
+  const LAST: ExpectedWord[] = [
+    { locations: ["101:1:1"], units: ["ءَ", "ل", "قَ", "ا", "رِ", "عَ", "ه"] },
+  ];
+
+  it("finishes the last word when the next sounds belong elsewhere", () => {
+    const tracker = createPhonemeTracker(LAST, { lastWordTailForgiven: 2 });
+
+    advanceTracker(tracker, say(["ءَ", "ل", "قَ", "ا", "رِ", "عَ"]));
+    /* The next ayah begins: مَا. */
+    const progress = advanceTracker(tracker, say(["مَ", "ا"]));
+
+    expect(progress.completed).toEqual([{ locations: ["101:1:1"] }]);
+    expect(progress.finished).toBe(true);
+    expect(progress.stumbles).toEqual([]);
+  });
+
+  it("does not finish a last word barely begun", () => {
+    const tracker = createPhonemeTracker(LAST, { lastWordTailForgiven: 2 });
+
+    advanceTracker(tracker, say(["ءَ", "ل"]));
+    const progress = advanceTracker(tracker, say(["مَ", "ا"]));
+
+    expect(progress.finished).toBe(false);
+  });
+});
+
+/*
+ * "I said يا بني إسرائيل اذكروا نعمتي التي أنعمت عليكم and went on with the
+ * other ayah's ending, and it jumped there and skipped the whole page."
+ * Al-Baqarah 2:40 and 2:47 share their opening and then part.
+ */
+describe("a reciter who slips into an ayah's twin", () => {
+  const opening = [["يَاابَنِۦۦۦۦ"], ["ءِ", "س", "رَ"], ["ذ", "كُ", "رُ"]];
+  const ayah = (n: number, ending: string[][]): ExpectedWord[] =>
+    [...opening, ...ending].map((units, i) => ({
+      locations: [`2:${n}:${i + 1}`],
+      units,
+    }));
+  const between: ExpectedWord[] = Array.from({ length: 10 }, (_, i) => ({
+    locations: [`2:41:${i + 1}`],
+    units: ["قِ", `${i}`],
+  }));
+  const PAGE = [
+    ...ayah(40, [
+      ["وَ", "ءَ", "و", "فُ"],
+      ["بِ", "عَ", "ه", "دِ"],
+    ]),
+    ...between,
+    ...ayah(47, [
+      ["وَ", "ءَ", "ننننِ", "ۦۦ"],
+      ["فَ", "ضضَ", "ل", "تُ", "كُ", "م"],
+      ["عَ", "لَ"],
+    ]),
+  ];
+
+  it("holds at the word they should have said, and hears what they said", () => {
+    const tracker = createPhonemeTracker(PAGE);
+    advanceTracker(tracker, say(flat(PAGE.slice(0, 3))));
+
+    /* 2:47's ending, said where 2:40's belongs. */
+    const progress = advanceTracker(
+      tracker,
+      say(["ننننِ", "ۦۦ", "فَ", "ضضَ", "ل", "تُ", "كُ", "م", "عَ", "لَ"]),
+    );
+
+    expect(progress.skipped).toEqual([]);
+    expect(progress.currentLocations).toEqual(["2:40:4"]);
+    expect(progress.stumbles[0]?.locations).toEqual(["2:40:4"]);
+  });
+
+  /* The other way round: on 2:47, going on with 2:40's وَأَوْفُوا۟ بِعَهْدِى. */
+  const AT_47 = PAGE.findIndex((word) => word.locations[0] === "2:47:4");
+  const reciteUpTo47 = (tracker: ReturnType<typeof createPhonemeTracker>) => {
+    advanceTracker(tracker, say(flat(PAGE.slice(0, 5))));
+    advanceTracker(tracker, say(flat(PAGE.slice(5, AT_47))));
+  };
+
+  it("marks the word left behind when a slip back into the twin comes back", () => {
+    const tracker = createPhonemeTracker(PAGE);
+    reciteUpTo47(tracker);
+
+    /* 2:40's ending... */
+    const slipped = advanceTracker(
+      tracker,
+      say(["و", "فُ", "بِ", "عَ", "ه", "دِ"]),
+    );
+    /* ...then 2:47 begun again and said right. */
+    const back = advanceTracker(tracker, say(flat(PAGE.slice(AT_47 - 3))));
+
+    expect(slipped.stumbles).toEqual([]);
+    expect(back.stumbles.map((stumble) => stumble.locations)).toEqual([
+      ["2:47:4"],
+    ]);
+    expect(back.finished).toBe(true);
+  });
+
+  it("says nothing of a reciter who went back and said the earlier ayah through", () => {
+    const tracker = createPhonemeTracker(PAGE);
+    reciteUpTo47(tracker);
+
+    const repeated = advanceTracker(tracker, [
+      ...say(["و", "فُ", "بِ", "عَ", "ه", "دِ"]),
+      ...say(flat(PAGE.slice(5))),
+    ]);
+
+    expect(repeated.stumbles).toEqual([]);
+  });
+
+  it("still follows a reciter who arrives at the far ayah by its own words", () => {
+    const tracker = createPhonemeTracker(PAGE);
+    advanceTracker(tracker, say(flat(PAGE.slice(0, 3))));
+
+    /* The words before 2:47's ending are the page's 2:41, not 2:40's opening. */
+    const progress = advanceTracker(
+      tracker,
+      say(["قِ", "9", "يَاابَنِۦۦۦۦ", "ءِ", "س", "رَ", "ذ", "كُ", "رُ"]),
+    );
+
+    expect(progress.stumbles).toEqual([]);
+  });
+});

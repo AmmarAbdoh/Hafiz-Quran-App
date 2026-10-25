@@ -35,6 +35,11 @@ import {
 const CHUNK_SECONDS = 48 * 0.01;
 
 const MODEL_DIR = process.env.TASMEE_ZIPFORMER_DIR ?? ".models/zipformer";
+/**
+ * Cursor options to measure against the app's defaults, as JSON - for
+ * example `TASMEE_TRACKER='{"catchUp":false}'`. See `TrackerOptions`.
+ */
+const TRACKER_OPTIONS = JSON.parse(process.env.TASMEE_TRACKER ?? "{}");
 
 /** Silence appended so the last window is seen; see the worker in src. */
 const TAIL_PAD_SAMPLES = 61 * 160;
@@ -116,7 +121,7 @@ async function measure(clip, fixtures) {
    * every stopped-early clip by accident. Replaying the cursor here, in the
    * 480ms batches the worker posts, gives the same span the app would send.
    */
-  const tracker = createPhonemeTracker(expected.words);
+  const tracker = createPhonemeTracker(expected.words, TRACKER_OPTIONS);
   for (let at = 0; at < units.length; ) {
     const until = units[at].seconds + CHUNK_SECONDS;
     const chunk = [];
@@ -154,11 +159,24 @@ async function measure(clip, fixtures) {
     verdict: clip.verdict,
     reciter: clip.reciter,
     verseKeys: keys,
-    units: units.map((unit) => [
-      unit.symbol,
-      Number(unit.confidence.toFixed(3)),
-      Number(unit.seconds.toFixed(2)),
-    ]),
+    /* [symbol, confidence, seconds, runner-ups?] - the runner-ups only
+       when the frame had any, as [symbol, probability] pairs. */
+    units: units.map((unit) => {
+      const row = [
+        unit.symbol,
+        Number(unit.confidence.toFixed(3)),
+        Number(unit.seconds.toFixed(2)),
+      ];
+      if (unit.alternatives) {
+        row.push(
+          unit.alternatives.map((alternative) => [
+            alternative.symbol,
+            Number(alternative.probability.toFixed(3)),
+          ]),
+        );
+      }
+      return row;
+    }),
     /* Which words these scores are for, and how many the page had. */
     span: { from: span.from, to: span.to },
     totalWords: expected.words.length,

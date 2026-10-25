@@ -40,6 +40,18 @@ const dataSources = [
     useKey: "about.sourceDetails.tafsirUse",
     licenseKey: "about.sourceDetails.tafsirLicense",
   },
+  {
+    nameKey: "about.sourceDetails.quranLabName",
+    url: "https://huggingface.co/Quran-Lab/zipformer_p-arabic-v3.1",
+    useKey: "about.sourceDetails.quranLabUse",
+    licenseKey: "about.sourceDetails.quranLabLicense",
+  },
+  {
+    nameKey: "about.sourceDetails.whisperName",
+    url: "https://github.com/openai/whisper",
+    useKey: "about.sourceDetails.whisperUse",
+    licenseKey: "about.sourceDetails.whisperLicense",
+  },
 ] as const;
 
 export function AboutPage() {

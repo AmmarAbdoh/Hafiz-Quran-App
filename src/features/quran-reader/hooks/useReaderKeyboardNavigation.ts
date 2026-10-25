@@ -26,6 +26,10 @@ export function useReaderKeyboardNavigation({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isEditableTarget(event.target)) return;
+      /* Handled already - the audio bar's seek line moves through the
+         recitation with these same arrows, and turning the page as well
+         sent the reader to the page after the ayah it had just chosen. */
+      if (event.defaultPrevented) return;
 
       if (layoutMode === "surah") {
         const direction =

@@ -316,24 +316,39 @@ test("replaces active reader playback with a newly selected ayah", async ({
 
   await expect
     .poll(() =>
-      page.evaluate(
-        () =>
-          (
-            window as unknown as {
-              __artqiyAudioRecords: Array<{
-                source: string;
-                plays: number;
-                pauses: number;
-                removed: boolean;
-              }>;
-            }
-          ).__artqiyAudioRecords,
+      page.evaluate(() =>
+        (
+          window as unknown as {
+            __artqiyAudioRecords: Array<{
+              source: string;
+              plays: number;
+              pauses: number;
+              removed: boolean;
+            }>;
+          }
+        ).__artqiyAudioRecords.filter(({ plays }) => plays > 0),
       ),
     )
     .toEqual([
       expect.objectContaining({ plays: 1, pauses: 1, removed: true }),
       expect.objectContaining({ plays: 1, removed: false }),
     ]);
+
+  /*
+   * The next ayah is preloaded while one plays, so elements exist that never
+   * play. The one preloaded for the replaced recitation must not be left
+   * holding its file.
+   */
+  const unplayed = await page.evaluate(() =>
+    (
+      window as unknown as {
+        __artqiyAudioRecords: Array<{ plays: number; removed: boolean }>;
+      }
+    ).__artqiyAudioRecords.filter(({ plays }) => plays === 0),
+  );
+  expect(unplayed.filter(({ removed }) => !removed).length).toBeLessThanOrEqual(
+    1,
+  );
 });
 
 test("renders an accessible localized 404", async ({ page }) => {

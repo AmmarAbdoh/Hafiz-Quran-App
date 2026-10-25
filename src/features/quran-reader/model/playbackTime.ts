@@ -87,3 +87,42 @@ export function computeSessionTime({
     sessionTotalMs: total,
   };
 }
+
+/**
+ * The playlist item at a point along the session, from 0 at its start to 1
+ * at its end - where tapping the progress line lands.
+ *
+ * By running time when every ayah's length is known and by count otherwise:
+ * the same two ways the line itself is drawn, so the ayah a tap lands on is
+ * the one drawn under the finger.
+ */
+export function playlistIndexAt({
+  playlist,
+  fraction,
+  timestamps,
+}: {
+  playlist: ReadonlyArray<{ surah: number; ayah: number }>;
+  fraction: number;
+  timestamps: Map<number, SurahTimestamp[]>;
+}): number {
+  const last = playlist.length - 1;
+  if (last < 0) return 0;
+  const at = Math.min(1, Math.max(0, fraction));
+
+  const durations = playlist.map((item) =>
+    durationFor(timestamps, item.surah, item.ayah),
+  );
+  if (durations.every((duration) => duration !== null)) {
+    const total = durations.reduce<number>(
+      (sum, duration) => sum + duration,
+      0,
+    );
+    let elapsed = 0;
+    for (const [index, duration] of durations.entries()) {
+      elapsed += duration;
+      if (at * total < elapsed) return index;
+    }
+    return last;
+  }
+  return Math.min(last, Math.floor(at * playlist.length));
+}

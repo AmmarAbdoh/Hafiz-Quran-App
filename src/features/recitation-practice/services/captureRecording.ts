@@ -13,6 +13,8 @@
  * nowhere else.
  */
 
+import type { HeardInstead } from "@/features/recitation-practice/model/phonemeText";
+
 /** 16-bit mono PCM, which is what `scripts/tasmee/lib/audio.mjs` reads. */
 function encodeWav(samples: Float32Array, sampleRate: number): Uint8Array {
   const bytes = new Uint8Array(44 + samples.length * 2);
@@ -57,11 +59,41 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+/**
+ * Something that happened during a run, at `t` seconds of its audio.
+ *
+ * The clock is the recogniser's - the time of the last phoneme heard - so an
+ * event lines up with the phonemes around it and with the saved WAV, not
+ * with however long the page took to react.
+ */
+export type RunEvent = { t: number } & RunEventDetail;
+
+export type RunEventDetail =
+  | { kind: "cursor"; from: string | null; to: string | null }
+  | { kind: "stumble"; location: string; heard: string[] }
+  | { kind: "passed-over"; locations: string[] }
+  | { kind: "hold"; location: string }
+  | { kind: "release"; location: string }
+  | { kind: "reveal"; locations: string[] }
+  | { kind: "gave-up"; locations: string[] }
+  | { kind: "stop-on-mistake"; on: boolean }
+  | { kind: "page"; location: string | null }
+  | { kind: "stop" };
+
 export interface RecordingMeta {
   /** The ayat the page covered. */
   verseKeys: string[];
-  /** The words the page expected, in order, and the phonemes they want. */
-  expected: { locations: string[]; units: string[] }[];
+  /**
+   * The words the page expected, in order, and the phonemes they want -
+   * and, from runs saved after it was added, the page's text for them.
+   */
+  expected: { locations: string[]; units: string[]; text?: string }[];
+  /** Whether stop-on-mistake was on when the run began. */
+  stopOnMistake?: boolean;
+  /** What happened, in order; absent from runs saved before it existed. */
+  events?: RunEvent[];
+  /** For each word the verdict listed, what was heard in its place. */
+  misreadHeard?: { location: string; heard: HeardInstead }[];
   /** How far the cursor reached, and of how many. */
   progressIndex: number;
   totalWords: number;
@@ -88,8 +120,15 @@ export interface RecordingMeta {
    * the thing doing the recording.
    */
   held: { locations: string[]; ms: number }[];
-  /** Every phoneme the recogniser emitted: symbol, confidence, seconds. */
-  heard: [string, number, number][];
+  /**
+   * Every phoneme the recogniser emitted: symbol, confidence, seconds, and -
+   * from runs saved after they were kept - the runner-ups it considered, as
+   * [symbol, probability].
+   */
+  heard: (
+    | [string, number, number]
+    | [string, number, number, [string, number][]]
+  )[];
   strictMode: boolean;
   recordedAt: string;
   /** Whatever the reciter said about the run, if they said anything. */

@@ -30,6 +30,8 @@ import {
 } from "../../src/features/recitation-practice/model/phonemeProgress.ts";
 
 const MODEL_DIR = process.env.TASMEE_ZIPFORMER_DIR ?? ".models/zipformer";
+/** Cursor options to compare, as JSON; see `TrackerOptions`. */
+const TRACKER_OPTIONS = JSON.parse(process.env.TASMEE_TRACKER ?? "{}");
 /** One encoder window, which is how often the worker posts phonemes. */
 /**
  * How often the worker posts phonemes: 48 fbank frames at a 10ms shift.
@@ -82,7 +84,7 @@ async function collect(fixtures, cachePath) {
 
 /** Feed a clip's phonemes through the tracker as the worker would. */
 function follow(expected, units) {
-  const tracker = createPhonemeTracker(expected);
+  const tracker = createPhonemeTracker(expected, TRACKER_OPTIONS);
   let wrongAttempts = 0;
   let skipped = 0;
   let finished = false;
@@ -92,8 +94,17 @@ function follow(expected, units) {
     const until = units[at][2] + CHUNK_SECONDS;
     const chunk = [];
     while (at < units.length && units[at][2] < until) {
-      const [symbol, confidence, seconds] = units[at];
-      chunk.push({ id: 0, symbol, confidence, seconds });
+      const [symbol, confidence, seconds, alternatives] = units[at];
+      chunk.push({
+        id: 0,
+        symbol,
+        confidence,
+        seconds,
+        alternatives: alternatives?.map(([other, probability]) => ({
+          symbol: other,
+          probability,
+        })),
+      });
       at += 1;
     }
     const progress = advanceTracker(tracker, chunk);
@@ -157,6 +168,8 @@ async function main() {
       innerWords: 0,
       wrongAttempts: 0,
       skipped: 0,
+      /* Clips where the reciter would have been stopped at least once. */
+      stoppedClips: 0,
     };
     group.clips += 1;
     group.reached += result.finished ? 1 : 0;
@@ -165,13 +178,14 @@ async function main() {
     group.innerWords += expected.length - 1;
     group.inner += Math.min(result.completed, expected.length - 1);
     group.wrongAttempts += result.wrongAttempts;
+    group.stoppedClips += result.wrongAttempts > 0 ? 1 : 0;
     group.skipped += result.skipped;
     byKind.set(row.kind, group);
   }
 
   console.log(`\n${rows.length} clips\n`);
   console.log(
-    "kind            clips   words lit   all but last   reached end  stalls  skips",
+    "kind            clips   words lit   all but last   reached end  stalls  skips  stopped",
   );
   console.log("-".repeat(80));
   const order = [...byKind.keys()].sort();
@@ -182,7 +196,8 @@ async function main() {
         `${((g.completed / g.words) * 100).toFixed(1).padStart(8)}%   ` +
         `${((g.inner / g.innerWords) * 100).toFixed(1).padStart(10)}%   ` +
         `${((g.reached / g.clips) * 100).toFixed(0).padStart(10)}%  ` +
-        `${String(g.wrongAttempts).padStart(6)} ${String(g.skipped).padStart(6)}`,
+        `${String(g.wrongAttempts).padStart(6)} ${String(g.skipped).padStart(6)}` +
+        `${((g.stoppedClips / g.clips) * 100).toFixed(1).padStart(8)}%`,
     );
   }
 

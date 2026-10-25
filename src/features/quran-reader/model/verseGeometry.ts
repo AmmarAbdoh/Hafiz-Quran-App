@@ -47,3 +47,11 @@ export function measureVerse(root: ParentNode, verseKey: string): Box | null {
   );
   return mergeBoxes(Array.from(parts, (part) => part.getBoundingClientRect()));
 }
+
+/** The box around one word as laid out, or null if it is not. */
+export function measureWord(root: ParentNode, location: string): Box | null {
+  const parts = root.querySelectorAll<HTMLElement>(
+    `[data-location="${CSS.escape(location)}"]`,
+  );
+  return mergeBoxes(Array.from(parts, (part) => part.getBoundingClientRect()));
+}

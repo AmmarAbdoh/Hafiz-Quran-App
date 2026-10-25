@@ -99,6 +99,47 @@
     transition: inline-size 0.2s ease;
   }
 
+  /*
+   * The progress line, made something to tap. The line stays two pixels; the
+   * target around it is 24 - the WCAG minimum - straddling the bar's top edge
+   * so it neither pushes the bar's contents down nor sits on the page.
+   */
+  .mushaf-playback-bar__seek {
+    position: absolute;
+    inset-block-start: -11px;
+    inset-inline: 0;
+    block-size: 24px;
+    cursor: pointer;
+    touch-action: none;
+  }
+
+  .mushaf-playback-bar__seek::before {
+    position: absolute;
+    inset-block-start: 11px;
+    inset-inline: 0;
+    block-size: 2px;
+    background: color-mix(in srgb, var(--primary) 18%, transparent);
+    content: "";
+  }
+
+  .mushaf-playback-bar__seek .mushaf-playback-bar__progress {
+    inset-block-start: 11px;
+  }
+
+  .mushaf-playback-bar__seek:hover .mushaf-playback-bar__progress,
+  .mushaf-playback-bar__seek:hover::before,
+  .mushaf-playback-bar__seek:focus-visible .mushaf-playback-bar__progress,
+  .mushaf-playback-bar__seek:focus-visible::before {
+    inset-block-start: 10px;
+    block-size: 4px;
+  }
+
+  .mushaf-playback-bar__seek:focus-visible {
+    border-radius: 4px;
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+
   .mushaf-playback-bar__row {
     display: flex;
     max-width: var(--content-max);

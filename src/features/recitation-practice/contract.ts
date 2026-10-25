@@ -171,7 +171,10 @@ export interface RecitationPracticeValue extends RecitationPracticeState {
    */
   showDebug: boolean;
   toggleShowDebug: () => void;
-  startPractice: (pageWords: MushafWord[]) => Promise<void>;
+  startPractice: (
+    pageWords: MushafWord[],
+    options?: PracticeRunOptions,
+  ) => Promise<void>;
   stopPractice: () => void;
   /**
    * End the run and ask for the verdict, rather than discarding it.
@@ -192,6 +195,19 @@ export interface RecitationPracticeValue extends RecitationPracticeState {
    * reader needs a way out that does not involve browser settings.
    */
   clearDownloadedModel: () => Promise<void>;
+}
+
+export interface PracticeRunOptions {
+  /**
+   * The words of the page after the one being recited, asked for when it is
+   * finished; null when there is no next page and the run ends there.
+   *
+   * Without it a run is one page, which is all the Whisper engine can do.
+   * With it the streaming engine carries on until the reader stops: whoever
+   * supplies the words also decides what "next" means - the next page of the
+   * mushaf, or of one surah - and turns the page on screen to match.
+   */
+  continueWith?: () => Promise<MushafWord[] | null>;
 }
 
 export interface RecitationPracticeProviderProps {

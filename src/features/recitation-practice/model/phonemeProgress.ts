@@ -81,6 +81,75 @@ const RESYNC_CONFIRM_UNITS = 3;
  * Nearby, three is enough; further away the whole stray run has to agree.
  */
 const NEAR_JUMP_WORDS = 8;
+/**
+ * Words that must lead identically into the cursor and into a distant match
+ * for the match to be read as the reciter confusing two ayat; see
+ * `slippedIntoTwin`.
+ */
+const TWIN_LEAD_IN_WORDS = 2;
+/**
+ * How far past the point two ayat part a matched run may begin and still be
+ * the same slip: the resync looks again every few sounds, and by the second
+ * look the reciter is a word or two further into the wrong ayah.
+ */
+const TWIN_SLIP_WORDS = 3;
+/**
+ * Heard sounds in a row that must continue the page exactly before the
+ * cursor catches up over a misheard stretch; see `catchUp`.
+ */
+const CATCH_UP_CONFIRM_UNITS = 3;
+/** Sounds misheard, dropped or added that catching up will look past. */
+const CATCH_UP_MAX_EDITS = 2;
+
+/*
+ * The three ways the cursor forgives the recogniser, and what each was
+ * measured to cost. Every threshold before these was tuned on professional
+ * reciters; these were chosen on 1,000 correct recitations by ordinary
+ * people (ashraf-ali/quran-data, CC0), and checked against the 1,698 real
+ * mistakes in the professional bench so that forgiving the recogniser does
+ * not become forgiving the reciter.
+ *
+ *                                     today   adopted
+ *   learners stopped at least once     9.2%     6.7%
+ *   learners with anything red        12.0%    10.1%
+ *   words wrongly passed over           351      218
+ *   passages finished when carried on   71%      93%
+ *   professionals: mistakes missed    15.3%    15.7%   (6 of 1,698)
+ *   professionals: wrongly marked      2.0%     1.7%
+ *
+ * Catching up credits a word only when more than half its sounds were heard
+ * exactly; at half or more, swapped words sharing half their sounds with the
+ * right one were credited and 11 more mistakes were missed. One edit instead
+ * of two lost a third of the learner gain for nothing on the professionals.
+ *
+ * The runner-up floor traded smoothly - 30% to 10% took learners stopped from
+ * 7.4% to 6.7% for one more professional mistake missed per step - and the
+ * lowest was taken, because the people this is for are the learners and
+ * accusing someone who recited correctly is the worse failure.
+ */
+const DEFAULT_RUNNER_UP_ACCEPTED = 0.1;
+const DEFAULT_LAST_WORD_TAIL_FORGIVEN = 2;
+
+/**
+ * How forgiving the cursor is of the recogniser, for the bench to compare.
+ *
+ * The app passes nothing and gets the measured defaults; see
+ * `DEFAULT_RUNNER_UP_ACCEPTED` for what they were measured against.
+ */
+export interface TrackerOptions {
+  /**
+   * A runner-up sound this likely counts as the one the page wants, or null
+   * for the winner only. See `heardAs`.
+   */
+  acceptRunnerUpAt?: number | null;
+  /** Catch up over a misheard sound or two; see `catchUp`. */
+  catchUp?: boolean;
+  /**
+   * Sounds at the end of the passage's last word that may go unheard; see
+   * where it is read in `advanceTracker`.
+   */
+  lastWordTailForgiven?: number;
+}
 
 /**
  * One unit of recitation to follow: the phonemes of a single spoken word, and
@@ -199,6 +268,14 @@ interface TrackerState {
    * One owner, and it is this one.
    */
   heldAt: number;
+  acceptRunnerUpAt: number | null;
+  catchUp: boolean;
+  lastWordTailForgiven: number;
+  /**
+   * A jump back into an ayah's twin, not yet known to be a repeat or a slip;
+   * see `slippedBackIntoTwin`.
+   */
+  twinDetour: { left: number; heard: string[]; ayahEnd: number } | null;
 }
 
 /**
@@ -220,7 +297,10 @@ interface TrackerState {
  * never pass it. Doubling is still judged at the end by the aligner, which
  * keeps blanks between repeats and can tell them apart.
  */
-export function createPhonemeTracker(expected: ExpectedWord[]): TrackerState {
+export function createPhonemeTracker(
+  expected: ExpectedWord[],
+  options: TrackerOptions = {},
+): TrackerState {
   return {
     expected: expected.map((word) => {
       const units: string[] = [];
@@ -237,6 +317,14 @@ export function createPhonemeTracker(expected: ExpectedWord[]): TrackerState {
     furthest: 0,
     firstRecited: -1,
     heldAt: -1,
+    acceptRunnerUpAt:
+      options.acceptRunnerUpAt === undefined
+        ? DEFAULT_RUNNER_UP_ACCEPTED
+        : options.acceptRunnerUpAt,
+    catchUp: options.catchUp ?? true,
+    lastWordTailForgiven:
+      options.lastWordTailForgiven ?? DEFAULT_LAST_WORD_TAIL_FORGIVEN,
+    twinDetour: null,
   };
 }
 
@@ -436,6 +524,7 @@ function opensAyah(word: ExpectedWord): boolean {
 function findAyahRestart(
   expected: readonly ExpectedWord[],
   stray: readonly string[],
+  near: number,
 ): RunMatch | null {
   if (stray.length < AYAH_RESTART_UNITS) return null;
 
@@ -473,7 +562,20 @@ function findAyahRestart(
       }
       if (!agrees) continue;
       const end = at + opening.length;
-      if (end <= bestEnd) continue;
+      /*
+       * Two ayat that open alike are the same restart heard twice; the one
+       * nearest where the reciter has reached is the one they mean. Taking
+       * the first on the page sent a reciter on 2:47 who began it again to
+       * 2:40, which opens with the same seven words.
+       */
+      if (end < bestEnd) continue;
+      if (
+        end === bestEnd &&
+        best &&
+        Math.abs(start - near) >= Math.abs(best.fromWord - near)
+      ) {
+        continue;
+      }
       bestEnd = end;
       /* One past the opening, which is where they are now. */
       const last = opening.at(-1)!;
@@ -531,6 +633,94 @@ function occurrences(
   return found;
 }
 
+/**
+ * Whether jumping forward to `toWord` would follow a reciter who slipped from
+ * one ayah into its twin.
+ *
+ * Al-Baqarah 2:40 and 2:47 open with the same seven words - يَٰبَنِىٓ إِسْرَٰٓءِيلَ
+ * ٱذْكُرُوا۟ نِعْمَتِىَ ٱلَّتِىٓ أَنْعَمْتُ عَلَيْكُمْ - and then part. A learner
+ * reciting 2:40 said the seven and went on with 2:47's وَأَنِّى فَضَّلْتُكُمْ.
+ * Those sounds fit nowhere near the cursor and exactly at 2:47, so the
+ * resync followed them there: seventy-two words passed over, and a page
+ * marked from 2:40 to 2:47 for one slip.
+ *
+ * It is the most common mistake in memorising, and it has a signature: the
+ * words leading into where the reciter is supposed to be and into where the
+ * jump would land are the same words. Someone who has really moved on to
+ * another place arrives there by its own lead-in, not by the one they just
+ * said. So when the two lead-ins agree, the jump is refused and the run
+ * falls through to what it is - something else said at this word.
+ *
+ * Forward only; going back into a twin is `slippedBackIntoTwin`. Refusing
+ * both held reciters who were only repeating: al-Hashr 59:23 and 59:24 both
+ * open with هُوَ ٱللَّهُ, and going back from 59:24 to say 59:23 again listed
+ * three stumbles on a correct recitation, for each of three reciters.
+ */
+function slippedIntoTwin(
+  expected: readonly ExpectedWord[],
+  atWord: number,
+  toWord: number,
+): boolean {
+  if (toWord - atWord <= NEAR_JUMP_WORDS) return false;
+  return sharesLeadIn(expected, atWord, toWord);
+}
+
+/**
+ * Whether jumping back to `toWord` may be a slip into the twin of the ayah
+ * being recited - 2:47's opening, then 2:40's وَأَوْفُوا۟ بِعَهْدِىٓ.
+ *
+ * Unlike going forward this cannot be refused on the spot: going back over
+ * an ayah is how people memorise, and a reciter starting 59:24 who goes back
+ * to say 59:23 again sounds exactly like one who slipped. So the jump is
+ * followed and remembered, and what the reciter does next decides it. Saying
+ * the earlier ayah through to its end is a repeat, and nothing is said about
+ * it. Coming back to where they were before finishing it is a slip, and the
+ * word they left is reported as a stumble - with what they said instead -
+ * at the moment they return.
+ */
+function slippedBackIntoTwin(
+  expected: readonly ExpectedWord[],
+  atWord: number,
+  toWord: number,
+): boolean {
+  if (atWord - toWord <= NEAR_JUMP_WORDS) return false;
+  return sharesLeadIn(expected, atWord, toWord);
+}
+
+/** The index of the last word of the ayah `word` belongs to. */
+function lastWordOfAyah(expected: readonly ExpectedWord[], word: number) {
+  const ayah = (index: number) =>
+    expected[index]?.locations[0]?.split(":").slice(0, 2).join(":");
+  const own = ayah(word);
+  let last = word;
+  while (last + 1 < expected.length && ayah(last + 1) === own) last += 1;
+  return last;
+}
+
+/**
+ * Whether the words leading into `atWord` lead into `toWord` too, allowing
+ * the match to have begun up to `TWIN_SLIP_WORDS` past the parting.
+ */
+function sharesLeadIn(
+  expected: readonly ExpectedWord[],
+  atWord: number,
+  toWord: number,
+): boolean {
+  const sameLeadIn = (parting: number) => {
+    for (let back = 1; back <= TWIN_LEAD_IN_WORDS; back += 1) {
+      const mine = expected[atWord - back];
+      const theirs = expected[parting - back];
+      if (!mine || !theirs || mine === theirs) return false;
+      if (mine.units.join(" ") !== theirs.units.join(" ")) return false;
+    }
+    return true;
+  };
+  for (let past = 0; past <= TWIN_SLIP_WORDS; past += 1) {
+    if (sameLeadIn(toWord - past)) return true;
+  }
+  return false;
+}
+
 /** The flattened unit at a position, or null past the end of the passage. */
 function unitAt(state: TrackerState, wordIndex: number, unitIndex: number) {
   return state.expected[wordIndex]?.units[unitIndex] ?? null;
@@ -547,6 +737,174 @@ function nextPosition(
   return unitIndex + 1 < word.units.length
     ? [wordIndex, unitIndex + 1]
     : [wordIndex + 1, 0];
+}
+
+/**
+ * The sound an emission counts as, given the one the page wants here.
+ *
+ * The recogniser's winner, unless the page's sound was a close enough
+ * runner-up. Measured on a learner's أَنتَ: the frame that should have said
+ * تَ said ننننَ at 65% and تَ at 28%, and shown only the winner the cursor
+ * held them at a word they had recited correctly. The forced alignment that
+ * judges the run already reads the whole distribution; this only stops the
+ * cursor being stricter than the judge.
+ */
+function heardAs(
+  state: TrackerState,
+  emission: PhonemeEmission,
+  wanted: string | null,
+): string {
+  const winner = phonemeIdentity(emission.symbol);
+  const floor = state.acceptRunnerUpAt;
+  if (winner === wanted || wanted === null || floor === null) return winner;
+  for (const alternative of emission.alternatives ?? []) {
+    if (
+      alternative.probability >= floor &&
+      phonemeIdentity(alternative.symbol) === wanted
+    ) {
+      return wanted;
+    }
+  }
+  return winner;
+}
+
+/**
+ * Two runs of sounds lined up end to end, at the fewest sounds misheard,
+ * dropped or added; with which of `wanted` were heard exactly.
+ */
+function editAlign(
+  heard: readonly string[],
+  wanted: readonly string[],
+): { cost: number; matched: boolean[] } {
+  const rows = heard.length + 1;
+  const cols = wanted.length + 1;
+  const cost: number[][] = Array.from({ length: rows }, (_, i) =>
+    Array.from({ length: cols }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
+  );
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const same = heard[i - 1] === wanted[j - 1] ? 0 : 1;
+      cost[i]![j] = Math.min(
+        cost[i - 1]![j - 1]! + same,
+        cost[i - 1]![j]! + 1,
+        cost[i]![j - 1]! + 1,
+      );
+    }
+  }
+  const matched = wanted.map(() => false);
+  let i = heard.length;
+  let j = wanted.length;
+  while (i > 0 && j > 0) {
+    const same = heard[i - 1] === wanted[j - 1] ? 0 : 1;
+    if (cost[i]![j] === cost[i - 1]![j - 1]! + same) {
+      if (same === 0) matched[j - 1] = true;
+      i -= 1;
+      j -= 1;
+    } else if (cost[i]![j] === cost[i - 1]![j]! + 1) {
+      i -= 1;
+    } else {
+      j -= 1;
+    }
+  }
+  return { cost: cost[heard.length]![wanted.length]!, matched };
+}
+
+/**
+ * Catch up with a reciter the recogniser misheard for a sound or two.
+ *
+ * The cursor waits for each sound of a word in turn, and forgives one that
+ * never arrived - but not one that arrived as something else, nor two in a
+ * row. Measured on a learner's أَنتَ ٱلْعَلِيمُ: تَ came through as ننننَ and the
+ * ل of ٱلْعَلِيمُ not at all, then عَلِۦمُ exactly. Two misses across a word
+ * boundary, the next four sounds the page itself, and the reciter held for
+ * twenty seconds at a word they had said right the first time.
+ *
+ * So once the last few sounds heard continue the page exactly, the stretch
+ * before them is lined up against the page with up to two sounds misheard,
+ * dropped or added, and the cursor moves to where they lead. Not further:
+ * the window is only as long as what was heard, so this cannot reach the
+ * distant matches the resync exists for.
+ *
+ * A word moved over counts as recited only if half its sounds or more were
+ * heard exactly. Anything less is reported as passed over, and the verdict -
+ * which has the audio - decides; catching up never makes a word unsaid
+ * invisible. Nor does it carry a reciter past the word they are held at,
+ * unless that word is one of the recited ones.
+ */
+function catchUp(
+  state: TrackerState,
+  completed: CompletedWord[],
+  skipped: string[],
+): boolean {
+  const stray = state.stray;
+  if (stray.length < CATCH_UP_CONFIRM_UNITS) return false;
+
+  const ahead: { unit: string; word: number }[] = [];
+  let [word, unit] = [state.wordIndex, state.unitIndex];
+  while (ahead.length < stray.length + CATCH_UP_MAX_EDITS) {
+    const here = unitAt(state, word, unit);
+    if (here === null) break;
+    ahead.push({ unit: here, word });
+    [word, unit] = nextPosition(state, word, unit);
+  }
+
+  const prefix = stray.slice(0, -CATCH_UP_CONFIRM_UNITS);
+  const tail = stray.slice(-CATCH_UP_CONFIRM_UNITS);
+  let best: { end: number; cost: number; matched: boolean[] } | null = null;
+  for (let end = CATCH_UP_CONFIRM_UNITS; end <= ahead.length; end += 1) {
+    const confirms = tail.every(
+      (sound, i) => ahead[end - CATCH_UP_CONFIRM_UNITS + i]!.unit === sound,
+    );
+    if (!confirms) continue;
+    const before = ahead.slice(0, end - CATCH_UP_CONFIRM_UNITS);
+    const { cost, matched } = editAlign(
+      prefix,
+      before.map((step) => step.unit),
+    );
+    if (cost > CATCH_UP_MAX_EDITS) continue;
+    if (!best || cost < best.cost) best = { end, cost, matched };
+  }
+  if (!best) return false;
+
+  const heardIn = new Map<number, number>();
+  heardIn.set(state.wordIndex, state.unitIndex);
+  ahead.slice(0, best.end).forEach((step, i) => {
+    const exact =
+      i >= best.end - CATCH_UP_CONFIRM_UNITS || best.matched[i] === true;
+    if (exact) heardIn.set(step.word, (heardIn.get(step.word) ?? 0) + 1);
+  });
+  /* Where the cursor lands: just after the last sound caught up with. */
+  let [toWord, toUnit] = [state.wordIndex, state.unitIndex];
+  for (let i = 0; i < best.end; i += 1) {
+    [toWord, toUnit] = nextPosition(state, toWord, toUnit);
+  }
+  const recited = (index: number) =>
+    (heardIn.get(index) ?? 0) * 2 > (state.expected[index]?.units.length ?? 0);
+
+  if (
+    state.heldAt !== -1 &&
+    state.heldAt >= state.wordIndex &&
+    state.heldAt < toWord &&
+    !recited(state.heldAt)
+  ) {
+    return false;
+  }
+
+  for (let index = state.wordIndex; index < toWord; index += 1) {
+    const passed = state.expected[index];
+    if (!passed) continue;
+    if (recited(index)) {
+      completed.push({ locations: passed.locations });
+      noteRecited(state, index);
+    } else if (index >= state.furthest) {
+      skipped.push(...passed.locations);
+    }
+  }
+  state.wordIndex = toWord;
+  state.unitIndex = toUnit;
+  state.forgiven = 0;
+  state.stray = [];
+  return true;
 }
 
 function closeWord(state: TrackerState, completed: CompletedWord[]) {
@@ -584,7 +942,7 @@ export function advanceTracker(
 
     /* Length is the recogniser's weakest dimension and the page's most
        variable one; only the sound itself is compared. */
-    const heard = phonemeIdentity(emission.symbol);
+    const heard = heardAs(state, emission, expectedUnit);
 
     if (heard === expectedUnit) {
       state.stray = [];
@@ -672,7 +1030,8 @@ export function advanceTracker(
       const ambiguous =
         state.unitIndex === 0 &&
         heard === state.expected[state.wordIndex + 1]?.units[0];
-      if (!ambiguous && unitAt(state, gapWord, gapUnit) === heard) {
+      const gap = unitAt(state, gapWord, gapUnit);
+      if (!ambiguous && gap !== null && heardAs(state, emission, gap) === gap) {
         state.stray = [];
         state.forgiven += 1;
         /* Step over the phoneme that never came... */
@@ -691,6 +1050,31 @@ export function advanceTracker(
     }
 
     /*
+     * The passage's last word, nearly all heard, and the reciter has moved on.
+     *
+     * A word someone stops on fades: its closing sound - the ه of ٱلْقَارِعَةُ,
+     * the ن after a long ي - is quiet at a pause, and the recogniser often
+     * never emits it. Measured on 1,000 correct learner recitations, 27%
+     * stopped one or two sounds short of the end this way, with the rest of
+     * the word heard. On a page that recitation carries on from, that was a
+     * page that never turned: the next page's first sounds fit nowhere on
+     * this one. So once at least half the word is in and no more than this
+     * many sounds are left, the next sound that is not the word's finishes it.
+     */
+    const lastWord = state.expected[state.wordIndex];
+    if (
+      state.wordIndex === state.expected.length - 1 &&
+      lastWord !== undefined &&
+      state.unitIndex > 0 &&
+      state.unitIndex * 2 >= lastWord.units.length &&
+      lastWord.units.length - state.unitIndex <= state.lastWordTailForgiven
+    ) {
+      state.stray = [];
+      closeWord(state, completed);
+      continue;
+    }
+
+    /*
      * Not what was expected here, and the cursor holds where it is.
      *
      * It used to be able to look ahead a few units and follow a reciter who
@@ -704,6 +1088,7 @@ export function advanceTracker(
     // long enough to suggest the reciter is simply somewhere else.
     if (emission.confidence >= CONFIDENCE_FLOOR) {
       state.stray.push(heard);
+      if (state.catchUp && catchUp(state, completed, skipped)) continue;
     }
 
     if (state.stray.length >= RESYNC_AFTER_STRAY_UNITS) {
@@ -718,9 +1103,19 @@ export function advanceTracker(
        * saying where they are, and the point of it is to work when the rest
        * of this cannot. See `findAyahRestart`.
        */
-      const restart = findAyahRestart(state.expected, state.stray);
+      const restart = findAyahRestart(
+        state.expected,
+        state.stray,
+        state.furthest,
+      );
+      const run = restart
+        ? null
+        : findRun(state.expected, state.stray, state.wordIndex);
       const found =
-        restart ?? findRun(state.expected, state.stray, state.wordIndex);
+        restart ??
+        (run && slippedIntoTwin(state.expected, state.wordIndex, run.fromWord)
+          ? null
+          : run);
       if (restart) state.heldAt = -1;
       if (found && found.wordIndex === state.wordIndex) {
         /*
@@ -768,6 +1163,26 @@ export function advanceTracker(
          * wrong, and only the aligner has looked at the audio.
          */
         const leaving = state.wordIndex;
+        const detour = state.twinDetour;
+        if (detour && found.fromWord > detour.ayahEnd) {
+          /* Back before finishing the twin: that was a slip, not a repeat. */
+          stumbles.push({
+            wordIndex: detour.left,
+            locations: state.expected[detour.left]?.locations ?? [],
+            heard: detour.heard,
+          });
+          state.twinDetour = null;
+        }
+        if (
+          !restart &&
+          slippedBackIntoTwin(state.expected, leaving, found.fromWord)
+        ) {
+          state.twinDetour = {
+            left: leaving,
+            heard: [...state.stray],
+            ayahEnd: lastWordOfAyah(state.expected, found.fromWord),
+          };
+        }
         state.wordIndex = found.wordIndex;
         state.unitIndex = found.unitIndex;
         state.stray = [];
@@ -812,6 +1227,14 @@ export function advanceTracker(
     }
   }
   state.furthest = Math.max(state.furthest, state.wordIndex);
+  const detour = state.twinDetour;
+  const repeatEnd = detour ? state.expected[detour.ayahEnd] : undefined;
+  if (
+    repeatEnd &&
+    completed.some((word) => word.locations === repeatEnd.locations)
+  ) {
+    state.twinDetour = null;
+  }
   /*
    * Past the held word, so the hold is done with.
    *

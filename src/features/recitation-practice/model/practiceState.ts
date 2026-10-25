@@ -42,6 +42,15 @@ export type PracticeStateAction =
       totalWords: number;
       currentWordLocation: string | null;
     }
+  /**
+   * A recitation carried on to the next page: the bar starts over against
+   * it, and nothing from the last page is still held or flashing.
+   */
+  | {
+      type: "page-turned";
+      totalWords: number;
+      currentWordLocation: string | null;
+    }
   | { type: "model-progress"; progress: number }
   | { type: "listening" }
   | { type: "analysis-started" }
@@ -54,6 +63,11 @@ export type PracticeStateAction =
       currentWordLocation: string | null;
       transcript: string;
       completed: boolean;
+      /**
+       * Every page's words, once a run that went over several is judged.
+       * While it is running the bar counts the page on screen.
+       */
+      totalWords?: number;
       /**
        * The reciter stopped before the end; see `stoppedShort`.
        *
@@ -114,6 +128,16 @@ export function recitationPracticeReducer(
         lastTranscript: "",
         error: null,
       };
+    case "page-turned":
+      return {
+        ...state,
+        totalWords: action.totalWords,
+        progressIndex: 0,
+        currentWordLocation: action.currentWordLocation,
+        revealedLocations: [],
+        wrongFlashLocation: null,
+        heldAtLocation: null,
+      };
     case "model-progress":
       return {
         ...state,
@@ -161,6 +185,7 @@ export function recitationPracticeReducer(
       return {
         ...state,
         progressIndex: action.progressIndex,
+        totalWords: action.totalWords ?? state.totalWords,
         revealedLocations: action.revealedLocations,
         misreadWords: action.misreadWords,
         currentWordLocation: action.currentWordLocation,

@@ -6,10 +6,7 @@ import {
   buildQuranSurahPath,
   type MushafLayoutMode,
 } from "@/features/quran-reader/model/quranReaderRoutes";
-import {
-  isComfortablyVisible,
-  scrollTopForVerse,
-} from "@/features/quran-reader/model/followScroll";
+import { isComfortablyVisible } from "@/features/quran-reader/model/followScroll";
 import {
   maxScrollTopOf,
   measureVerse,
@@ -87,67 +84,26 @@ export function usePlaybackNavigationSync({
   ]);
 
   /*
-   * Follow the recitation down a surah.
+   * A reader who scrolls themselves has taken the page in hand, and the next
+   * ayah must not drag them back. Following is done by `PlaybackScrollFollower`;
+   * this is how it learns to stop. Wheel and touch say so plainly - watching
+   * scrollTop instead would have to tell the reader's scrolling from our own
+   * smooth scroll, and would guess wrong at every ayah boundary.
    *
-   * This used to call scrollIntoView on every ayah, which moved the page
-   * under the reader's eyes even when the ayah being recited was already in
-   * front of them - and centred it, so half the screen was verses already
-   * read. Now it only moves when the ayah has actually gone out of view, and
-   * when it does it puts it in the upper third so what comes next is visible.
+   * In page view only when the page scrolls at all: a page that fits its
+   * screen has nothing to scroll, and a swipe there turns the page instead,
+   * which `changePage` already accounts for.
    */
   useEffect(() => {
-    if (
-      layoutMode !== "surah" ||
-      !active ||
-      !activeVerseKey ||
-      !autoFollowPages
-    ) {
-      return;
-    }
-
-    /*
-     * A frame late on purpose: the ayah that just became active may be on a
-     * page mounted by this same render, and it has no box until it is laid
-     * out.
-     */
-    const frame = requestAnimationFrame(() => {
-      const geometry = readStageGeometry();
-      if (!geometry) return;
-
-      const { stage, box, bottomInset } = geometry;
-      const verse = measureVerse(stage, activeVerseKey);
-      if (!verse || isComfortablyVisible(verse, box, bottomInset)) return;
-
-      stage.scrollTo({
-        top: scrollTopForVerse(
-          verse,
-          box,
-          stage.scrollTop,
-          maxScrollTopOf(stage),
-          bottomInset,
-        ),
-        behavior: "smooth",
-      });
-    });
-
-    return () => cancelAnimationFrame(frame);
-  }, [active, activeVerseKey, autoFollowPages, layoutMode]);
-
-  /*
-   * A reader who scrolls the surah themselves has taken the page in hand, and
-   * the next ayah must not drag them back. Page mode learns this from
-   * changePage; surah mode turns no pages, so it listens for the gestures
-   * that scroll. Wheel and touch say so plainly - watching scrollTop instead
-   * would have to tell the reader's scrolling from our own smooth scroll, and
-   * would guess wrong at every ayah boundary.
-   */
-  useEffect(() => {
-    if (layoutMode !== "surah" || !active || !autoFollowPages) return;
+    if (!active || !autoFollowPages) return;
 
     const stage = document.querySelector<HTMLElement>(STAGE_SELECTOR);
     if (!stage) return;
 
-    const release = () => setAutoFollowPages(false);
+    const release = () => {
+      if (layoutMode === "page" && maxScrollTopOf(stage) <= 1) return;
+      setAutoFollowPages(false);
+    };
     stage.addEventListener("wheel", release, { passive: true });
     stage.addEventListener("touchmove", release, { passive: true });
 
@@ -163,17 +119,19 @@ export function usePlaybackNavigationSync({
       return;
     }
 
-    if (layoutMode !== "surah") {
-      const page = findVersePage(mushafData, activeVerseKey);
-      setActiveVerseInView(page === currentPage);
+    if (
+      layoutMode !== "surah" &&
+      findVersePage(mushafData, activeVerseKey) !== currentPage
+    ) {
+      setActiveVerseInView(false);
       return;
     }
 
     /*
-     * Surah mode mounts the whole surah, so "is it on the page you are
-     * looking at" was yes for every ayah of it and the button offering to
-     * take the reader back to the reciter could never appear. On screen is
-     * what the question means here, and the answer changes as they scroll.
+     * On screen, not merely on the page. Surah mode mounts the whole surah,
+     * so "is it on the page" was yes for every ayah and the button offering
+     * to take the reader back could never appear; a page made tall by a
+     * larger font has the same problem in page view.
      */
     let queued = 0;
     const report = () => {
@@ -181,9 +139,14 @@ export function usePlaybackNavigationSync({
       if (!geometry) return;
 
       const verse = measureVerse(geometry.stage, activeVerseKey);
+      /* Not laid out yet on the page it belongs to: it will be in a moment,
+         and offering to take the reader there would flash the button. */
+      if (verse === null) {
+        setActiveVerseInView(layoutMode !== "surah");
+        return;
+      }
       setActiveVerseInView(
-        verse !== null &&
-          isComfortablyVisible(verse, geometry.box, geometry.bottomInset),
+        isComfortablyVisible(verse, geometry.box, geometry.bottomInset),
       );
     };
 

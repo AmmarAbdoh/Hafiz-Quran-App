@@ -118,6 +118,9 @@ export function PracticeSettings() {
         <p className="text-sm leading-6 text-muted-foreground">
           {t("practice.localNote")}
         </p>
+        <p className="rounded-lg border border-border bg-surface-sunken px-3 py-2 text-sm leading-6 text-muted-foreground">
+          {t("practice.disclaimer")}
+        </p>
 
         <div className="flex items-start justify-between gap-4 border-t border-border/80 pt-5">
           <div>

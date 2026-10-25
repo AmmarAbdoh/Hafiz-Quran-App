@@ -229,6 +229,17 @@ export async function deleteAllForReciter(
  * The caller owns the returned URL and must revoke it once the audio has
  * moved on, or every ayah played leaks its own blob.
  */
+/** Whether this recording is downloaded, without reading it into memory. */
+export async function hasCachedAudio(url: string): Promise<boolean> {
+  const cache = await openCache();
+  if (!cache) return false;
+  try {
+    return (await cache.match(url)) !== undefined;
+  } catch {
+    return false;
+  }
+}
+
 export async function cachedAudioUrl(url: string): Promise<string | null> {
   const cache = await openCache();
   if (!cache) return null;

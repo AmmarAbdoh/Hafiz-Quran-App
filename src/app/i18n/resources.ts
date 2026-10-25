@@ -186,8 +186,7 @@ const ar = {
       goToCurrent: "انتقل إلى صفحة الآية الجارية",
       // Read aloud in place of the clock, which is three numbers a screen
       // reader would otherwise announce as bare digits.
-      sessionRemaining: "بقي {{remaining}} من التلاوة",
-      ayahRemaining: "بقي {{remaining}} من الآية",
+      seekHint: "اضغط على الخط للانتقال إلى آية أخرى",
       followReading: "متابعة القراءة",
       pause: "إيقاف مؤقت",
       resume: "استئناف",
@@ -202,14 +201,23 @@ const ar = {
     practice: {
       summary: {
         title: "نتيجة التسميع",
-        clean: "تلاوة سليمة.",
-        cleanDetail: "لم تُخطئ في أي كلمة.",
+        /* What was checked, not a ruling on the recitation: the model's
+           licence forbids presenting its output as one, and it judges the
+           words, not the tajweed. */
+        clean: "لم يُلحظ خطأ في الكلمات.",
+        cleanDetail: "سُمعت كل كلمة كما في المصحف.",
+        /* Required by the speech model's licence (Quran-Lab NPL-1.2), and
+           true: shown with every result, where the feedback is read. */
+        disclaimer:
+          "هذه ملاحظات آلية تساعد على الحفظ، وقد تخطئ، ولا تغني عن معلّم متقن.",
         /* Leaving part of the page out is not a mistake in a word, so it is
            said on its own terms: how much you recited, out of the page. Not
            "you stopped at" - the same rule catches opening halfway down, and
            that reciter did not stop anywhere. */
         stoppedShort: "سمّعت {{reached}} من {{total}} كلمة.",
-        stoppedShortDetail: "ما سمّعته كان سليمًا، لكنك لم تُكمل الصفحة.",
+        /* Not "the page": a run carries on over as many pages as the reader
+           recites, and a short one can be the first page begun partway down. */
+        stoppedShortDetail: "ما سمّعته كان سليمًا، لكن بعض الكلمات لم تُسمَّع.",
         /* Development only: the controls that save a run as a fixture. */
         keepRun: "احفظ هذا التسميع للتجربة والقياس",
         keepRunNote: "ما الذي أخطأت فيه؟",
@@ -927,6 +935,8 @@ const ar = {
       clearingCache: "جارٍ مسح النماذج…",
       localNote:
         "لا يُرسل صوت الميكروفون إلى أي خادم. يحتاج تنزيل النموذج الأول إلى اتصال بالإنترنت.",
+      disclaimer:
+        "التسميع ملاحظات آلية تساعد على الحفظ، وقد تخطئ، ولا تغني عن معلّم متقن. وهو يتحقق من الكلمات، لا من أحكام التجويد.",
       models: {
         streaming: { label: "تسميع مباشر — Quran-Lab (موصى به)" },
         tarteelTiny: { label: "قرآن — Tarteel Tiny (موصى به)" },
@@ -948,7 +958,7 @@ const ar = {
     sources: {
       title: "المصادر والشكر",
       description:
-        "تفاصيل مصادر النص والتخطيط والخطوط والتلاوات والتفاسير وشروط استخدامها.",
+        "تفاصيل مصادر النص والتخطيط والخطوط والتلاوات والتفاسير ونماذج التعرف على التلاوة وشروط استخدامها.",
       action: "عرض المصادر",
     },
     about: {
@@ -965,7 +975,7 @@ const ar = {
       sourceDetails: {
         quranFoundationName: "Quran.com / مؤسسة القرآن",
         quranFoundationUse:
-          "تخطيط المصحف كلمة بكلمة، خطوط QCF، وتسجيلات الكلمات",
+          "تخطيط المصحف كلمة بكلمة، خطوط QCF، تسجيلات الكلمات، وتوقيت الكلمات لتظليلها أثناء التلاوة",
         quranFoundationLicense:
           "محتوى مرخّص بشروط Quran Foundation للاستخدام في تطبيقات قرآنية",
         kfgqpcName: "مجمع الملك فهد لطباعة المصحف الشريف",
@@ -987,6 +997,16 @@ const ar = {
         tafsirUse: "نصوص التفاسير المعروضة في التطبيق",
         tafsirLicense:
           "تخضع النصوص لحقوق مؤلفيها وناشريها، وتُعرض داخل التطبيق فقط",
+        quranLabName: "Quran-Lab",
+        quranLabUse:
+          "نموذج التعرف على التلاوة الذي يعمل به التسميع، ونطق آيات القرآن كلها",
+        quranLabLicense:
+          "رخصة Quran-Lab No-Profit 1.2: مجاني، ولا يجوز فرض مقابل على أي ميزة يشغّلها. ملاحظاته آلية قد تخطئ، وليست حكماً شرعياً على تلاوة أحد، ولا تغني عن معلّم متقن",
+        whisperName: "Whisper من OpenAI ونسخة Tarteel",
+        whisperUse:
+          "المحرّك البديل للتسميع، ومنه نسخة Tarteel المدرّبة على تلاوة القرآن",
+        whisperLicense:
+          "MIT لنموذج Whisper، وApache 2.0 لنسخة Tarteel، بتحويلات ONNX من مساهمين في المجتمع",
       },
     },
   },
@@ -1215,8 +1235,7 @@ const en: StringTree<typeof ar> = {
       ayahMeta: "{{surah}} — ayah {{ayah}}",
       wordHighlight: "Word highlighting",
       goToCurrent: "Go to the currently playing ayah",
-      sessionRemaining: "{{remaining}} left of the recitation",
-      ayahRemaining: "{{remaining}} left of this ayah",
+      seekHint: "Tap the line to go to another ayah",
       followReading: "Follow reading",
       pause: "Pause recitation",
       resume: "Resume recitation",
@@ -1231,11 +1250,13 @@ const en: StringTree<typeof ar> = {
     practice: {
       summary: {
         title: "How the recitation went",
-        clean: "Recited correctly.",
-        cleanDetail: "No word was misread.",
+        clean: "No mistakes noticed in the words.",
+        cleanDetail: "Every word was heard as the Mushaf has it.",
+        disclaimer:
+          "This is automatic feedback to help you memorise. It can be wrong, and it does not replace a qualified teacher.",
         stoppedShort: "You recited {{reached}} of {{total}} words.",
         stoppedShortDetail:
-          "What you recited was right, but you did not finish the page.",
+          "What you recited was right, but some of the words were not recited.",
         keepRun: "Keep this run for measurement",
         keepRunNote: "What did you get wrong?",
         keepRunSave: "Save",
@@ -1941,6 +1962,8 @@ const en: StringTree<typeof ar> = {
       clearingCache: "Removing models…",
       localNote:
         "Microphone audio is never sent to a server. The first model download requires an internet connection.",
+      disclaimer:
+        "Recitation practice gives automatic feedback to help you memorise. It can be wrong, and it does not replace a qualified teacher. It checks the words, not the rules of tajweed.",
       models: {
         streaming: { label: "Live recitation — Quran-Lab (recommended)" },
         tarteelTiny: { label: "Qur'an — Tarteel Tiny (recommended)" },
@@ -1962,7 +1985,7 @@ const en: StringTree<typeof ar> = {
     sources: {
       title: "Sources and acknowledgements",
       description:
-        "Details about the text, layout, fonts, recitations, tafsir sources, and their terms of use.",
+        "Details about the text, layout, fonts, recitations, tafsir, speech recognition models, and their terms of use.",
       action: "View sources",
     },
     about: {
@@ -1979,7 +2002,7 @@ const en: StringTree<typeof ar> = {
       sourceDetails: {
         quranFoundationName: "Quran.com / Quran Foundation",
         quranFoundationUse:
-          "Word-level Mushaf layout, QCF fonts, and word audio",
+          "Word-level Mushaf layout, QCF fonts, word audio, and word timings for highlighting during recitation",
         quranFoundationLicense:
           "Content used under Quran Foundation terms for Quran applications",
         kfgqpcName: "King Fahd Glorious Quran Printing Complex (KFGQPC)",
@@ -2001,6 +2024,16 @@ const en: StringTree<typeof ar> = {
         tafsirUse: "Tafsir texts displayed in the app",
         tafsirLicense:
           "Texts remain subject to their authors' and publishers' rights and are displayed in-app only",
+        quranLabName: "Quran-Lab",
+        quranLabUse:
+          "The recitation recogniser behind recitation practice, and its phonemisation of every ayah",
+        quranLabLicense:
+          "Quran-Lab No-Profit License 1.2: free, and nothing it powers may be charged for. Its feedback is automatic, can be wrong, is not a religious ruling on anyone's recitation, and does not replace a qualified teacher",
+        whisperName: "OpenAI Whisper and Tarteel",
+        whisperUse:
+          "The alternative recitation practice engine, including Tarteel's version trained on Quran recitation",
+        whisperLicense:
+          "MIT (Whisper) and Apache 2.0 (Tarteel's version), in ONNX conversions by community contributors",
       },
     },
   },

@@ -10,6 +10,7 @@ import {
   hashLengthPrefixedStrings,
   legacyDataRoot,
   pad3,
+  placeWordsOnTheirPages,
   readGzipJson,
   readJson,
   resetDirectory,
@@ -78,7 +79,7 @@ function buildRuntimeCore(sourceCore) {
 async function writeLayoutPages(layout) {
   const assets = [];
 
-  for (const page of layout.pages) {
+  for (const page of placeWordsOnTheirPages(layout.pages)) {
     const asset = await writeGzipJson(
       join(runtimeDataRoot, "layout", "pages", `${pad3(page.page)}.json.gz`),
       page,

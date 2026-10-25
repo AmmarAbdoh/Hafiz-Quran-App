@@ -55,6 +55,18 @@ const FRAME_SHIFT = 160;
  * finished stream with tail silence for the same reason.
  */
 const FLUSH_SAMPLES = WINDOW_FRAMES * FRAME_SHIFT;
+/**
+ * Encoder steps kept for the next page when a recitation carries on, about
+ * two seconds at 480ms a step.
+ *
+ * A page is finished the moment its last word is heard, and a reciter who
+ * runs straight on has usually begun the next page's first word inside the
+ * same step. Those frames are in this page's history; without them the next
+ * page's first word has no audio to be scored against. The extra frames at
+ * the front cost nothing - the alignment already absorbs audio before the
+ * first word it places.
+ */
+const FRAMES_CARRIED_CHUNKS = 4;
 
 interface InitMessage {
   type: "init";
@@ -73,11 +85,18 @@ interface ExpectMessage {
   labels: number[];
   spans: { from: number; to: number }[];
 }
-/** Score the words `from` to `to` (exclusive) of what was expected. */
+/**
+ * Score the words `from` to `to` (exclusive) of what was expected.
+ *
+ * `continuing` means the reciter is carrying on to the next page: the stream
+ * is not flushed and the last frames are kept for that page - see
+ * `FRAMES_CARRIED_CHUNKS`.
+ */
 interface ScoreMessage {
   type: "score";
   from: number;
   to: number;
+  continuing?: boolean;
 }
 type WorkerRequest =
   | InitMessage
@@ -149,7 +168,7 @@ function resetStream() {
  * fit the words to it - so the reader can say so instead of reporting a
  * clean recitation.
  */
-function scoreRun({ from, to }: ScoreMessage) {
+function scoreRun({ from, to, continuing }: ScoreMessage) {
   const words = expected?.spans.slice(from, to) ?? [];
   if (!expected || words.length === 0 || historyFrames === 0) {
     self.postMessage({ type: "scores", scores: [], heard: [] });
@@ -163,10 +182,13 @@ function scoreRun({ from, to }: ScoreMessage) {
     at += chunk.length;
   }
   const frames = historyFrames;
-  // The run is over; holding its frames twice over is how a long one ran a
-  // phone's worker out of memory.
-  history = [];
-  historyFrames = 0;
+  // The page is over; holding its frames twice over is how a long one ran a
+  // phone's worker out of memory. Only the tail the next page needs is kept.
+  history = continuing ? history.slice(-FRAMES_CARRIED_CHUNKS) : [];
+  historyFrames = history.reduce(
+    (total, chunk) => total + chunk.length / vocabulary,
+    0,
+  );
 
   /*
    * The whole run's frames, against the labels from the first word matched.
@@ -370,13 +392,28 @@ async function handle(message: WorkerRequest) {
       return;
     }
     if (message.type === "score") {
-      // Drain the buffered tail first, so the run is scored on all of it.
-      try {
-        await pushAudio(new Float32Array(FLUSH_SAMPLES));
-      } catch {
-        // A fraction of a second of tail is not worth the whole verdict.
+      /* Drain the buffered tail first, so the run is scored on all of it -
+         unless the reciter is carrying on, when silence pushed into the
+         stream would land in the middle of their next page. */
+      if (!message.continuing) {
+        try {
+          await pushAudio(new Float32Array(FLUSH_SAMPLES));
+        } catch {
+          // A fraction of a second of tail is not worth the whole verdict.
+        }
       }
-      scoreRun(message);
+      /*
+       * Every score is answered, even a failed one.
+       *
+       * A recitation that carries on has several pages waiting on verdicts,
+       * matched to the replies by order. A failure answered only with an
+       * error would hand the next page's scores to this one.
+       */
+      try {
+        scoreRun(message);
+      } catch {
+        self.postMessage({ type: "scores", scores: [], heard: [] });
+      }
       return;
     }
     if (message.type === "reset") {

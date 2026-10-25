@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { KeyboardEvent, PointerEvent, ReactNode } from "react";
 import { LocateFixed, Pause, Play, Square, Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatNumber, useLocale } from "@/app/i18n";
@@ -51,7 +51,43 @@ export function MushafAudioBar({ pageControls }: MushafAudioBarProps) {
   const elapsedMs = hasSessionClock ? time.sessionMs! : time.ayahMs;
   const totalMs = hasSessionClock ? time.sessionTotalMs! : time.ayahDurationMs;
   const showClock = totalMs > 0;
-  const remainingMs = Math.max(0, totalMs - elapsedMs);
+
+  /*
+   * The line is also where to go: tapping it carries the recitation to the
+   * ayah at that point, and the page with it. One ayah has nowhere to go.
+   */
+  const seekable = playback.playlistTotal > 1;
+  const current = playback.playlistIndex - 1;
+  const seekFromPointer = (event: PointerEvent<HTMLDivElement>) => {
+    const track = event.currentTarget.getBoundingClientRect();
+    if (track.width <= 0) return;
+    const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+    const along = rtl
+      ? track.right - event.clientX
+      : event.clientX - track.left;
+    actions.seekToFraction(along / track.width);
+  };
+  const seekFromKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    /* Forward is leftward in Arabic, as the line fills. */
+    const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+    const steps: Record<string, number> = {
+      ArrowUp: 1,
+      ArrowDown: -1,
+      ArrowRight: rtl ? -1 : 1,
+      ArrowLeft: rtl ? 1 : -1,
+      PageUp: 5,
+      PageDown: -5,
+    };
+    let target: number | null = null;
+    if (event.key === "Home") target = 0;
+    else if (event.key === "End") target = playback.playlistTotal - 1;
+    else if (event.key in steps) target = current + steps[event.key]!;
+    if (target === null) return;
+    event.preventDefault();
+    actions.seekToItem(
+      Math.min(playback.playlistTotal - 1, Math.max(0, target)),
+    );
+  };
 
   const showFollowButton =
     Boolean(playback.activeVerseKey) &&
@@ -140,11 +176,35 @@ export function MushafAudioBar({ pageControls }: MushafAudioBarProps) {
 
   return (
     <div className="mushaf-playback-bar">
-      <div
-        className="mushaf-playback-bar__progress"
-        style={{ inlineSize: `${progress}%` }}
-        aria-hidden
-      />
+      {seekable ? (
+        <div
+          className="mushaf-playback-bar__seek"
+          role="slider"
+          tabIndex={0}
+          aria-label={t("audio.progress")}
+          aria-valuemin={1}
+          aria-valuemax={playback.playlistTotal}
+          aria-valuenow={playback.playlistIndex}
+          aria-valuetext={t("audio.playlistProgress", {
+            current: formatNumber(playback.playlistIndex, locale),
+            total: formatNumber(playback.playlistTotal, locale),
+          })}
+          title={t("audio.seekHint")}
+          onPointerDown={seekFromPointer}
+          onKeyDown={seekFromKey}
+        >
+          <div
+            className="mushaf-playback-bar__progress"
+            style={{ inlineSize: `${progress}%` }}
+          />
+        </div>
+      ) : (
+        <div
+          className="mushaf-playback-bar__progress"
+          style={{ inlineSize: `${progress}%` }}
+          aria-hidden
+        />
+      )}
 
       <div className="mushaf-playback-bar__row">
         <div className="mushaf-playback-bar__info">
@@ -176,29 +236,14 @@ export function MushafAudioBar({ pageControls }: MushafAudioBarProps) {
             </p>
             {showClock ? (
               /*
-               * Latin digits read left to right even in Arabic, so the clock
-               * is isolated: without it the minus sign on the remaining time
-               * lands on the wrong end of the number.
+               * Elapsed and total only. A third, counting down, read as a
+               * second clock running the other way. Each is isolated: Latin
+               * digits read left to right even in Arabic.
                */
-              <p
-                className="truncate text-label tabular-nums text-muted-foreground"
-                aria-label={
-                  hasSessionClock
-                    ? t("audio.sessionRemaining", {
-                        remaining: formatClock(remainingMs, locale),
-                      })
-                    : t("audio.ayahRemaining", {
-                        remaining: formatClock(remainingMs, locale),
-                      })
-                }
-              >
+              <p className="truncate text-label tabular-nums text-muted-foreground">
                 <bdi>{formatClock(elapsedMs, locale)}</bdi>
                 {" / "}
                 <bdi>{formatClock(totalMs, locale)}</bdi>
-                <span className="mx-1" aria-hidden>
-                  ·
-                </span>
-                <bdi aria-hidden>−{formatClock(remainingMs, locale)}</bdi>
               </p>
             ) : null}
           </div>
@@ -269,18 +314,20 @@ export function MushafAudioBar({ pageControls }: MushafAudioBarProps) {
         </div>
       </div>
 
-      <span
-        className="sr-only"
-        role="progressbar"
-        aria-label={t("audio.progress")}
-        aria-valuemin={0}
-        aria-valuemax={playback.playlistTotal}
-        aria-valuenow={playback.playlistIndex}
-        aria-valuetext={t("audio.playlistProgress", {
-          current: formatNumber(playback.playlistIndex, locale),
-          total: formatNumber(playback.playlistTotal, locale),
-        })}
-      />
+      {!seekable && (
+        <span
+          className="sr-only"
+          role="progressbar"
+          aria-label={t("audio.progress")}
+          aria-valuemin={0}
+          aria-valuemax={playback.playlistTotal}
+          aria-valuenow={playback.playlistIndex}
+          aria-valuetext={t("audio.playlistProgress", {
+            current: formatNumber(playback.playlistIndex, locale),
+            total: formatNumber(playback.playlistTotal, locale),
+          })}
+        />
+      )}
 
       {playback.error && (
         <p className="px-3 pb-1 text-label text-destructive" role="alert">

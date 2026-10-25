@@ -16,6 +16,24 @@
 /** 10ms fbank hop with 4x subsampling in the encoder. */
 const ENCODER_FRAME_SECONDS = 0.04;
 
+/**
+ * Runner-up sounds kept with an emission: at most two, and only those the
+ * frame gave at least this much.
+ *
+ * The argmax alone loses the recogniser's doubt. Measured on a learner's
+ * أَنتَ, the frame that should have been تَ said ننننَ at 65% and تَ at 28% -
+ * the sound was there, second - and the cursor, shown only the winner, held
+ * the reciter at a word they had said correctly. Five percent keeps what the
+ * recogniser seriously considered and drops the long tail.
+ */
+const ALTERNATIVE_KEPT = 0.05;
+const ALTERNATIVES_KEPT = 2;
+
+interface PhonemeAlternative {
+  symbol: string;
+  probability: number;
+}
+
 export interface PhonemeEmission {
   id: number;
   symbol: string;
@@ -23,6 +41,8 @@ export interface PhonemeEmission {
   confidence: number;
   /** Seconds from the start of the recitation. */
   seconds: number;
+  /** What else the frame considered; see `ALTERNATIVE_KEPT`. */
+  alternatives?: PhonemeAlternative[];
 }
 
 export interface CtcStreamState {
@@ -34,6 +54,24 @@ export interface CtcStreamState {
 
 export function createCtcStreamState(): CtcStreamState {
   return { previousId: -1, frameIndex: 0 };
+}
+
+/** The best classes after `bestId`, blank aside, most likely first. */
+function runnersUp(
+  logProbs: Float32Array | Float64Array,
+  base: number,
+  vocab: number,
+  bestId: number,
+  blankId: number,
+): number[] {
+  const kept: number[] = [];
+  for (let id = 0; id < vocab; id += 1) {
+    if (id === bestId || id === blankId) continue;
+    kept.push(id);
+    kept.sort((a, b) => logProbs[base + b]! - logProbs[base + a]!);
+    if (kept.length > ALTERNATIVES_KEPT) kept.pop();
+  }
+  return kept;
 }
 
 /**
@@ -65,12 +103,20 @@ export function decodeChunk(
     }
 
     if (bestId !== blankId && bestId !== state.previousId) {
-      emissions.push({
+      const emission: PhonemeEmission = {
         id: bestId,
         symbol: symbols[bestId] ?? "",
         confidence: Math.exp(bestValue),
         seconds: state.frameIndex * ENCODER_FRAME_SECONDS,
-      });
+      };
+      const alternatives = runnersUp(logProbs, base, vocab, bestId, blankId)
+        .map((id) => ({
+          symbol: symbols[id] ?? "",
+          probability: Math.exp(logProbs[base + id]!),
+        }))
+        .filter((alternative) => alternative.probability >= ALTERNATIVE_KEPT);
+      if (alternatives.length > 0) emission.alternatives = alternatives;
+      emissions.push(emission);
     }
 
     state.previousId = bestId;

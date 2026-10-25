@@ -151,11 +151,31 @@ describe("after a recitation", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * The speech model's licence (Quran-Lab NPL-1.2) requires saying this in
+   * any app built on it, and it is true besides. With every result, mistakes
+   * or not: a clean run is the one most easily read as a teacher's approval.
+   */
+  it.each([[MISREAD], [[] as MisreadWord[]]])(
+    "says the feedback can be wrong and does not replace a teacher",
+    (misreadWords) => {
+      renderSummary({ misreadWords });
+
+      expect(
+        screen.getByText(
+          "هذه ملاحظات آلية تساعد على الحفظ، وقد تخطئ، ولا تغني عن معلّم متقن.",
+        ),
+      ).toBeInTheDocument();
+    },
+  );
+
   it("says plainly when nothing was misread", () => {
     renderSummary({ misreadWords: [] });
 
-    expect(screen.getByText("تلاوة سليمة.")).toBeInTheDocument();
-    expect(screen.getByText("لم تُخطئ في أي كلمة.")).toBeInTheDocument();
+    expect(screen.getByText("لم يُلحظ خطأ في الكلمات.")).toBeInTheDocument();
+    expect(
+      screen.getByText("سُمعت كل كلمة كما في المصحف."),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
   });
 
@@ -188,7 +208,9 @@ describe("after a recitation", () => {
       stoppedShort: true,
     });
 
-    expect(screen.queryByText("تلاوة سليمة.")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("لم يُلحظ خطأ في الكلمات."),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("سمّعت ٣ من ١٢٠ كلمة.")).toBeInTheDocument();
   });
 
@@ -202,7 +224,7 @@ describe("after a recitation", () => {
     });
 
     expect(
-      screen.getByText("ما سمّعته كان سليمًا، لكنك لم تُكمل الصفحة."),
+      screen.getByText("ما سمّعته كان سليمًا، لكن بعض الكلمات لم تُسمَّع."),
     ).toBeInTheDocument();
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
   });

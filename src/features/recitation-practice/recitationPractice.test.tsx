@@ -28,7 +28,8 @@ import {
   RecitationPracticeProvider,
   useRecitationPractice,
 } from "./index";
-import type { RecitationPracticeValue } from "./contract";
+import type { PracticeRunOptions, RecitationPracticeValue } from "./contract";
+import type { MushafWord } from "@/domain/quran";
 import type { ZipformerCallbacks } from "./services/zipformerEngine";
 import { VERDICT_TIMEOUT_MS } from "./model/practiceConfig";
 
@@ -137,7 +138,10 @@ describe("a streaming recitation", () => {
       seconds: index * 0.04,
     }));
 
-  async function startRun(spoken: typeof SPOKEN = SPOKEN) {
+  async function startRun(
+    spoken: typeof SPOKEN = SPOKEN,
+    options?: PracticeRunOptions,
+  ) {
     practiceMocks.buildExpectedWords.mockResolvedValue([
       {
         location: "1:1:1",
@@ -159,6 +163,7 @@ describe("a streaming recitation", () => {
       begin: vi.fn(),
       push: vi.fn(),
       score: vi.fn(),
+      expect: vi.fn(),
       stop: vi.fn(),
       usable: true,
     };
@@ -171,7 +176,7 @@ describe("a streaming recitation", () => {
     });
 
     const practice = renderPractice();
-    await act(async () => practice.current.startPractice([]));
+    await act(async () => practice.current.startPractice([], options));
     const callbacks = () =>
       engine.begin.mock.calls.at(-1)![0] as ZipformerCallbacks;
     return { practice, engine, callbacks };
@@ -661,6 +666,162 @@ describe("a streaming recitation", () => {
     });
     expect(practiceMocks.buildSpokenWords.mock.calls.at(-1)![1]).toEqual({
       reload: true,
+    });
+  });
+  /*
+   * "It should not be one page per تسميع - we usually memorise more than one
+   * page." A run used to end at the foot of the page it started on, so going
+   * on meant stopping, reading the summary and starting again mid-passage.
+   */
+  describe("carrying on to the next page", () => {
+    const PAGE_TWO = [
+      { locations: ["1:2:1"], units: ["ءَل", "حَم"], ids: [19, 20] },
+      { locations: ["1:2:2"], units: ["دُ", "لِل"], ids: [21, 22] },
+    ];
+    const PAGE_TWO_TEXT = [
+      {
+        location: "1:2:1",
+        verseKey: "1:2",
+        text: "ٱلْحَمْدُ",
+        displayText: "الحمد",
+        normalized: "الحمد",
+      },
+      {
+        location: "1:2:2",
+        verseKey: "1:2",
+        text: "لِلَّهِ",
+        displayText: "لله",
+        normalized: "لله",
+      },
+    ];
+    /* Its content is the mocks' business; it only has to be a page. */
+    const NEXT_PAGE = [{}] as MushafWord[];
+
+    function nextPageIs(spoken: typeof PAGE_TWO) {
+      practiceMocks.buildExpectedWords.mockResolvedValueOnce(PAGE_TWO_TEXT);
+      practiceMocks.buildSpokenWords.mockResolvedValueOnce(spoken);
+    }
+
+    /** Lets the next page's fetch and phoneme lookup finish. */
+    const settle = () =>
+      act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+    const recitePageOne = (callbacks: () => ZipformerCallbacks) =>
+      act(() => callbacks().onUnits(say(SPOKEN.flatMap((word) => word.units))));
+
+    it("keeps listening on the next page, and judges every page at the end", async () => {
+      const continueWith = vi.fn().mockResolvedValue(NEXT_PAGE);
+      const { practice, engine, callbacks } = await startRun(SPOKEN, {
+        continueWith,
+      });
+      nextPageIs(PAGE_TWO);
+
+      recitePageOne(callbacks);
+      await settle();
+
+      /* The page is sent to be judged without ending the run. */
+      expect(engine.score).toHaveBeenCalledWith(
+        { from: 0, to: 2 },
+        { continuing: true },
+      );
+      expect(engine.expect).toHaveBeenCalledWith(
+        [19, 20, 21, 22],
+        [
+          { from: 0, to: 2 },
+          { from: 2, to: 4 },
+        ],
+      );
+      expect(practice.current.completed).toBe(false);
+      expect(practice.current.listening).toBe(true);
+      expect(practice.current.currentWordLocation).toBe("1:2:1");
+      expect(practice.current.totalWords).toBe(2);
+      expect(practice.current.progressIndex).toBe(0);
+
+      act(() => callbacks().onUnits(say(PAGE_TWO[0]!.units)));
+      expect(practice.current.progressIndex).toBe(1);
+      act(() => practice.current.finishPractice());
+      expect(engine.score).toHaveBeenLastCalledWith({ from: 0, to: 1 });
+
+      /* The first page's verdict alone does not end the run - and it is
+         that page's words it marks, though the run has moved on. An ayah
+         is allowed one weak word, so both of 1:1 are weak here. */
+      act(() => callbacks().onScores([0.01, 0.01], [["ق"], ["ق"]]));
+      expect(practice.current.completed).toBe(false);
+      act(() => callbacks().onScores([0.9], [[]]));
+
+      expect(practice.current.completed).toBe(true);
+      /* Both pages, counted together. */
+      expect(practice.current.totalWords).toBe(4);
+      expect(practice.current.progressIndex).toBe(3);
+      expect(
+        practice.current.misreadWords.map((word) => word.location),
+      ).toEqual(["1:1:1", "1:1:2"]);
+    });
+
+    it("keeps what is said while the next page is still loading", async () => {
+      let deliver!: (words: MushafWord[]) => void;
+      const continueWith = vi.fn(
+        () => new Promise<MushafWord[]>((resolve) => (deliver = resolve)),
+      );
+      const { practice, callbacks } = await startRun(SPOKEN, { continueWith });
+      nextPageIs(PAGE_TWO);
+
+      recitePageOne(callbacks);
+      /* Straight on into the next page before it has arrived. */
+      act(() => callbacks().onUnits(say(PAGE_TWO[0]!.units)));
+      deliver(NEXT_PAGE);
+      await settle();
+
+      expect(practice.current.progressIndex).toBe(1);
+      expect(practice.current.currentWordLocation).toBe("1:2:2");
+    });
+
+    it("ends at the last page there is", async () => {
+      const continueWith = vi.fn().mockResolvedValue(null);
+      const { practice, engine, callbacks } = await startRun(SPOKEN, {
+        continueWith,
+      });
+
+      recitePageOne(callbacks);
+      await settle();
+
+      expect(engine.score).toHaveBeenCalledOnce();
+      expect(practice.current.listening).toBe(true);
+      expect(practice.current.isAnalyzing).toBe(true);
+
+      act(() => callbacks().onScores([0.9, 0.9], [[], []]));
+
+      expect(practice.current.completed).toBe(true);
+      expect(practice.current.totalWords).toBe(2);
+      expect(practice.current.progressIndex).toBe(2);
+    });
+
+    it("judges the pages already recited when stopped between pages", async () => {
+      let deliver!: (words: MushafWord[]) => void;
+      const continueWith = vi.fn(
+        () => new Promise<MushafWord[]>((resolve) => (deliver = resolve)),
+      );
+      const { practice, engine, callbacks } = await startRun(SPOKEN, {
+        continueWith,
+      });
+      nextPageIs(PAGE_TWO);
+
+      recitePageOne(callbacks);
+      act(() => practice.current.finishPractice());
+      act(() => callbacks().onScores([0.9, 0.9], [[], []]));
+
+      expect(engine.score).toHaveBeenCalledOnce();
+      expect(practice.current.completed).toBe(true);
+      expect(practice.current.totalWords).toBe(2);
+      expect(practice.current.stoppedShort).toBe(false);
+
+      /* The page arriving late does not reopen a judged run. */
+      deliver(NEXT_PAGE);
+      await settle();
+      expect(practice.current.completed).toBe(true);
+      expect(engine.expect).not.toHaveBeenCalled();
     });
   });
 });

@@ -52,7 +52,10 @@ import {
   type QuranPlaybackActions,
 } from "../context/QuranPlaybackContext";
 
+const created: FakeAudio[] = [];
+
 class FakeAudio {
+  preload = "";
   currentTime = 0;
   duration = 1;
   paused = false;
@@ -67,7 +70,9 @@ class FakeAudio {
   });
   removeAttribute = vi.fn();
 
-  constructor(public readonly src: string) {}
+  constructor(public readonly src: string) {
+    created.push(this);
+  }
 
   addEventListener(type: string, listener: EventListener) {
     const listeners = this.listeners.get(type) ?? new Set<EventListener>();
@@ -86,6 +91,7 @@ describe("QuranPlaybackProvider render channels", () => {
 
   beforeEach(() => {
     playbackTestState.activeWord = null;
+    created.length = 0;
     frames = new Map();
     vi.stubGlobal("Audio", FakeAudio);
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
@@ -163,5 +169,59 @@ describe("QuranPlaybackProvider render channels", () => {
     act(runFrame);
     expect(stateRenders).toBe(stateRendersAfterStart);
     expect(highlightRenders).toBe(highlightRendersAfterStart + 2);
+  });
+
+  /*
+   * "There is stoppage time in between, it kind of ruins the voice." Each
+   * ayah is its own file, and the next was only asked for once the last had
+   * ended - 240-290ms of silence measured on a fast connection.
+   */
+  it("has the next ayah loading before this one ends, and plays that", async () => {
+    let actions!: QuranPlaybackActions;
+    function ActionsProbe() {
+      actions = useQuranPlaybackActions();
+      return null;
+    }
+    const settle = () =>
+      act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    render(
+      <QuranPlaybackProvider>
+        <ActionsProbe />
+      </QuranPlaybackProvider>,
+    );
+
+    await act(async () => {
+      await actions.startListening({
+        playlist: [
+          { surah: 1, ayah: 1 },
+          { surah: 1, ayah: 2 },
+        ],
+        repeatMode: "none",
+        repeatCount: 1,
+        repeatEachAyah: false,
+        plan: {
+          scope: "surah",
+          surah: 1,
+          ayah: 1,
+          repeatMode: "none",
+          repeatCount: 1,
+        },
+      });
+    });
+    await settle();
+
+    /* The second ayah is already loading while the first plays. */
+    expect(created).toHaveLength(2);
+    expect(created[1]?.preload).toBe("auto");
+
+    const ended = [...created[0]!.listeners.get("ended")!][0]!;
+    act(() => ended(new Event("ended")));
+    await settle();
+
+    /* And it is that element that plays, not a new one made only now. */
+    expect(created).toHaveLength(2);
+    expect(created[1]?.play).toHaveBeenCalled();
   });
 });

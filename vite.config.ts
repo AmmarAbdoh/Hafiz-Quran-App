@@ -1,7 +1,7 @@
 import { createReadStream, statSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
@@ -248,11 +248,27 @@ function captureRecordings(): Plugin {
                 path.join(root, `${id}.wav`),
                 Buffer.from(wav, "base64"),
               );
-              await writeFile(
-                path.join(root, `${id}.json`),
-                JSON.stringify(meta, null, 2),
-                "utf8",
-              );
+              const metaPath = path.join(root, `${id}.json`);
+              await writeFile(metaPath, JSON.stringify(meta, null, 2), "utf8");
+              /*
+               * And the same run written out to be read - see
+               * `scripts/tasmee/report-run.mjs`. A report that fails is
+               * logged and the recording kept: the recording is the thing
+               * that cannot be made again.
+               */
+              try {
+                const report = pathToFileURL(
+                  path.resolve(rootDirectory, "scripts/tasmee/report-run.mjs"),
+                ).href;
+                const { writeRunReport } = (await import(report)) as {
+                  writeRunReport: (jsonPath: string) => Promise<string>;
+                };
+                await writeRunReport(metaPath);
+              } catch (error) {
+                server.config.logger.warn(
+                  `report for ${id} failed: ${error instanceof Error ? error.message : String(error)}`,
+                );
+              }
               response.statusCode = 200;
               response.setHeader("content-type", "application/json");
               response.end(JSON.stringify({ saved: `${id}.wav` }));

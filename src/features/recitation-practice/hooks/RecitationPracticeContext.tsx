@@ -11,6 +11,7 @@ import {
 import type {
   MisreadWord,
   PracticeErrorCode,
+  PracticeRunOptions,
   RecitationPracticeProviderProps,
   RecitationPracticeTelemetry,
   RecitationPracticeValue,
@@ -37,9 +38,9 @@ import {
 } from "@/features/recitation-practice/services/playWrongSound";
 import { matchRecitationSegment } from "@/features/recitation-practice/model/segmentMatch";
 import {
-  phonemesAsLetters,
-  whatWasHeard,
-} from "@/features/recitation-practice/model/phonemeText";
+  judgeRecitedPage,
+  type RecitedPage,
+} from "@/features/recitation-practice/model/judgeRecitedPage";
 import {
   WHISPER_DTYPE_CANDIDATES,
   isStreamingPracticeModel,
@@ -57,9 +58,10 @@ import { readPracticeStrictPreference } from "@/features/recitation-practice/hoo
 import {
   saveRecording,
   type RecordingMeta,
+  type RunEvent,
+  type RunEventDetail,
 } from "@/features/recitation-practice/services/captureRecording";
 import {
-  findMisreadWords,
   STRICT_WEAK_WORDS_TOLERATED,
   stoppedShort,
   WEAK_WORDS_TOLERATED,
@@ -155,6 +157,21 @@ function pageWordCount(words: readonly ScorableWord[]): number {
   return new Set(words.flatMap((word) => word.locations)).size;
 }
 
+/** The recogniser's labels for these words, and where each word's begin. */
+function labelsOf(spoken: readonly ScorableWord[]): {
+  labels: number[];
+  spans: { from: number; to: number }[];
+} {
+  const labels: number[] = [];
+  const spans: { from: number; to: number }[] = [];
+  for (const word of spoken) {
+    const from = labels.length;
+    labels.push(...word.ids);
+    spans.push({ from, to: labels.length });
+  }
+  return { labels, spans };
+}
+
 function abortError(): DOMException {
   return new DOMException("Practice startup was cancelled", "AbortError");
 }
@@ -226,10 +243,15 @@ export function RecitationPracticeProvider({
    * this is kept - or even reachable - in a production build.
    */
   const capturedAudioRef = useRef<Float32Array[]>([]);
-  const capturedHeardRef = useRef<[string, number, number][]>([]);
+  const capturedHeardRef = useRef<RecordingMeta["heard"]>([]);
   const capturedHeldRef = useRef<{ locations: string[]; ms: number }[]>([]);
   const cursorHeldRef = useRef({ wordIndex: 0, since: 0 });
   const lastRunRef = useRef<RecordingMeta | null>(null);
+  /** What happened during the run, for the report written beside it. */
+  const capturedEventsRef = useRef<RunEvent[]>([]);
+  /** The audio clock the events are stamped with: the last phoneme heard. */
+  const lastHeardSecondsRef = useRef(0);
+  const startedWithStopOnMistakeRef = useRef(true);
   /** What the last progress dispatch said, so an unchanged one is skipped. */
   const lastDispatchedRef = useRef<{
     progressIndex: number;
@@ -256,8 +278,32 @@ export function RecitationPracticeProvider({
   const zipformerRef = useRef<ZipformerEngine | null>(null);
   /** Set by "download the model again": the next load skips cached copies. */
   const reloadModelRef = useRef(false);
-  /** The spoken words the pending verdict covers. */
-  const scoredSpanRef = useRef<{ from: number; to: number } | null>(null);
+  /** Where the words of the page after this one come from; see `continueWith`. */
+  const continueWithRef = useRef<PracticeRunOptions["continueWith"] | null>(
+    null,
+  );
+  /**
+   * Pages sent to be scored and not yet answered, oldest first.
+   *
+   * The recogniser answers every score once and in order, so the front of
+   * this is always the page the next scores belong to.
+   */
+  const pagesAwaitingRef = useRef<RecitedPage[]>([]);
+  /** Pages scored so far this run, with the words each needs work on. */
+  const pagesJudgedRef = useRef<
+    { page: RecitedPage; misread: MisreadWord[] }[]
+  >([]);
+  /**
+   * Phonemes heard while the next page was being fetched.
+   *
+   * Null except in that gap. A reciter who runs straight on is already into
+   * the next page's first ayah; dropping what they said there would mark its
+   * opening words as skipped.
+   */
+  const unitsBetweenPagesRef = useRef<PhonemeEmission[] | null>(null);
+  /** Set below, once `turnPage` exists; it and `applyPhonemeUnits` call
+      each other. */
+  const turnPageRef = useRef<(sessionId: number) => void>(() => {});
   const trackerRef = useRef<ReturnType<typeof createPhonemeTracker> | null>(
     null,
   );
@@ -297,6 +343,15 @@ export function RecitationPracticeProvider({
     (sessionId: number) => sessionIdRef.current === sessionId,
     [],
   );
+
+  /** Development only, like the rest of what a saved run is made of. */
+  const noteEvent = useCallback((event: RunEventDetail) => {
+    if (!import.meta.env.DEV) return;
+    capturedEventsRef.current.push({
+      t: lastHeardSecondsRef.current,
+      ...event,
+    });
+  }, []);
 
   const disposeWorkers = useCallback(() => {
     const workers = new Set(
@@ -344,13 +399,18 @@ export function RecitationPracticeProvider({
     capturedHeldRef.current = [];
     cursorHeldRef.current = { wordIndex: 0, since: performance.now() };
     lastRunRef.current = null;
+    capturedEventsRef.current = [];
+    lastHeardSecondsRef.current = 0;
     pendingTranscribeRef.current = null;
     activeTranscriptionRef.current = null;
     transcribeGenerationRef.current = 0;
     expectedWordsRef.current = [];
     alignerRef.current = createAlignerState();
     misreadRef.current = [];
-    scoredSpanRef.current = null;
+    continueWithRef.current = null;
+    pagesAwaitingRef.current = [];
+    pagesJudgedRef.current = [];
+    unitsBetweenPagesRef.current = null;
     trackerRef.current = null;
     revealedRef.current = [];
     skippedRef.current = new Set();
@@ -715,177 +775,140 @@ export function RecitationPracticeProvider({
     [isCurrentSession, loadModelInFreshWorker],
   );
 
+  /** The page being recited, as it stands, for scoring once it is left. */
+  const recitedPageNow = useCallback(
+    (span: { from: number; to: number }): RecitedPage => ({
+      spoken: spokenRef.current,
+      wordText: wordTextRef.current,
+      span,
+      skipped: skippedRef.current,
+      stumbles: stumbleRef.current,
+      gaveUp: gaveUpRef.current,
+    }),
+    [],
+  );
+
   /**
-   * The verdict, once the whole recitation can be looked at.
+   * Every page is judged: say what the whole recitation came to.
    *
-   * `findMisreadWords` holds the rule and the measurements behind it; this
-   * only feeds it the alignment scores alongside what the cursor saw, and
-   * turns the answer back into page locations.
+   * How far they got is counted against the pages, not against what was
+   * judged. Reporting the judged stretch as the total made every abandoned
+   * run a complete one: three words of a hundred and twenty showed as 100%
+   * and a clean page, which is the one answer this feature must never give by
+   * accident. Measured, it was the whole of how `stopped-early` is caught: 6
+   * of 501 such clips are caught by marking words, 496 by noticing the end
+   * was never reached.
+   */
+  const completeRun = useCallback(() => {
+    if (verdictTimerRef.current) {
+      clearTimeout(verdictTimerRef.current);
+      verdictTimerRef.current = null;
+    }
+    const pages = pagesJudgedRef.current;
+    const misread = pages.flatMap((judged) => judged.misread);
+    misreadRef.current = misread;
+    let recited = 0;
+    let total = 0;
+    let short = false;
+    for (const { page } of pages) {
+      recited += pageWordCount(page.spoken.slice(page.span.from, page.span.to));
+      total += pageWordCount(page.spoken);
+      short ||= stoppedShort(page.spoken.length, page.span);
+    }
+    verdictAppliedRef.current = true;
+
+    if (import.meta.env.DEV) {
+      const spoken = pages.flatMap(({ page }) =>
+        page.spoken.map((word) => ({
+          ...word,
+          text: word.locations
+            .map((location) => page.wordText.get(location)?.text)
+            .filter(Boolean)
+            .join(" "),
+        })),
+      );
+      const keys = new Set<string>();
+      for (const word of spoken) {
+        for (const location of word.locations) {
+          keys.add(location.split(":").slice(0, 2).join(":"));
+        }
+      }
+      lastRunRef.current = {
+        verseKeys: [...keys],
+        expected: spoken.map((word) => ({
+          locations: word.locations,
+          units: word.units,
+          text: word.text,
+        })),
+        stopOnMistake: startedWithStopOnMistakeRef.current,
+        events: capturedEventsRef.current,
+        misreadHeard: misread.map((word) => ({
+          location: word.location,
+          heard: word.heard,
+        })),
+        progressIndex: recited,
+        totalWords: total,
+        stoppedShort: short,
+        misreadLocations: misread.map((word) => word.location),
+        skippedLocations: pages.flatMap(({ page }) => [...page.skipped]),
+        stumbles: pages.flatMap(({ page }) =>
+          [...page.stumbles].map(([location, heardAt]) => ({
+            location,
+            heard: heardAt,
+          })),
+        ),
+        held: capturedHeldRef.current,
+        heard: capturedHeardRef.current,
+        strictMode: readPracticeStrictPreference(),
+        recordedAt: new Date().toISOString(),
+        note: "",
+      };
+    }
+    dispatch({
+      type: "progress-advanced",
+      progressIndex: recited,
+      totalWords: total,
+      revealedLocations: revealedRef.current,
+      misreadWords: misread,
+      currentWordLocation: null,
+      transcript: "",
+      completed: true,
+      stoppedShort: short,
+    });
+  }, []);
+
+  /**
+   * One page's verdict.
+   *
+   * `judgeRecitedPage` holds the rule and the measurements behind it; this
+   * matches the scores to the page they belong to and, once the last page is
+   * in, ends the run.
    */
   const applyWordScores = useCallback(
     (scores: number[], heardPerWord: string[][], sessionId: number) => {
       if (!isCurrentSession(sessionId)) return;
-      if (verdictTimerRef.current) {
-        clearTimeout(verdictTimerRef.current);
-        verdictTimerRef.current = null;
-      }
-      const span = scoredSpanRef.current;
-      const judged = span ? spokenRef.current.slice(span.from, span.to) : [];
-      /*
-       * Scores that do not line up with what was asked about cannot be
-       * trusted to mark the right words - and marking none would report a
-       * clean recitation that nobody checked, which is the one answer a
-       * memorization helper must never give by accident.
-       */
-      if (!span || judged.length === 0 || scores.length !== judged.length) {
+      const page = pagesAwaitingRef.current.shift();
+      if (!page) return;
+
+      /* Read now rather than held in state: the switch for it lives in
+         Settings, which is not inside this provider. */
+      const tolerated = readPracticeStrictPreference()
+        ? STRICT_WEAK_WORDS_TOLERATED
+        : WEAK_WORDS_TOLERATED;
+      const misread = judgeRecitedPage(page, scores, heardPerWord, tolerated);
+      if (!misread) {
         failPractice("verdictFailed");
         return;
       }
-
-      const scored = judged.map((word, index) => ({
-        ayah: word.locations[0]?.split(":").slice(0, 2).join(":") ?? "",
-        score: scores[index]!,
-        skipped: word.locations.some((location) =>
-          skippedRef.current.has(location),
-        ),
-      }));
-
-      const misread: MisreadWord[] = [];
-      /* Read now rather than held in state: the switch for it lives in
-         Settings, which is not inside this provider. */
-      const strict = readPracticeStrictPreference();
-      const tolerated = strict
-        ? STRICT_WEAK_WORDS_TOLERATED
-        : WEAK_WORDS_TOLERATED;
-
-      /*
-       * The words the reader said they could not say, before anything the
-       * audio is asked about: a given-up word may also score badly, and
-       * "you told us you were stuck here" is the truer reason of the two.
-       */
-      for (const location of gaveUpRef.current) {
-        const known = wordTextRef.current.get(location);
-        if (!known) continue;
-        misread.push({
-          location,
-          verseKey: known.verseKey,
-          text: known.text,
-          heard: { kind: "gaveUp" },
-        });
-      }
-
-      for (const index of findMisreadWords(scored, undefined, tolerated)) {
-        for (const location of judged[index]!.locations) {
-          if (misread.some((word) => word.location === location)) continue;
-          const known = wordTextRef.current.get(location);
-          if (!known) continue;
-          misread.push({
-            location,
-            verseKey: known.verseKey,
-            text: known.text,
-            /* One spoken word can cover several of the page's, tajweed
-               running them together, and the alignment scores the pair as
-               one - so both carry the same reading of what was heard. */
-            heard: whatWasHeard(
-              judged[index]!.units,
-              heardPerWord[index] ?? [],
-            ),
-          });
-        }
-      }
-
-      /*
-       * And the words they got wrong and then got right.
-       *
-       * Invisible to everything above: both attempts are in the audio, the
-       * alignment uses the good one, and the word scores well. Listing them
-       * is the answer to "it says I got nothing wrong, but I did" - the
-       * recitation stopped and went back, which the cursor saw and nothing
-       * else did.
-       */
-      for (const [location, stumbled] of stumbleRef.current) {
-        if (misread.some((word) => word.location === location)) continue;
-        const known = wordTextRef.current.get(location);
-        if (!known) continue;
-        misread.push({
-          location,
-          verseKey: known.verseKey,
-          text: known.text,
-          heard: { kind: "stumble", letters: phonemesAsLetters(stumbled) },
-        });
-      }
-      /* Page order, so the list reads the way the page does: the stumbles
-         were appended after words that may come later than they do. */
-      const order = [...wordTextRef.current.keys()];
-      misread.sort(
-        (a, b) => order.indexOf(a.location) - order.indexOf(b.location),
+      pagesJudgedRef.current.push({ page, misread });
+      misreadRef.current = pagesJudgedRef.current.flatMap(
+        (judged) => judged.misread,
       );
-
-      misreadRef.current = misread;
-      /*
-       * How far they got, against the page - not against what was judged.
-       *
-       * Reporting the judged stretch as the total made every abandoned run a
-       * complete one: three words of a hundred and twenty showed as 100% and
-       * a clean page, which is the one answer this feature must never give
-       * by accident. Measured, it was the whole of how `stopped-early` is
-       * caught: 6 of 501 such clips are caught by marking words, 496 by
-       * noticing the end was never reached.
-       */
-      verdictAppliedRef.current = true;
-      if (import.meta.env.DEV) {
-        const keys = new Set<string>();
-        for (const word of spokenRef.current) {
-          for (const location of word.locations) {
-            keys.add(location.split(":").slice(0, 2).join(":"));
-          }
-        }
-        lastRunRef.current = {
-          verseKeys: [...keys],
-          expected: spokenRef.current.map((word) => ({
-            locations: word.locations,
-            units: word.units,
-          })),
-          /*
-           * What was recited, not where the cursor stopped.
-           *
-           * Counting from the first word of the page credited everything
-           * before the reciter started: someone who opened halfway down and
-           * carried on to the last word showed 100% of a page they had
-           * recited half of. The bar and the summary both read this.
-           */
-          progressIndex: pageWordCount(
-            spokenRef.current.slice(span.from, span.to),
-          ),
-          totalWords: pageWordCount(spokenRef.current),
-          stoppedShort: stoppedShort(spokenRef.current.length, span),
-          misreadLocations: misread.map((word) => word.location),
-          skippedLocations: [...skippedRef.current],
-          stumbles: [...stumbleRef.current].map(([location, heardAt]) => ({
-            location,
-            heard: heardAt,
-          })),
-          held: capturedHeldRef.current,
-          heard: capturedHeardRef.current,
-          strictMode: strict,
-          recordedAt: new Date().toISOString(),
-          note: "",
-        };
+      if (completedRef.current && pagesAwaitingRef.current.length === 0) {
+        completeRun();
       }
-      dispatch({
-        type: "progress-advanced",
-        progressIndex: pageWordCount(
-          spokenRef.current.slice(span.from, span.to),
-        ),
-        revealedLocations: revealedRef.current,
-        misreadWords: misread,
-        currentWordLocation: null,
-        transcript: "",
-        completed: true,
-        stoppedShort: stoppedShort(spokenRef.current.length, span),
-      });
     },
-    [failPractice, isCurrentSession],
+    [completeRun, failPractice, isCurrentSession],
   );
 
   /**
@@ -899,7 +922,9 @@ export function RecitationPracticeProvider({
     /* Captured now, so a later run's verdict cannot be failed by this one's
        timer - and this one's cannot outlive being stopped. */
     const sessionId = sessionIdRef.current;
+    noteEvent({ kind: "stop" });
     completedRef.current = true;
+    unitsBetweenPagesRef.current = null;
     micStartAbortRef.current?.abort();
     micRef.current?.stop();
     micRef.current = null;
@@ -908,18 +933,27 @@ export function RecitationPracticeProvider({
     const tracker = trackerRef.current;
     const span = tracker ? recitedSpan(tracker) : null;
     const engine = zipformerRef.current;
-    if (!span || !engine) {
+    const earlierPages =
+      pagesAwaitingRef.current.length + pagesJudgedRef.current.length > 0;
+    if (!engine || (!span && !earlierPages)) {
       failPractice("nothingHeard");
       return;
+    }
+    if (span) {
+      pagesAwaitingRef.current.push(recitedPageNow(span));
+      engine.score(span);
     }
     /*
      * The verdict is not in yet, so the run is not completed: completing here
      * would open the summary on an empty list and fill it a moment later,
      * which is the same "you were fine - no wait" two judges used to produce.
      */
-    scoredSpanRef.current = span;
     dispatch({ type: "analysis-started" });
-    engine.score(span);
+    /* Stopped just after a page was judged, before saying any of the next. */
+    if (pagesAwaitingRef.current.length === 0) {
+      completeRun();
+      return;
+    }
     /*
      * And a limit on waiting for it.
      *
@@ -936,7 +970,16 @@ export function RecitationPracticeProvider({
       if (!isCurrentSession(sessionId) || verdictAppliedRef.current) return;
       failPractice("verdictFailed");
     }, VERDICT_TIMEOUT_MS);
-  }, [failPractice, isCurrentSession]);
+  }, [completeRun, failPractice, isCurrentSession, noteEvent, recitedPageNow]);
+
+  /** The cursor reached the end of the page: go on to the next, or stop. */
+  const pageFinished = useCallback(
+    (sessionId: number) => {
+      if (continueWithRef.current) turnPageRef.current(sessionId);
+      else requestVerdict();
+    },
+    [requestVerdict],
+  );
 
   /**
    * Show the word the run is held at, without letting it move past.
@@ -958,11 +1001,12 @@ export function RecitationPracticeProvider({
     );
     if (reveal.length === 0) return;
     revealedRef.current = [...revealedRef.current, ...reveal];
+    noteEvent({ kind: "reveal", locations: reveal });
     dispatch({
       type: "held-word-revealed",
       revealedLocations: revealedRef.current,
     });
-  }, []);
+  }, [noteEvent]);
 
   /**
    * Give up on the held word and carry on past it.
@@ -990,6 +1034,7 @@ export function RecitationPracticeProvider({
     if (!tracker || heldWord(tracker) === null) return;
 
     const left = giveUpOnHeldWord(tracker);
+    noteEvent({ kind: "gave-up", locations: left });
     for (const location of left) {
       skippedRef.current.add(location);
       gaveUpRef.current.add(location);
@@ -1018,16 +1063,14 @@ export function RecitationPracticeProvider({
       completed: false,
       heldAtLocation: null,
     });
-    /* Giving up on the last word of the page ends the run, like reciting it
+    /* Giving up on the last word of the page finishes it, like reciting it
        would - otherwise the reader is left listening to a finished page. */
-    if (progress.finished) requestVerdict();
-  }, [requestVerdict]);
+    if (progress.finished) pageFinished(sessionIdRef.current);
+  }, [noteEvent, pageFinished]);
 
   const applyPhonemeUnits = useCallback(
     (units: PhonemeEmission[], sessionId: number) => {
       if (!isCurrentSession(sessionId)) return;
-      const tracker = trackerRef.current;
-      if (!tracker) return;
       /*
        * Scoring flushes the recogniser's buffered tail, so phonemes can still
        * arrive after the run is over. They have nowhere to go: the cursor is
@@ -1035,19 +1078,36 @@ export function RecitationPracticeProvider({
        * already being judged.
        */
       if (completedRef.current) return;
+      /* The next page is still on its way; these are its first words. */
+      if (unitsBetweenPagesRef.current) {
+        unitsBetweenPagesRef.current.push(...units);
+        return;
+      }
+      const tracker = trackerRef.current;
+      if (!tracker) return;
 
       /* Something was said, whether or not it turns out to match the page. */
       if (units.length > 0) heardPhonemesRef.current = true;
 
       if (import.meta.env.DEV) {
         for (const unit of units) {
-          capturedHeardRef.current.push([
-            unit.symbol,
-            unit.confidence,
-            unit.seconds,
-          ]);
+          capturedHeardRef.current.push(
+            unit.alternatives
+              ? [
+                  unit.symbol,
+                  unit.confidence,
+                  unit.seconds,
+                  unit.alternatives.map((other) => [
+                    other.symbol,
+                    other.probability,
+                  ]),
+                ]
+              : [unit.symbol, unit.confidence, unit.seconds],
+          );
+          lastHeardSecondsRef.current = unit.seconds;
         }
       }
+      const heldBefore = heldWord(tracker)?.[0] ?? null;
 
       /*
        * The cursor always waits: moving past a word the reciter could not
@@ -1055,6 +1115,16 @@ export function RecitationPracticeProvider({
        * option, and every caller passed it.
        */
       const progress = advanceTracker(tracker, units);
+      if (progress.skipped.length > 0) {
+        noteEvent({ kind: "passed-over", locations: progress.skipped });
+      }
+      for (const stumble of progress.stumbles) {
+        noteEvent({
+          kind: "stumble",
+          location: stumble.locations[0] ?? "",
+          heard: stumble.heard,
+        });
+      }
       for (const location of progress.skipped) {
         skippedRef.current.add(location);
       }
@@ -1126,6 +1196,7 @@ export function RecitationPracticeProvider({
       const stillThere = stumble && progress.wordIndex <= stumble.wordIndex;
       if (stillThere && stopOnMistakeRef.current && progress.heldAt === null) {
         holdAt(tracker, stumble.wordIndex);
+        noteEvent({ kind: "hold", location: stumble.locations[0] ?? "" });
         playWrongSound();
         /*
          * And stop listening for as long as it sounds. Echo cancellation is
@@ -1144,6 +1215,9 @@ export function RecitationPracticeProvider({
        * that word" did to a reciter who simply went back a line.
        */
       const heldAtLocation = heldWord(tracker)?.[0] ?? null;
+      if (heldBefore && heldAtLocation === null) {
+        noteEvent({ kind: "release", location: heldBefore });
+      }
 
       /*
        * The tracker's own verdict on each word is deliberately ignored.
@@ -1207,6 +1281,11 @@ export function RecitationPracticeProvider({
             });
           }
           cursorHeldRef.current = { wordIndex: progress.wordIndex, since: now };
+          noteEvent({
+            kind: "cursor",
+            from: word?.locations[0] ?? null,
+            to: progress.currentLocations[0] ?? null,
+          });
         }
       }
 
@@ -1223,7 +1302,7 @@ export function RecitationPracticeProvider({
         last.misreadWords === misreadRef.current &&
         last.heldAtLocation === heldAtLocation
       ) {
-        if (progress.finished) requestVerdict();
+        if (progress.finished) pageFinished(sessionId);
         return;
       }
       lastDispatchedRef.current = {
@@ -1253,10 +1332,99 @@ export function RecitationPracticeProvider({
        * until the verdict came back, which on a long page is several
        * seconds of looking like it was missed.
        */
-      if (progress.finished) requestVerdict();
+      if (progress.finished) pageFinished(sessionId);
     },
-    [isCurrentSession, requestVerdict],
+    [isCurrentSession, noteEvent, pageFinished],
   );
+
+  /**
+   * Carry the recitation on to the next page.
+   *
+   * People memorise more than a page at a time, and a run that ended at the
+   * foot of each one made them stop, read the summary and start again in the
+   * middle of a passage. The finished page is sent to be scored and the
+   * microphone keeps listening; its verdict joins the others when it
+   * arrives, and the summary waits for the reader to stop.
+   */
+  const turnPage = useCallback(
+    async (sessionId: number) => {
+      const tracker = trackerRef.current;
+      const engine = zipformerRef.current;
+      const continueWith = continueWithRef.current;
+      const span = tracker ? recitedSpan(tracker) : null;
+      if (!span || !engine || !continueWith) {
+        requestVerdict();
+        return;
+      }
+      pagesAwaitingRef.current.push(recitedPageNow(span));
+      engine.score(span, { continuing: true });
+      trackerRef.current = null;
+      unitsBetweenPagesRef.current = [];
+      lastDispatchedRef.current = null;
+
+      /* Whatever goes wrong fetching the next page, the pages already
+         recited are not thrown away: the run ends there, judged. */
+      const stillTurning = () =>
+        isCurrentSession(sessionId) && !completedRef.current;
+      let pageWords: MushafWord[] | null = null;
+      let expected: ExpectedPracticeWord[] = [];
+      let spoken: ScorableWord[] = [];
+      try {
+        pageWords = await continueWith();
+        if (!stillTurning()) return;
+        if (pageWords && pageWords.length > 0) {
+          [expected, spoken] = await Promise.all([
+            buildPageExpectedWords(pageWords),
+            buildPageSpokenWords(pageWords),
+          ]);
+        }
+      } catch {
+        // Ended below, as the last page of the run.
+      }
+      if (!stillTurning()) return;
+      if (spoken.length === 0) {
+        requestVerdict();
+        return;
+      }
+
+      expectedWordsRef.current = expected;
+      wordTextRef.current = new Map(
+        expected.map((word) => [
+          word.location,
+          { verseKey: word.verseKey, text: word.displayText },
+        ]),
+      );
+      spokenRef.current = spoken;
+      revealedRef.current = [];
+      skippedRef.current = new Set();
+      stumbleRef.current = new Map();
+      gaveUpRef.current = new Set();
+      const { labels, spans } = labelsOf(spoken);
+      engine.expect(labels, spans);
+      trackerRef.current = createPhonemeTracker(spoken);
+      cursorHeldRef.current = { wordIndex: 0, since: performance.now() };
+      dispatch({
+        type: "page-turned",
+        totalWords: pageWordCount(spoken),
+        currentWordLocation: spoken[0]?.locations[0] ?? null,
+      });
+      noteEvent({ kind: "page", location: spoken[0]?.locations[0] ?? null });
+
+      const heardMeanwhile = unitsBetweenPagesRef.current ?? [];
+      unitsBetweenPagesRef.current = null;
+      if (heardMeanwhile.length > 0) {
+        applyPhonemeUnits(heardMeanwhile, sessionId);
+      }
+    },
+    [
+      applyPhonemeUnits,
+      isCurrentSession,
+      noteEvent,
+      recitedPageNow,
+      requestVerdict,
+    ],
+  );
+  turnPageRef.current = (sessionId) => void turnPage(sessionId);
 
   const startMic = useCallback(
     async (sessionId: number) => {
@@ -1337,10 +1505,12 @@ export function RecitationPracticeProvider({
   );
 
   const startPractice = useCallback(
-    async (pageWords: MushafWord[]) => {
+    async (pageWords: MushafWord[], options?: PracticeRunOptions) => {
       sessionIdRef.current += 1;
       releaseSessionResources();
       setTelemetry(initialRecitationPracticeTelemetry);
+      continueWithRef.current = options?.continueWith ?? null;
+      startedWithStopOnMistakeRef.current = stopOnMistakeRef.current;
       const sessionId = sessionIdRef.current;
       dispatch({ type: "start" });
       let startStage: "words" | "no-words" | "model" | "microphone" = "words";
@@ -1481,13 +1651,7 @@ export function RecitationPracticeProvider({
              asked - so this is a guard rather than a path. */
           if (!engine) throw new Error("The recogniser is not available");
 
-          const labels: number[] = [];
-          const spans: { from: number; to: number }[] = [];
-          for (const word of spoken) {
-            const from = labels.length;
-            labels.push(...word.ids);
-            spans.push({ from, to: labels.length });
-          }
+          const { labels, spans } = labelsOf(spoken);
           engine.begin(
             {
               onUnits: (units) => applyPhonemeUnits(units, sessionId),
@@ -1631,6 +1795,7 @@ export function RecitationPracticeProvider({
     const next = !stopOnMistakeRef.current;
     setStopOnMistake(next);
     safeStorage.setItem(PRACTICE_STOP_ON_MISTAKE_STORAGE_KEY, String(next));
+    noteEvent({ kind: "stop-on-mistake", on: next });
     /*
      * Turning it off while stopped at a word lets the run go.
      *
@@ -1642,8 +1807,9 @@ export function RecitationPracticeProvider({
     if (next || !tracker || heldWord(tracker) === null) return;
     releaseHold(tracker);
     lastDispatchedRef.current = null;
+    noteEvent({ kind: "release", location: heldWord(tracker)?.[0] ?? "" });
     dispatch({ type: "clear-held-word" });
-  }, []);
+  }, [noteEvent]);
 
   const toggleShowDebug = useCallback(() => {
     const next = !showDebugRef.current;
@@ -1692,8 +1858,20 @@ export function RecitationPracticeProvider({
     if (completedRef.current && !verdictAppliedRef.current) return;
 
     const tracker = trackerRef.current;
-    const streaming = zipformerRef.current !== null && tracker !== null;
+    /* Between pages there is no tracker, and the pages before are still
+       waiting to be judged. */
+    const turning = unitsBetweenPagesRef.current !== null;
+    const streaming =
+      zipformerRef.current !== null && (tracker !== null || turning);
     if (!streaming || completedRef.current) {
+      stopPractice();
+      return;
+    }
+    if (pagesAwaitingRef.current.length + pagesJudgedRef.current.length > 0) {
+      requestVerdict();
+      return;
+    }
+    if (!tracker) {
       stopPractice();
       return;
     }

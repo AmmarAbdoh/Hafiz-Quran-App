@@ -35,6 +35,8 @@ const FIXTURES = path.resolve(
   flag("fixtures", "scripts/tasmee/fixtures-large"),
 );
 const MODEL_DIR = process.env.TASMEE_ZIPFORMER_DIR ?? ".models/zipformer";
+/** Cursor options to compare, as JSON; see `TrackerOptions`. */
+const TRACKER_OPTIONS = JSON.parse(process.env.TASMEE_TRACKER ?? "{}");
 /** How often the worker posts phonemes: 48 fbank frames at a 10ms shift. */
 const CHUNK_SECONDS = 48 * 0.01;
 
@@ -44,7 +46,7 @@ const lowerQuartile = (supports) =>
 
 /** Replay a clip through the tracker the reader uses. */
 function follow(expected, units) {
-  const tracker = createPhonemeTracker(expected);
+  const tracker = createPhonemeTracker(expected, TRACKER_OPTIONS);
   const skipped = new Set();
   const stumbled = new Set();
   let fires = 0;
@@ -53,8 +55,17 @@ function follow(expected, units) {
     const until = units[at][2] + CHUNK_SECONDS;
     const chunk = [];
     while (at < units.length && units[at][2] < until) {
-      const [symbol, confidence, seconds] = units[at];
-      chunk.push({ id: 0, symbol, confidence, seconds });
+      const [symbol, confidence, seconds, alternatives] = units[at];
+      chunk.push({
+        id: 0,
+        symbol,
+        confidence,
+        seconds,
+        alternatives: alternatives?.map(([other, probability]) => ({
+          symbol: other,
+          probability,
+        })),
+      });
       at += 1;
     }
     const progress = advanceTracker(tracker, chunk);

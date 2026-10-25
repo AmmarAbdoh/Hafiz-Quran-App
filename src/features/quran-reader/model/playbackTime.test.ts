@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { SurahTimestamp } from "@/domain/quran";
-import { computeSessionTime, formatClock } from "./playbackTime";
+import {
+  computeSessionTime,
+  formatClock,
+  playlistIndexAt,
+} from "./playbackTime";
 
 function timestamps(
   entries: Array<[surah: number, ayah: number, durationMs: number]>,
@@ -120,5 +124,67 @@ describe("computeSessionTime", () => {
         timestamps: known,
       }).sessionMs,
     ).toBe(15_000);
+  });
+});
+
+describe("where a tap on the progress line lands", () => {
+  const playlist = [
+    { surah: 2, ayah: 1 },
+    { surah: 2, ayah: 2 },
+    { surah: 2, ayah: 3 },
+  ];
+
+  /* 2:1 is short and 2:2 long, so time and count disagree on purpose. */
+  const timed = timestamps([
+    [2, 1, 1_000],
+    [2, 2, 8_000],
+    [2, 3, 1_000],
+  ]);
+
+  it("goes by running time when every ayah's length is known", () => {
+    expect(playlistIndexAt({ playlist, fraction: 0, timestamps: timed })).toBe(
+      0,
+    );
+    expect(
+      playlistIndexAt({ playlist, fraction: 0.05, timestamps: timed }),
+    ).toBe(0);
+    /* A third of the way is well inside the long second ayah. */
+    expect(
+      playlistIndexAt({ playlist, fraction: 0.34, timestamps: timed }),
+    ).toBe(1);
+    expect(
+      playlistIndexAt({ playlist, fraction: 0.85, timestamps: timed }),
+    ).toBe(1);
+    expect(
+      playlistIndexAt({ playlist, fraction: 0.95, timestamps: timed }),
+    ).toBe(2);
+    expect(playlistIndexAt({ playlist, fraction: 1, timestamps: timed })).toBe(
+      2,
+    );
+  });
+
+  it("goes by ayah count when a length is missing", () => {
+    const partial = timestamps([[2, 1, 1_000]]);
+    expect(
+      playlistIndexAt({ playlist, fraction: 0.34, timestamps: partial }),
+    ).toBe(1);
+    expect(
+      playlistIndexAt({ playlist, fraction: 0.7, timestamps: partial }),
+    ).toBe(2);
+    expect(
+      playlistIndexAt({ playlist, fraction: 1, timestamps: partial }),
+    ).toBe(2);
+  });
+
+  it("stays inside the playlist whatever it is given", () => {
+    expect(playlistIndexAt({ playlist, fraction: -1, timestamps: timed })).toBe(
+      0,
+    );
+    expect(playlistIndexAt({ playlist, fraction: 3, timestamps: timed })).toBe(
+      2,
+    );
+    expect(
+      playlistIndexAt({ playlist: [], fraction: 0.5, timestamps: timed }),
+    ).toBe(0);
   });
 });

@@ -57,7 +57,9 @@ export function useReaderNavigation({
   // stable identity prevents those subscriptions from being replaced on every
   // playback state update.
   const changePage = useCallback(
-    (page: number) => {
+    /* `followPractice` is the recitation turning the page itself, which must
+       not stop the recitation that asked for it. */
+    (page: number, options?: { followPractice: boolean }) => {
       if (page < 1 || page > totalPages) return;
 
       if (playbackActive && activeVerseKey) {
@@ -68,7 +70,7 @@ export function useReaderNavigation({
       }
 
       clearHighlight();
-      if (practiceActive) stopPractice();
+      if (practiceActive && !options?.followPractice) stopPractice();
       void navigate(buildQuranReaderPath(page));
     },
     [

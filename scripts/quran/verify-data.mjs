@@ -9,6 +9,7 @@ import {
   assert,
   hashLengthPrefixedStrings,
   legacyDataRoot,
+  placeWordsOnTheirPages,
   readGzipJson,
   readJson,
   runtimeDataRoot,
@@ -221,13 +222,42 @@ async function main() {
     manifest.layouts.assets.length === EXPECTED.pages,
     "Wrong page asset count",
   );
+  /*
+   * The source, with every word filed on its own page - see
+   * `placeWordsOnTheirPages` - and nothing else changed.
+   */
+  const placedLayout = placeWordsOnTheirPages(sourceLayout.pages);
+  const sourceWords = sourceLayout.pages.flatMap((page) =>
+    page.lines.flatMap((line) => line.words),
+  );
+  const seenWords = new Map();
   for (let index = 0; index < EXPECTED.pages; index += 1) {
     const runtimePage = await readGzipJson(
       join(legacyDataRoot, manifest.layouts.assets[index].path),
     );
     assert(
-      JSON.stringify(runtimePage) === JSON.stringify(sourceLayout.pages[index]),
+      JSON.stringify(runtimePage) === JSON.stringify(placedLayout[index]),
       `Layout page ${index + 1} changed during migration`,
+    );
+    for (const line of runtimePage.lines) {
+      for (const word of line.words) {
+        assert(
+          word.page === runtimePage.page && word.line === line.line,
+          `${word.location} is filed on page ${runtimePage.page} line ${line.line} but belongs on page ${word.page} line ${word.line}`,
+        );
+        seenWords.set(word.location, JSON.stringify(word));
+      }
+    }
+  }
+  /* Every source word exactly once, byte for byte. */
+  assert(
+    seenWords.size === sourceWords.length,
+    `Layout has ${seenWords.size} distinct words, the source ${sourceWords.length}`,
+  );
+  for (const word of sourceWords) {
+    assert(
+      seenWords.get(word.location) === JSON.stringify(word),
+      `Layout word ${word.location} is missing or changed`,
     );
   }
 

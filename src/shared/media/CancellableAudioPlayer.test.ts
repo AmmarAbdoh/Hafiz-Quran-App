@@ -166,4 +166,41 @@ describe("CancellableAudioPlayer", () => {
     );
     expect(player.currentAudio).toBeNull();
   });
+
+  describe("preloading the next source", () => {
+    it("plays the element it preloaded, rather than making another", async () => {
+      const { audios, player } = createHarness();
+
+      await player.play("first.mp3");
+      player.preload("second.mp3");
+      player.stop(false);
+      await player.play("second.mp3");
+
+      expect(audios).toHaveLength(2);
+      expect(player.currentAudio).toBe(audios[1]);
+      expect((audios[1] as unknown as { preload: string }).preload).toBe(
+        "auto",
+      );
+    });
+
+    it("discards a preload when something else is played", async () => {
+      const { audios, player } = createHarness();
+
+      player.preload("second.mp3");
+      await player.play("elsewhere.mp3");
+
+      expect(audios).toHaveLength(2);
+      expect(audios[0]?.removeAttribute).toHaveBeenCalledWith("src");
+      expect(player.currentAudio).toBe(audios[1]);
+    });
+
+    it("lets a preloaded element go on dispose", () => {
+      const { audios, player } = createHarness();
+
+      player.preload("second.mp3");
+      player.dispose();
+
+      expect(audios[0]?.removeAttribute).toHaveBeenCalledWith("src");
+    });
+  });
 });
