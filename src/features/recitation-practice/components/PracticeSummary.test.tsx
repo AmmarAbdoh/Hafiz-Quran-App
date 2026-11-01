@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/app/i18n";
 import type { MisreadWord } from "@/features/recitation-practice/contract";
 import { PracticeSummary } from "./PracticeSummary";
@@ -36,6 +36,7 @@ function renderSummary(
         totalWords={15}
         progressIndex={15}
         stoppedShort={false}
+        recording={null}
         onPractiseAgain={onPractiseAgain}
         {...overrides}
       />
@@ -237,5 +238,53 @@ describe("after a recitation", () => {
       screen.getByText("كلمتان تحتاجان مراجعة من ١٢٠."),
     ).toBeInTheDocument();
     expect(screen.getByRole("list")).toBeInTheDocument();
+  });
+});
+
+describe("listening back to the run", () => {
+  /* jsdom has no media playback; the player pauses when it goes away. */
+  beforeEach(() => {
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+  });
+
+  const recording = {
+    url: "blob:run",
+    seconds: 30,
+    moments: { "2:3:4": { from: 5, to: 6.5 } },
+  };
+
+  /* Hearing the moment is how a reader settles whether a listed word was
+     really misread - the app's word against their own, otherwise. */
+  it("plays a listed word's moment, starting just before it", () => {
+    const play = vi
+      .spyOn(HTMLMediaElement.prototype, "play")
+      .mockResolvedValue(undefined);
+    renderSummary({ recording });
+
+    expect(screen.getByRole("slider", { name: "تلاوتك" })).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "استمع إلى «ٱلْكِتَٰبُ»" }),
+    );
+    expect(play).toHaveBeenCalledOnce();
+    const played = play.mock.contexts[0] as HTMLMediaElement;
+    expect(played.src).toBe("blob:run");
+    expect(played.currentTime).toBeCloseTo(4.2);
+    play.mockRestore();
+  });
+
+  /* The other listed word has no moment: there is nothing to seek to. */
+  it("offers to play only the words it knows the moment of", () => {
+    renderSummary({ recording });
+
+    expect(screen.getAllByRole("button", { name: /^استمع إلى/ })).toHaveLength(
+      1,
+    );
+  });
+
+  it("has no player when the run was not recorded", () => {
+    renderSummary();
+
+    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^استمع إلى/ })).toBeNull();
   });
 });

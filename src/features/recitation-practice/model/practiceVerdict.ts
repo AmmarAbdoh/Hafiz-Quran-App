@@ -52,6 +52,7 @@
 /* Relative and extensioned so Node can load this unchanged: the bench in
    scripts/tasmee judges by the same rule the reader does. */
 import { WORD_SAID_THRESHOLD } from "./ctcAlign.ts";
+import { phonemeIdentity } from "./phonemeTokens.ts";
 
 /**
  * Weak words an ayah is allowed before any of them is marked.
@@ -68,6 +69,9 @@ export const WEAK_WORDS_TOLERATED = 1;
  * accused**, against 15.2% and 2.3% at the default. Half the misses, and
  * nearly three times the accusations - one correct recitation in sixteen,
  * measured on professional reciters, so worse than that on anyone else.
+ * Since the threshold was halved, on learners: 18.2% of correct recitations
+ * with a word marked rather than 21.9%, the wrong word itself marked 62.0%
+ * of the time rather than 62.4%.
  *
  * Offered rather than chosen because the curve has no right answer on it:
  * someone checking their own memorisation may well prefer being doubted to
@@ -92,6 +96,35 @@ export const STRICT_WEAK_WORDS_TOLERATED = 0;
  * accusations are still rarer than one in thirty.
  */
 export const SKIP_CONFIRMS_BELOW = 0.02;
+
+/**
+ * Which of an ayah's weak words to mark, once the ayah is not forgiven.
+ *
+ * Losing the tolerance says something in the ayah went wrong, not that every
+ * word under the threshold did. Marking them all put the red on words that
+ * were said: a dropped word drags its neighbours' scores down with it, and a
+ * word between a quarter of the threshold and the threshold is as often a
+ * correct word scored badly as a wrong one. So only the words that score near nothing, or that the cursor
+ * saw skipped, are marked - and when there are none, the weakest alone.
+ *
+ * Measured with `scripts/tasmee/word-marks.mjs`, which checks *which* word is
+ * marked against which word was wrong, on 15,000 clips of ordinary people
+ * with words dropped, swapped, repeated and corrected. On the half of the
+ * ayat not used to choose it, correctly said words marked fell from 22.6 to
+ * 19.2 per 100 correct recitations and from 42.7 to 32.8 per 100 with a
+ * mistake in them; the wrong word itself was marked 58.2% of the time rather
+ * than 58.5%, and no mistake goes uncaught that was caught before, since an
+ * ayah that is not forgiven still marks one word at least. Professional
+ * reciters: 4.1 to 3.0 per 100, wrong word marked 37.6% rather than 38.5%.
+ * Whole pages: 94 to 72 per 100.
+ *
+ * Strict mode keeps every weak word: a reader who asked to be doubted is
+ * asking for exactly the marks this leaves out.
+ *
+ * Halved with `WORD_SAID_THRESHOLD` on 2026-11-01, keeping it a quarter of
+ * the threshold, so the rule kept its shape at half the scale.
+ */
+const CLEARLY_UNSAID_BELOW = 0.025;
 
 /**
  * Words that may be left unrecited at the end before a run is unfinished.
@@ -196,13 +229,101 @@ export function findMisreadWords(
     const weak = indexes.filter(
       (index) => words[index]!.score < WORD_SAID_THRESHOLD,
     );
-    const overtaken = weak.some(
-      (index) =>
-        words[index]!.skipped && words[index]!.score <= skipConfirmsBelow,
-    );
+    const isOvertaken = (index: number) =>
+      words[index]!.skipped && words[index]!.score <= skipConfirmsBelow;
+    const overtaken = weak.some(isOvertaken);
     if (weak.length <= weakWordsTolerated && !overtaken) continue;
-    misread.push(...weak);
+    /* Strict means every weak word, which is what the reader asked for. */
+    if (weakWordsTolerated === 0) {
+      misread.push(...weak);
+      continue;
+    }
+    const unsaid = weak.filter(
+      (index) =>
+        words[index]!.score < CLEARLY_UNSAID_BELOW || isOvertaken(index),
+    );
+    const weakest = weak.reduce((best, index) =>
+      words[index]!.score < words[best]!.score ? index : best,
+    );
+    misread.push(...(unsaid.length > 0 ? unsaid : [weakest]));
   }
 
   return misread.sort((a, b) => a - b);
+}
+
+/** What the cursor saw at a word it could not follow the reciter through. */
+export interface Stumbled {
+  /** The phoneme identities heard instead, the first time. */
+  heard: string[];
+  /** How many times it stumbled there. */
+  times: number;
+}
+
+/*
+ * Stumbles that were the cursor's rather than the reciter's.
+ *
+ * Measured 2026-11-01 on every listed word that only a stumble put there,
+ * against the words known to be wrong (the learner-mistakes set) and against
+ * a second, larger recogniser (Muaalem) on 18,020 correct learner clips. Two
+ * kinds turned out to be almost never a slip:
+ *
+ *   What was heard is largely the word itself - more than a third of it in
+ *   order. The reciter was saying the word and the cursor did not keep up:
+ *   2 of 61 such marks were on the wrong word.
+ *
+ *   Several stumbles at the start of the recitation, or outside what was
+ *   recited. The cursor waiting through an isti'adha, a basmala or noise
+ *   before the first word, re-reporting every six phonemes. Several stumbles
+ *   *inside* the recitation are kept: that is a reciter carrying on into the
+ *   twin of an ayah and coming back, the corrected slip this list exists for.
+ *
+ * Together, on the learner-mistakes test split (`word-marks.mjs`): correct
+ * recitations with a word marked 12.7% -> 10.8%, correct words marked 25.6
+ * -> 23.1 per 100 clips, mistakes marked on the wrong word 58.2% -> 57.7%.
+ * Twin corrections listed 76.0% -> 75.4%; RetaSy's mistakes caught unchanged.
+ */
+const STUMBLES_AT_THE_EDGE_IGNORED = 3;
+
+function commonInOrder(a: readonly string[], b: readonly string[]): number {
+  const row = new Array<number>(b.length + 1).fill(0);
+  for (const x of a) {
+    let diagonal = 0;
+    for (let j = 1; j <= b.length; j += 1) {
+      const above = row[j]!;
+      row[j] = x === b[j - 1] ? diagonal + 1 : Math.max(above, row[j - 1]!);
+      diagonal = above;
+    }
+  }
+  return row[b.length]!;
+}
+
+/**
+ * Whether a stumble at this word was the cursor's, and so not listed.
+ *
+ * Takes the page's spoken words and recited span, as `judgeRecitedPage` has
+ * them; `scripts/tasmee/word-marks.mjs` replays the verdict with it.
+ */
+export function wasTheCursors(
+  page: {
+    spoken: readonly { locations: string[]; units: string[] }[];
+    span: { from: number; to: number };
+  },
+  location: string,
+  stumbled: Stumbled,
+): boolean {
+  const index = page.spoken.findIndex((word) =>
+    word.locations.includes(location),
+  );
+  if (index === -1) return false;
+  /* As the cursor compares them: identities, a held sound counted once. */
+  const word: string[] = [];
+  for (const unit of page.spoken[index]!.units) {
+    const identity = phonemeIdentity(unit);
+    if (identity !== word.at(-1)) word.push(identity);
+  }
+  if (3 * commonInOrder(stumbled.heard, word) > stumbled.heard.length) {
+    return true;
+  }
+  const atTheEdge = index <= page.span.from || index >= page.span.to;
+  return atTheEdge && stumbled.times >= STUMBLES_AT_THE_EDGE_IGNORED;
 }

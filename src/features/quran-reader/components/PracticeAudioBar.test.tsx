@@ -57,6 +57,7 @@ import { PracticeAudioBar } from "./PracticeAudioBar";
 
 const activePractice: RecitationPracticeValue = {
   ...initialRecitationPracticeState,
+  recording: null,
   active: true,
   phase: "listening",
   listening: true,

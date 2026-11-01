@@ -59,10 +59,23 @@ scripts/tasmee/fixtures-learner/.work/
 scripts/tasmee/fixtures-learner/.scores.json
 scripts/tasmee/fixtures-learner/.emissions.json
 
+# Word-level mistakes cut from those same clips, all derived:
+# `node scripts/tasmee/build-learner-mistakes.mjs`.
+scripts/tasmee/fixtures-learner-mistakes/
+
+# Slips into a twin ayah, cut from Quran.com's audio, all derived:
+# `node scripts/tasmee/build-twin-slips.mjs`.
+scripts/tasmee/fixtures-twins/
+
 # A systematic sample of the above for `evaluate.mjs`, which is serial:
 # `node scripts/tasmee/sample-fixtures.mjs --count 1000`. It references the
 # full set's audio rather than copying it.
 scripts/tasmee/fixtures-learner-sample/
+
+# Labelled learner recitation from RetaSy/quranic_audio_dataset (CC BY 4.0).
+# The audio is not ours to redistribute, so none of it is committed; rebuild
+# with `node scripts/tasmee/build-retasy-fixtures.mjs`.
+scripts/tasmee/fixtures-retasy/
 
 # Gated model weights, fetched locally and never committed
 .models/

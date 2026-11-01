@@ -1,6 +1,6 @@
-# Hafiz Quran Repository Rules
+# Artqiy Repository Rules
 
-- Use `.agents/skills/hafiz-quran-maintainer/SKILL.md` for every code, data, UI, test, or tooling change.
+- Use `.agents/skills/artqiy-maintainer/SKILL.md` for every code, data, UI, test, or tooling change.
 - Preserve the `app -> features -> domain -> shared` dependency direction and public module boundaries.
 - Prefer direct readable code over speculative abstractions. Add helpers only when they clarify a real responsibility.
 - Do not use `useMemo` or `useCallback` unless computation cost or identity stability requires it.

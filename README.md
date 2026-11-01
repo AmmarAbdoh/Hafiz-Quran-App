@@ -28,7 +28,7 @@ src/
   styles/               design tokens and base styles
 ```
 
-Dependencies flow from `app` to `features` to `domain` to `shared`. Feature internals are private to their feature; shared and domain code never import feature code. See [`AGENTS.md`](./AGENTS.md) and the repository maintainer skill in `.agents/skills/hafiz-quran-maintainer/` before making changes.
+Dependencies flow from `app` to `features` to `domain` to `shared`. Feature internals are private to their feature; shared and domain code never import feature code. See [`AGENTS.md`](./AGENTS.md) and the repository maintainer skill in `.agents/skills/artqiy-maintainer/` before making changes.
 
 ## Quran data
 

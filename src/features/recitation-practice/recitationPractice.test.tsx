@@ -8,6 +8,7 @@ const practiceMocks = vi.hoisted(() => ({
   buildSpokenWords: vi.fn(),
   startZipformer: vi.fn(),
   startMic: vi.fn(),
+  loadOpenings: vi.fn(),
 }));
 
 vi.mock("@/features/recitation-practice/services/pageWordText", () => ({
@@ -15,6 +16,7 @@ vi.mock("@/features/recitation-practice/services/pageWordText", () => ({
 }));
 vi.mock("@/features/recitation-practice/services/spokenWords", () => ({
   buildPageSpokenWords: practiceMocks.buildSpokenWords,
+  loadAyahOpenings: practiceMocks.loadOpenings,
 }));
 vi.mock("@/features/recitation-practice/services/zipformerEngine", () => ({
   startZipformer: practiceMocks.startZipformer,
@@ -822,6 +824,69 @@ describe("a streaming recitation", () => {
       await settle();
       expect(practice.current.completed).toBe(true);
       expect(engine.expect).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * "When I start saying an ayah that is not on the page, but is in the
+   * Quran, it should switch to it - only at the start."
+   */
+  describe("starting an ayah from another page", () => {
+    /* 2:2's opening, in sounds that appear nowhere on al-Fatihah's page. */
+    const AYAH_2_2 = [
+      {
+        locations: ["2:2:1"],
+        units: ["ذَ", "ل", "كَ", "ل", "كِ", "تَ", "ا", "بُ"],
+        ids: [31, 32, 33, 34, 35, 36, 37, 38],
+      },
+      {
+        locations: ["2:2:2"],
+        units: ["لَ", "ا", "رَ", "ي", "بَ", "فِ", "ي", "هِ"],
+        ids: [39, 40, 41, 42, 43, 44, 45, 46],
+      },
+    ];
+    const OPENING = AYAH_2_2.flatMap((word) => word.units);
+
+    it("moves the run to that ayah's page, with the cursor where they are", async () => {
+      practiceMocks.loadOpenings.mockResolvedValue([
+        { verseKey: "2:2", units: OPENING, next: "2:3" },
+      ]);
+      const startAt = vi.fn().mockResolvedValue([{}] as MushafWord[]);
+      const { practice, engine, callbacks } = await startRun(SPOKEN, {
+        startAt,
+      });
+      practiceMocks.buildExpectedWords.mockResolvedValueOnce([]);
+      practiceMocks.buildSpokenWords.mockResolvedValueOnce(AYAH_2_2);
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      act(() => callbacks().onUnits(say(OPENING.slice(0, 14))));
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(startAt).toHaveBeenCalledWith("2:2");
+      expect(engine.expect).toHaveBeenCalled();
+      /* The whole of 2:2:1 was said, and the cursor is inside 2:2:2. */
+      expect(practice.current.currentWordLocation).toBe("2:2:2");
+      expect(practice.current.progressIndex).toBe(1);
+    });
+
+    it("stays on the page once something on it has been recited", async () => {
+      practiceMocks.loadOpenings.mockResolvedValue([
+        { verseKey: "2:2", units: OPENING, next: "2:3" },
+      ]);
+      const startAt = vi.fn().mockResolvedValue([{}] as MushafWord[]);
+      const { callbacks } = await startRun(SPOKEN, { startAt });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      act(() => callbacks().onUnits(say(SPOKEN[0]!.units)));
+      act(() => callbacks().onUnits(say(OPENING.slice(0, 14))));
+
+      expect(startAt).not.toHaveBeenCalled();
     });
   });
 });

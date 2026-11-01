@@ -9,8 +9,15 @@
 import type { MushafWord } from "@/domain/quran";
 import {
   parseTokenTable,
+  toPhonemeUnits,
   type PhonemeTokenTable,
 } from "@/features/recitation-practice/model/phonemeTokens";
+import {
+  OPENING_UNITS_KEPT,
+  openingUnits,
+  withFirstSoundMissing,
+  type AyahOpening,
+} from "@/features/recitation-practice/model/ayahOpenings";
 import {
   buildSpokenWords,
   mushafPositions,
@@ -63,6 +70,46 @@ function loadPhonemeTable(
       throw error;
     });
   return phonemeTable;
+}
+
+let openingsTable: Promise<AyahOpening[]> | null = null;
+
+/**
+ * Every ayah's opening, for finding the one a reciter starts off the page;
+ * see `findAyahByOpening`. Built once from the tables a run already has.
+ *
+ * Al-Fatihah's basmala is left out: every surah but one is begun with it,
+ * and taking it for 1:1 would send each of those reciters to the first page.
+ */
+export function loadAyahOpenings(): Promise<AyahOpening[]> {
+  openingsTable ??= Promise.all([
+    loadTokenTable(false),
+    loadPhonemeTable(false),
+  ])
+    .then(([{ inventory }, table]) => {
+      const keys = Object.keys(table);
+      const openings = keys.flatMap((verseKey, index) =>
+        verseKey === "1:1"
+          ? []
+          : [
+              {
+                verseKey,
+                next: keys[index + 1],
+                units: openingUnits(
+                  table[verseKey]!.aya_phonemes_list.flatMap((word) =>
+                    toPhonemeUnits(word, inventory),
+                  ),
+                ).slice(0, OPENING_UNITS_KEPT),
+              },
+            ],
+      );
+      return withFirstSoundMissing(openings);
+    })
+    .catch((error: unknown) => {
+      openingsTable = null;
+      throw error;
+    });
+  return openingsTable;
 }
 
 /**

@@ -35,6 +35,27 @@ export interface MisreadWord {
   heard: HeardInstead;
 }
 
+/**
+ * Where in a run's audio a word was said, in seconds.
+ *
+ * From the cursor, on the recogniser's clock: `from` is when it reached the
+ * word, `to` when it moved on. The recogniser reports a sound a little after
+ * it was made, so this is a window to play around, not a cut.
+ */
+export interface RecitedMoment {
+  from: number;
+  to: number;
+}
+
+/** The finished run's audio, to listen back to. */
+export interface RunRecording {
+  /** A blob URL for the WAV, alive until the next run starts. */
+  url: string;
+  seconds: number;
+  /** For each word the cursor reached, where it was said. */
+  moments: Record<string, RecitedMoment>;
+}
+
 export interface RecitationPracticeState {
   active: boolean;
   phase: PracticePhase;
@@ -163,6 +184,11 @@ export interface RecitationPracticeValue extends RecitationPracticeState {
    */
   saveRun: (note: string) => Promise<string>;
   /**
+   * The judged run's audio, or null before a verdict and on the engines that
+   * do not keep one (only the streaming recogniser hears the run whole).
+   */
+  recording: RunRecording | null;
+  /**
    * Show what the recogniser heard and what the microphone is delivering.
    *
    * Off by default: it is a diagnostic, not a feature, and the phonemes read
@@ -208,6 +234,13 @@ export interface PracticeRunOptions {
    * mushaf, or of one surah - and turns the page on screen to match.
    */
   continueWith?: () => Promise<MushafWord[] | null>;
+  /**
+   * The words of the page an ayah is on, for a reciter who starts an ayah
+   * that is not on the page on screen; null to stay where they are. Asked
+   * at most once, before anything on the page has been recited, and whoever
+   * supplies it turns the page to match.
+   */
+  startAt?: (verseKey: string) => Promise<MushafWord[] | null>;
 }
 
 export interface RecitationPracticeProviderProps {
@@ -229,5 +262,7 @@ export interface PracticeSummaryProps {
    * control is absent with it.
    */
   onSaveRun?: (note: string) => Promise<string>;
+  /** The run's audio, so a listed word can be listened back to. */
+  recording: RunRecording | null;
   onPractiseAgain: () => void;
 }

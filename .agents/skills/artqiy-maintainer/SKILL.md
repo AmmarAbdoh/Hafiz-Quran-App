@@ -1,9 +1,9 @@
 ---
-name: hafiz-quran-maintainer
-description: Maintain and refactor the Hafiz Quran React application. Use for changes to application architecture, Quran data loading, reader/playback/practice/quiz state, localization, accessibility, styling, tests, tooling, or repository cleanup.
+name: artqiy-maintainer
+description: Maintain and refactor the Artqiy React application. Use for changes to application architecture, Quran data loading, reader/playback/practice/quiz state, localization, accessibility, styling, tests, tooling, or repository cleanup.
 ---
 
-# Hafiz Quran Maintainer
+# Artqiy Maintainer
 
 Keep changes incremental, readable, accessible, and faithful to the Quran and tafseer source data. Preserve behavior with tests before deleting or reshaping data and state.
 

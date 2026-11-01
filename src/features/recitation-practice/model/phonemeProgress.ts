@@ -395,6 +395,14 @@ export function giveUpOnHeldWord(state: TrackerState): string[] {
  * run had frames, no alignment existed and every word scored zero. Words
  * skipped *inside* the stretch stay in it: that is a dropped word, which is
  * exactly what the verdict is for.
+ *
+ * The word the cursor still stands on is left out, and that is usually the
+ * run's last: nothing follows it to finish it, and 303 of 355 correct RetaSy
+ * clips ended there. Scoring it once any of its sounds were heard was
+ * measured and refused. It caught none of RetaSy's 426 real mistakes and
+ * marked four more correct clips, because a word faded at a pause scores the
+ * same either way - median 0.58 on correct clips, 0.41 on wrong ones, and
+ * near zero for the bottom tenth of both.
  */
 export function recitedSpan(
   state: TrackerState,

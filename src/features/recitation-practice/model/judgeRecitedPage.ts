@@ -1,5 +1,9 @@
 import type { MisreadWord } from "@/features/recitation-practice/contract";
-import { findMisreadWords } from "@/features/recitation-practice/model/practiceVerdict";
+import {
+  findMisreadWords,
+  wasTheCursors,
+  type Stumbled,
+} from "@/features/recitation-practice/model/practiceVerdict";
 import {
   phonemesAsLetters,
   whatWasHeard,
@@ -13,6 +17,8 @@ import type { ScorableWord } from "@/features/recitation-practice/model/wordPhon
  * carries on to the next page while this one is still being scored: by the
  * time its verdict arrives, everything live describes a different page.
  */
+export type { Stumbled };
+
 export interface RecitedPage {
   spoken: readonly ScorableWord[];
   /** Each page word's ayah and text, in page order. */
@@ -21,8 +27,8 @@ export interface RecitedPage {
   span: { from: number; to: number };
   /** Words the cursor saw the reciter go past. */
   skipped: ReadonlySet<string>;
-  /** Words something else was said at first, and what that was. */
-  stumbles: ReadonlyMap<string, string[]>;
+  /** Words something else was said at, and what that was the first time. */
+  stumbles: ReadonlyMap<string, Stumbled>;
   /** Words the reader said they could not say. */
   gaveUp: ReadonlySet<string>;
 }
@@ -91,13 +97,13 @@ export function judgeRecitedPage(
    * stopped and went back, which the cursor saw and nothing else did.
    */
   for (const [location, stumbled] of page.stumbles) {
-    if (listed(location)) continue;
+    if (listed(location) || wasTheCursors(page, location, stumbled)) continue;
     const known = page.wordText.get(location);
     if (!known) continue;
     misread.push({
       location,
       ...known,
-      heard: { kind: "stumble", letters: phonemesAsLetters(stumbled) },
+      heard: { kind: "stumble", letters: phonemesAsLetters(stumbled.heard) },
     });
   }
 

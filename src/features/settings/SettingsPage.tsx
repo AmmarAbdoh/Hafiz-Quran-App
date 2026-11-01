@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import {
   PracticePrivacyDisclosure,
   PracticeSettings,
+  RecitationHistory,
 } from "@/features/recitation-practice";
 import { formatNumber, useLocale } from "@/app/i18n";
 import { PageContainer } from "@/shared/components/PageContainer";
@@ -266,6 +267,8 @@ export function SettingsPage() {
       </SettingsSection>
 
       <PracticeSettings />
+
+      <RecitationHistory />
 
       <SettingsSection
         icon={HardDrive}

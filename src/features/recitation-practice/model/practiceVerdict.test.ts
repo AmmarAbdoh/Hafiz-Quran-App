@@ -3,6 +3,7 @@ import {
   findMisreadWords,
   stoppedShort,
   STRICT_WEAK_WORDS_TOLERATED,
+  wasTheCursors,
   type ScoredWord,
 } from "./practiceVerdict";
 
@@ -12,7 +13,7 @@ const word = (ayah: string, score: number, skipped = false): ScoredWord => ({
   skipped,
 });
 
-/* 0.2 is the threshold; 0.05 is weak and 0.9 is comfortably said. */
+/* 0.1 is the threshold; 0.025 is weak and 0.9 is comfortably said. */
 describe("deciding which words to mark", () => {
   it("marks nothing when every word was heard", () => {
     expect(
@@ -26,26 +27,65 @@ describe("deciding which words to mark", () => {
    */
   it("forgives a single weak word in an ayah", () => {
     expect(
-      findMisreadWords([word("1:1", 0.9), word("1:1", 0.05), word("1:1", 0.8)]),
+      findMisreadWords([
+        word("1:1", 0.9),
+        word("1:1", 0.025),
+        word("1:1", 0.8),
+      ]),
     ).toEqual([]);
   });
 
   it("marks them once a second one goes weak in the same ayah", () => {
     expect(
       findMisreadWords([
-        word("1:1", 0.05),
+        word("1:1", 0.005),
+        word("1:1", 0.9),
+        word("1:1", 0.02),
+      ]),
+    ).toEqual([0, 2]);
+  });
+
+  /*
+   * A dropped word drags its neighbours down with it. Losing the tolerance
+   * says something in the ayah went wrong, not that every doubtful word did.
+   */
+  it("marks only the words scored as unsaid, not the doubtful ones beside them", () => {
+    expect(
+      findMisreadWords([
+        word("1:1", 0.075),
+        word("1:1", 0.001),
+        word("1:1", 0.06),
+        word("1:1", 0.9),
+      ]),
+    ).toEqual([1]);
+  });
+
+  it("marks the weakest when every weak word is only doubtful", () => {
+    expect(
+      findMisreadWords([
+        word("1:1", 0.075),
         word("1:1", 0.9),
         word("1:1", 0.04),
       ]),
-    ).toEqual([0, 2]);
+    ).toEqual([2]);
+  });
+
+  it("marks a doubtful word the cursor saw skipped", () => {
+    expect(
+      findMisreadWords([
+        word("1:1", 0.075),
+        word("1:1", 0.005, true),
+        word("1:1", 0.9),
+      ]),
+    ).toEqual([1]);
   });
 
   it("counts the tolerance per ayah, not per page", () => {
     expect(
       findMisreadWords([
-        word("1:1", 0.05),
+        word("1:1", 0.025),
         word("1:1", 0.9),
-        word("1:2", 0.03),
+        word("1:2", 0.015),
         word("1:2", 0.8),
       ]),
     ).toEqual([]);
@@ -85,7 +125,7 @@ describe("deciding which words to mark", () => {
     expect(
       findMisreadWords([
         word("1:1", 0.9),
-        word("1:1", 0.15, true),
+        word("1:1", 0.075, true),
         word("1:1", 0.8),
       ]),
     ).toEqual([]);
@@ -96,7 +136,7 @@ describe("deciding which words to mark", () => {
       findMisreadWords([
         word("1:1", 0.001, true),
         word("1:1", 0.9),
-        word("1:1", 0.04),
+        word("1:1", 0.02),
       ]),
     ).toEqual([0, 2]);
   });
@@ -113,19 +153,25 @@ describe("correcting strictly", () => {
     findMisreadWords(words, undefined, STRICT_WEAK_WORDS_TOLERATED);
 
   it("marks the one weak word the default forgives", () => {
-    const ayah = [word("1:1", 0.9), word("1:1", 0.15), word("1:1", 0.8)];
+    const ayah = [word("1:1", 0.9), word("1:1", 0.075), word("1:1", 0.8)];
 
     expect(findMisreadWords(ayah)).toEqual([]);
     expect(strict(ayah)).toEqual([1]);
+  });
+
+  it("marks every weak word of an ayah, doubtful ones included", () => {
+    expect(
+      strict([word("1:1", 0.075), word("1:1", 0.001), word("1:1", 0.06)]),
+    ).toEqual([0, 1, 2]);
   });
 
   it("still says nothing about a recitation with no weak word in it", () => {
     expect(strict([word("1:1", 0.9), word("1:1", 0.8)])).toEqual([]);
   });
 
-  /* The threshold itself does not move: a word at 0.2 was said. */
+  /* The threshold itself does not move: a word at 0.1 was said. */
   it("does not lower the bar for what counts as weak", () => {
-    expect(strict([word("1:1", 0.25), word("1:1", 0.9)])).toEqual([]);
+    expect(strict([word("1:1", 0.125), word("1:1", 0.9)])).toEqual([]);
   });
 });
 
@@ -172,5 +218,59 @@ describe("deciding whether the page was recited in full", () => {
   it("forgives the opening words going unmatched", () => {
     expect(stoppedShort(PAGE, { from: 2, to: PAGE })).toBe(false);
     expect(stoppedShort(PAGE, { from: 3, to: PAGE })).toBe(true);
+  });
+});
+
+describe("telling the cursor's stumbles from the reciter's", () => {
+  /* Three words of 1:2; the units are what the recogniser emits. */
+  const page = (span = { from: 0, to: 3 }) => ({
+    spoken: [
+      { locations: ["1:2:1"], units: ["ٱ", "لْ", "حَ", "مْ", "دُ"] },
+      { locations: ["1:2:2"], units: ["لِ", "لَّا", "ه"] },
+      { locations: ["1:2:3"], units: ["رَ", "بْ", "بِ"] },
+    ],
+    span,
+  });
+
+  it("keeps a stumble where something else was said", () => {
+    expect(
+      wasTheCursors(page(), "1:2:2", {
+        heard: ["قُ", "ل", "هُ", "وَ", "ٱ", "ل"],
+        times: 1,
+      }),
+    ).toBe(false);
+  });
+
+  it("puts down to the cursor a stumble that heard the word itself", () => {
+    expect(
+      wasTheCursors(page(), "1:2:2", {
+        heard: ["لِ", "لَّا", "ه", "وَ", "ك", "م"],
+        times: 1,
+      }),
+    ).toBe(true);
+  });
+
+  it("puts down to the cursor repeated stumbles before the recitation began", () => {
+    const opening = { heard: ["بِ", "سْ", "مِ", "ل", "لَا", "ه"], times: 3 };
+    expect(wasTheCursors(page(), "1:2:1", opening)).toBe(true);
+    expect(wasTheCursors(page(), "1:2:1", { ...opening, times: 2 })).toBe(
+      false,
+    );
+  });
+
+  /* A reciter carrying on into a twin ayah and back: the slip to list. */
+  it("keeps repeated stumbles inside the recitation", () => {
+    expect(
+      wasTheCursors(page(), "1:2:2", {
+        heard: ["قُ", "ل", "هُ", "وَ", "ٱ", "ل"],
+        times: 4,
+      }),
+    ).toBe(false);
+  });
+
+  it("keeps a stumble at a word it cannot find", () => {
+    expect(
+      wasTheCursors(page(), "2:1:1", { heard: ["ا", "ل", "م"], times: 5 }),
+    ).toBe(false);
   });
 });

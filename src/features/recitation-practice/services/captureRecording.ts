@@ -15,39 +15,6 @@
 
 import type { HeardInstead } from "@/features/recitation-practice/model/phonemeText";
 
-/** 16-bit mono PCM, which is what `scripts/tasmee/lib/audio.mjs` reads. */
-function encodeWav(samples: Float32Array, sampleRate: number): Uint8Array {
-  const bytes = new Uint8Array(44 + samples.length * 2);
-  const view = new DataView(bytes.buffer);
-  const ascii = (at: number, text: string) => {
-    for (let index = 0; index < text.length; index += 1) {
-      view.setUint8(at + index, text.charCodeAt(index));
-    }
-  };
-
-  ascii(0, "RIFF");
-  view.setUint32(4, 36 + samples.length * 2, true);
-  ascii(8, "WAVE");
-  ascii(12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
-  ascii(36, "data");
-  view.setUint32(40, samples.length * 2, true);
-
-  for (let index = 0; index < samples.length; index += 1) {
-    /* Clamped before scaling: a sample past ±1 wraps to the opposite sign
-       as a 16-bit integer, which is a click rather than a loud moment. */
-    const sample = Math.max(-1, Math.min(1, samples[index]!));
-    view.setInt16(44 + index * 2, Math.round(sample * 32767), true);
-  }
-  return bytes;
-}
-
 function toBase64(bytes: Uint8Array): string {
   /* In chunks: `String.fromCharCode(...bytes)` on a minute of audio is a
      million arguments and overflows the call stack. */
@@ -143,8 +110,7 @@ export interface RecordingMeta {
  * no capture at all.
  */
 export async function saveRecording(
-  samples: Float32Array,
-  sampleRate: number,
+  wav: Uint8Array,
   meta: RecordingMeta,
 ): Promise<string> {
   const id = `recorded-${meta.recordedAt.replace(/[:.]/g, "-")}`;
@@ -153,7 +119,7 @@ export async function saveRecording(
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       id,
-      wav: toBase64(encodeWav(samples, sampleRate)),
+      wav: toBase64(wav),
       meta,
     }),
   });

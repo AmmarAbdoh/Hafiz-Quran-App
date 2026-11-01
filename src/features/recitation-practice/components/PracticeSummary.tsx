@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Save } from "lucide-react";
+import { Check, Save, Volume2 } from "lucide-react";
 import { formatNumber, useLocale } from "@/app/i18n";
 import type { PracticeSummaryProps } from "@/features/recitation-practice/contract";
+import { useRecordingPlayer } from "@/features/recitation-practice/hooks/useRecordingPlayer";
+import { RecordingPlayer } from "@/features/recitation-practice/components/RecordingPlayer";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -30,11 +32,13 @@ export function PracticeSummary({
   progressIndex,
   stoppedShort,
   onSaveRun,
+  recording,
   onPractiseAgain,
 }: PracticeSummaryProps) {
   const { t } = useTranslation("reader");
   const { t: tCommon } = useTranslation("common");
   const { locale } = useLocale();
+  const player = useRecordingPlayer(recording?.url ?? null, recording?.seconds);
   /*
    * Development only, and deliberately at the end of a run: this is the one
    * moment the reciter knows what actually happened, and their note is the
@@ -108,6 +112,26 @@ export function PracticeSummary({
           </SheetDescription>
         </SheetHeader>
 
+        {/*
+         * The recitation itself, so a listed word can be checked by ear.
+         *
+         * A reader who believes they said a word correctly has, until now,
+         * had only the app's word against their own. Hearing the moment
+         * settles it either way - and when the app was wrong, it is the
+         * reader who knows.
+         */}
+        {recording && (
+          <div className="space-y-1.5">
+            <p className="text-label text-muted-foreground">
+              {t("practice.summary.yourRecitation")}
+            </p>
+            <RecordingPlayer
+              player={player}
+              label={t("practice.summary.yourRecitation")}
+            />
+          </div>
+        )}
+
         {clean ? (
           <p className="flex items-center justify-center gap-2 py-6 text-body text-primary">
             <Check className="h-5 w-5" aria-hidden />
@@ -161,11 +185,28 @@ export function PracticeSummary({
                     </p>
                   )}
                 </div>
-                <span className="shrink-0 text-label tabular-nums text-muted-foreground">
-                  {t("practice.summary.ayah", {
-                    reference: formatVerseKey(word.verseKey, locale),
-                  })}
-                </span>
+                <div className="flex shrink-0 items-center gap-1">
+                  <span className="text-label tabular-nums text-muted-foreground">
+                    {t("practice.summary.ayah", {
+                      reference: formatVerseKey(word.verseKey, locale),
+                    })}
+                  </span>
+                  {recording?.moments[word.location] && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        player.playMoment(recording.moments[word.location]!)
+                      }
+                      aria-label={t("practice.summary.listenTo", {
+                        word: word.text,
+                      })}
+                    >
+                      <Volume2 className="h-4 w-4" aria-hidden />
+                    </Button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

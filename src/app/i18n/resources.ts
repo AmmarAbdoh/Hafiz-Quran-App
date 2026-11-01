@@ -21,6 +21,7 @@ const ar = {
       back: "رجوع",
       learnMore: "اعرف المزيد",
       play: "تشغيل",
+      pause: "إيقاف مؤقت",
       stop: "إيقاف",
       retry: "إعادة المحاولة",
       close: "إغلاق",
@@ -222,6 +223,8 @@ const ar = {
         keepRun: "احفظ هذا التسميع للتجربة والقياس",
         keepRunNote: "ما الذي أخطأت فيه؟",
         keepRunSave: "احفظ",
+        yourRecitation: "تلاوتك",
+        listenTo: "استمع إلى «{{word}}»",
         needWork_one: "كلمة واحدة تحتاج مراجعة من {{total}}.",
         needWork_two: "كلمتان تحتاجان مراجعة من {{total}}.",
         needWork_few: "{{words}} كلمات تحتاج مراجعة من {{total}}.",
@@ -944,10 +947,29 @@ const ar = {
         genericSmall: { label: "عام — Whisper Small" },
       },
     },
+    recordings: {
+      title: "تسجيلات التسميع",
+      description:
+        "استمع إلى تسميعك بعد انتهائه. تبقى التسجيلات على هذا الجهاز فقط ولا تُرسل إلى أي مكان.",
+      keepLabel: "احتفظ بتسجيلات التسميع",
+      keepHint: "يُحتفظ بآخر {{number}} تسجيلًا، ويُحذف الأقدم تلقائيًا.",
+      empty: "لا توجد تسجيلات بعد. سيظهر هنا تسميعك القادم.",
+      listen: "استمع",
+      hide: "إخفاء",
+      deleteLabel: "احذف تسجيل {{label}}",
+      deleteAll: "احذف كل التسجيلات",
+      single: "{{surah}} {{ayah}}",
+      range: "{{surah}} {{from}}–{{to}}",
+      across: "{{fromSurah}} {{from}} – {{toSurah}} {{to}}",
+      toReview: "للمراجعة: {{words}}",
+      clean: "لم يُلحظ خطأ",
+      unavailable: "لم يعد هذا التسجيل موجودًا على الجهاز.",
+      listenTo: "استمع إلى «{{word}}»",
+    },
     privacy: {
       title: "الخصوصية والتخزين",
       description:
-        "يخزن التطبيق اللغة والمظهر والقارئ والتفسير وسجل الاختبارات في متصفحك فقط.",
+        "يخزن التطبيق اللغة والمظهر والقارئ والتفسير وسجل الاختبارات وتسجيلات التسميع التي تحتفظ بها في متصفحك فقط.",
       noAccount: "لا حسابات ولا تتبع إعلاني.",
       externalTitle: "طلبات خارجية عند الاستخدام",
       quranData:
@@ -1075,6 +1097,7 @@ const en: StringTree<typeof ar> = {
       back: "Back",
       learnMore: "Learn more",
       play: "Play",
+      pause: "Pause",
       stop: "Stop",
       retry: "Try again",
       close: "Close",
@@ -1260,6 +1283,8 @@ const en: StringTree<typeof ar> = {
         keepRun: "Keep this run for measurement",
         keepRunNote: "What did you get wrong?",
         keepRunSave: "Save",
+        yourRecitation: "Your recitation",
+        listenTo: "Listen to “{{word}}”",
         needWork_one: "One word of {{total}} needs another look.",
         /* Mirrors the Arabic plural forms so both locales share a shape.
            English selects only one and other; the rest are never chosen. */
@@ -1971,10 +1996,30 @@ const en: StringTree<typeof ar> = {
         genericSmall: { label: "General — Whisper Small" },
       },
     },
+    recordings: {
+      title: "Practice recordings",
+      description:
+        "Listen back to your recitation after a practice run. Recordings stay on this device and are never sent anywhere.",
+      keepLabel: "Keep practice recordings",
+      keepHint:
+        "The last {{number}} are kept; older ones are removed automatically.",
+      empty: "No recordings yet. Your next practice run will appear here.",
+      listen: "Listen",
+      hide: "Hide",
+      deleteLabel: "Delete the recording of {{label}}",
+      deleteAll: "Delete all recordings",
+      single: "{{surah}} {{ayah}}",
+      range: "{{surah}} {{from}}–{{to}}",
+      across: "{{fromSurah}} {{from}} – {{toSurah}} {{to}}",
+      toReview: "To review: {{words}}",
+      clean: "No mistakes noticed",
+      unavailable: "This recording is no longer on this device.",
+      listenTo: "Listen to “{{word}}”",
+    },
     privacy: {
       title: "Privacy and storage",
       description:
-        "The app stores language, theme, reciter, tafsir, and quiz history only in your browser.",
+        "The app stores language, theme, reciter, tafsir, quiz history, and any practice recordings you keep only in your browser.",
       noAccount: "No accounts and no advertising trackers.",
       externalTitle: "External requests when you choose a feature",
       quranData:

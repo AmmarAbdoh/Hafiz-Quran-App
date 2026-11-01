@@ -53,6 +53,7 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { useTheme } from "@/shared/hooks/use-theme";
 import { cn } from "@/shared/lib/utils";
+import { findVersePage } from "@/features/quran-reader/model/readerPageModel";
 import "./quran-reader.css";
 
 const DEFAULT_TOTAL_PAGES = 604;
@@ -120,6 +121,7 @@ export function QuranReaderPage() {
     progressIndex: practiceProgressIndex,
     stoppedShort: practiceStoppedShort,
     saveRun,
+    recording: practiceRecording,
     startPractice,
     stopPractice,
     finishPractice,
@@ -331,6 +333,38 @@ export function QuranReaderPage() {
     [],
   );
 
+  /*
+   * The page of an ayah the reciter started that is not on this one, turned
+   * to. In surah view only within the surah on screen: another surah is not
+   * shown there, and following it would mean leaving the view they chose.
+   */
+  const startRecitationAtRef = useRef<
+    (verseKey: string) => Promise<MushafWord[] | null>
+  >(() => Promise.resolve(null));
+  startRecitationAtRef.current = async (verseKey) => {
+    const page = findVersePage(mushafData, verseKey);
+    if (!page) return null;
+    let words: MushafWord[];
+    if (route.layoutMode === "page") {
+      words = recitableWordsOf(await loadPageLayout(page));
+      navigation.changePage(page, { followPractice: true });
+    } else {
+      const surah = Number(verseKey.split(":")[0]);
+      const layout = surahLayout.pageLayouts.find(
+        (candidate) => candidate.page === page,
+      );
+      if (surah !== route.currentSurahNumber || !layout) return null;
+      words = recitableWordsOf(layout, practiceOnlySurah);
+    }
+    recitedWordsRef.current = words;
+    recitedPageRef.current = { first: page, current: page };
+    return words;
+  };
+  const startRecitationAt = useCallback(
+    (verseKey: string) => startRecitationAtRef.current(verseKey),
+    [],
+  );
+
   const togglePractice = useCallback(async () => {
     /*
      * The same as the bar's stop button, which it shares a label with: the
@@ -358,9 +392,13 @@ export function QuranReaderPage() {
       first: practicePageLayout.page,
       current: practicePageLayout.page,
     };
-    await startPractice(words, { continueWith: continueRecitation });
+    await startPractice(words, {
+      continueWith: continueRecitation,
+      startAt: startRecitationAt,
+    });
   }, [
     continueRecitation,
+    startRecitationAt,
     finishPractice,
     practiceActive,
     practiceOnlySurah,
@@ -629,6 +667,7 @@ export function QuranReaderPage() {
         /* Development only, and the bundler folds the whole control away
            with it: this writes to the dev server's own disk. */
         onSaveRun={import.meta.env.DEV ? saveRun : undefined}
+        recording={practiceRecording}
         onPractiseAgain={reciteAgain}
       />
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Artqiy Maintainer"
+  short_description: "Keep Artqiy code clean and consistent"
+  default_prompt: "Use $artqiy-maintainer to implement this change cleanly and verify it."

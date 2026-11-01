@@ -161,6 +161,9 @@ export const PRACTICE_STOP_ON_MISTAKE_STORAGE_KEY =
   "quran-practice-stop-on-mistake";
 /** When true, unrevealed ayat text is hidden (underline placeholders) during تسميع. */
 export const PRACTICE_HIDE_AYAT_STORAGE_KEY = "quran-practice-hide-ayat";
+/** When not "false", each finished run is kept on this device to listen back to. */
+export const PRACTICE_KEEP_RECORDINGS_STORAGE_KEY =
+  "quran-practice-keep-recordings";
 /** Diagnostics panel: what was heard, and what the microphone is doing. */
 export const PRACTICE_DEBUG_STORAGE_KEY = "quran-practice-debug";
 export const PRACTICE_SAMPLE_RATE = 16000;

@@ -15,6 +15,8 @@ import type {
   RecitationPracticeProviderProps,
   RecitationPracticeTelemetry,
   RecitationPracticeValue,
+  RecitedMoment,
+  RunRecording,
 } from "@/features/recitation-practice/contract";
 import {
   initialRecitationPracticeState,
@@ -40,6 +42,7 @@ import { matchRecitationSegment } from "@/features/recitation-practice/model/seg
 import {
   judgeRecitedPage,
   type RecitedPage,
+  type Stumbled,
 } from "@/features/recitation-practice/model/judgeRecitedPage";
 import {
   WHISPER_DTYPE_CANDIDATES,
@@ -61,12 +64,28 @@ import {
   type RunEvent,
   type RunEventDetail,
 } from "@/features/recitation-practice/services/captureRecording";
+import { readKeepRecordingsPreference } from "@/features/recitation-practice/hooks/usePracticeKeepRecordings";
+import { saveRecitation } from "@/features/recitation-practice/services/recitationHistory";
+import { encodeWav, toPcm16 } from "@/features/recitation-practice/model/wav";
 import {
   STRICT_WEAK_WORDS_TOLERATED,
   stoppedShort,
   WEAK_WORDS_TOLERATED,
 } from "@/features/recitation-practice/model/practiceVerdict";
-import { buildPageSpokenWords } from "@/features/recitation-practice/services/spokenWords";
+import {
+  buildPageSpokenWords,
+  loadAyahOpenings,
+} from "@/features/recitation-practice/services/spokenWords";
+import {
+  findAyahByOpening,
+  OPENING_CONFIRM_UNITS,
+  OPENING_GIVE_UP_UNITS,
+  OPENING_MIN_UNITS,
+  OPENING_RUNNER_UP,
+  openingUnits,
+  type AyahOpening,
+  type HeardSound,
+} from "@/features/recitation-practice/model/ayahOpenings";
 import type { ScorableWord } from "@/features/recitation-practice/model/wordPhonemes";
 import {
   startZipformer,
@@ -237,12 +256,25 @@ export function RecitationPracticeProvider({
    */
   const verdictAppliedRef = useRef(false);
   /*
-   * What a recorded run is made of, gathered only in development.
+   * The run's audio, as 16-bit blocks, so the reader can listen back to it
+   * once it is judged. Only the streaming recogniser hears the run whole.
+   */
+  const capturedAudioRef = useRef<Int16Array[]>([]);
+  /** Where each word was said, on the recogniser's clock; see `noteMoments`. */
+  const momentsRef = useRef(new Map<string, RecitedMoment>());
+  /** When the cursor reached the word it is on. */
+  const cursorSinceRef = useRef(0);
+  const [recording, setRecording] = useState<RunRecording | null>(null);
+  /** The recording's file, for the dev capture to send as it is. */
+  const recordingWavRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  /** Its blob URL, released when the next run starts or the provider goes. */
+  const recordingUrlRef = useRef<string | null>(null);
+  /*
+   * The rest of what a recorded run is made of, gathered only in development.
    *
    * `import.meta.env.DEV` is a constant the bundler folds away, so none of
    * this is kept - or even reachable - in a production build.
    */
-  const capturedAudioRef = useRef<Float32Array[]>([]);
   const capturedHeardRef = useRef<RecordingMeta["heard"]>([]);
   const capturedHeldRef = useRef<{ locations: string[]; ms: number }[]>([]);
   const cursorHeldRef = useRef({ wordIndex: 0, since: 0 });
@@ -282,6 +314,7 @@ export function RecitationPracticeProvider({
   const continueWithRef = useRef<PracticeRunOptions["continueWith"] | null>(
     null,
   );
+  const startAtRef = useRef<PracticeRunOptions["startAt"] | null>(null);
   /**
    * Pages sent to be scored and not yet answered, oldest first.
    *
@@ -303,7 +336,23 @@ export function RecitationPracticeProvider({
   const unitsBetweenPagesRef = useRef<PhonemeEmission[] | null>(null);
   /** Set below, once `turnPage` exists; it and `applyPhonemeUnits` call
       each other. */
-  const turnPageRef = useRef<(sessionId: number) => void>(() => {});
+  const turnPageRef = useRef<(sessionId: number, startAt?: string) => void>(
+    () => {},
+  );
+  /**
+   * Looking for the ayah a reciter started off the page; see `startAt`.
+   *
+   * Only until something on the page is recited, and only once a run. What
+   * was heard is kept whole while looking, to be replayed onto the page the
+   * run moves to, so its cursor starts where the reciter already is.
+   */
+  const openingRef = useRef<{
+    openings: AyahOpening[] | null;
+    near: (verseKey: string) => number;
+    heard: HeardSound[];
+    units: PhonemeEmission[];
+    pending: { verseKey: string; at: number } | null;
+  } | null>(null);
   const trackerRef = useRef<ReturnType<typeof createPhonemeTracker> | null>(
     null,
   );
@@ -322,9 +371,10 @@ export function RecitationPracticeProvider({
    *
    * The first attempt at a word wins: a reciter who stalls twice on the same
    * word gets one entry, and the earliest is the one that says what they
-   * reached for before they found it.
+   * reached for before they found it. How many times is counted beside it,
+   * because the verdict tells the cursor's stumbles from the reciter's by it.
    */
-  const stumbleRef = useRef(new Map<string, string[]>());
+  const stumbleRef = useRef(new Map<string, Stumbled>());
   /**
    * Words the reader said they could not say.
    *
@@ -341,6 +391,35 @@ export function RecitationPracticeProvider({
 
   const isCurrentSession = useCallback(
     (sessionId: number) => sessionIdRef.current === sessionId,
+    [],
+  );
+
+  /**
+   * Where the words the cursor just moved past were said, for listening back.
+   *
+   * A finished word was said between the cursor reaching it and now; a word
+   * passed over was not said at all, so it gets the moment the reciter was
+   * found further on - which is where its absence can be heard. The first
+   * time counts: a word gone back over was listed for the first attempt.
+   */
+  const noteMoments = useCallback(
+    (completed: { locations: string[] }[], skipped: string[]) => {
+      if (completed.length === 0 && skipped.length === 0) return;
+      const now = lastHeardSecondsRef.current;
+      const moments = momentsRef.current;
+      for (const word of completed) {
+        for (const location of word.locations) {
+          if (!moments.has(location)) {
+            moments.set(location, { from: cursorSinceRef.current, to: now });
+          }
+        }
+      }
+      for (const location of skipped) {
+        if (!moments.has(location))
+          moments.set(location, { from: now, to: now });
+      }
+      cursorSinceRef.current = now;
+    },
     [],
   );
 
@@ -395,6 +474,12 @@ export function RecitationPracticeProvider({
     verdictAppliedRef.current = false;
     lastDispatchedRef.current = null;
     capturedAudioRef.current = [];
+    momentsRef.current = new Map();
+    cursorSinceRef.current = 0;
+    recordingWavRef.current = null;
+    if (recordingUrlRef.current) URL.revokeObjectURL(recordingUrlRef.current);
+    recordingUrlRef.current = null;
+    setRecording(null);
     capturedHeardRef.current = [];
     capturedHeldRef.current = [];
     cursorHeldRef.current = { wordIndex: 0, since: performance.now() };
@@ -411,6 +496,7 @@ export function RecitationPracticeProvider({
     pagesAwaitingRef.current = [];
     pagesJudgedRef.current = [];
     unitsBetweenPagesRef.current = null;
+    openingRef.current = null;
     trackerRef.current = null;
     revealedRef.current = [];
     skippedRef.current = new Set();
@@ -817,6 +903,59 @@ export function RecitationPracticeProvider({
     }
     verdictAppliedRef.current = true;
 
+    /*
+     * The run's audio, to listen back to: on the summary now, and kept on
+     * this device if the reader keeps recordings.
+     */
+    const blocks = capturedAudioRef.current;
+    if (blocks.length > 0) {
+      const wav = encodeWav(blocks, PRACTICE_SAMPLE_RATE);
+      capturedAudioRef.current = [];
+      const blob = new Blob([wav], { type: "audio/wav" });
+      const seconds =
+        blocks.reduce((sum, block) => sum + block.length, 0) /
+        PRACTICE_SAMPLE_RATE;
+      const moments = Object.fromEntries(momentsRef.current);
+      /* A listed word the cursor never moved past is the one it ended on. */
+      for (const word of misread) {
+        moments[word.location] ??= {
+          from: cursorSinceRef.current,
+          to: lastHeardSecondsRef.current,
+        };
+      }
+      recordingWavRef.current = wav;
+      recordingUrlRef.current = URL.createObjectURL(blob);
+      setRecording({ url: recordingUrlRef.current, seconds, moments });
+
+      if (readKeepRecordingsPreference()) {
+        const verseOf = (location: string | undefined) =>
+          location?.split(":").slice(0, 2).join(":") ?? "";
+        const first = pages[0]?.page;
+        const last = pages.at(-1)?.page;
+        const recordedAt = new Date().toISOString();
+        void saveRecitation(
+          {
+            id: recordedAt,
+            recordedAt,
+            from: verseOf(first?.spoken[first.span.from]?.locations[0]),
+            to: verseOf(last?.spoken[last.span.to - 1]?.locations[0]),
+            seconds,
+            bytes: wav.length,
+            progressIndex: recited,
+            totalWords: total,
+            stoppedShort: short,
+            words: misread.map((word) => ({
+              ...word,
+              moment: moments[word.location] ?? null,
+            })),
+          },
+          blob,
+        ).catch(() => {
+          /* Storage full or unavailable: the run is still on screen to hear. */
+        });
+      }
+    }
+
     if (import.meta.env.DEV) {
       const spoken = pages.flatMap(({ page }) =>
         page.spoken.map((word) => ({
@@ -852,9 +991,9 @@ export function RecitationPracticeProvider({
         misreadLocations: misread.map((word) => word.location),
         skippedLocations: pages.flatMap(({ page }) => [...page.skipped]),
         stumbles: pages.flatMap(({ page }) =>
-          [...page.stumbles].map(([location, heardAt]) => ({
+          [...page.stumbles].map(([location, stumbled]) => ({
             location,
-            heard: heardAt,
+            heard: stumbled.heard,
           })),
         ),
         held: capturedHeldRef.current,
@@ -1035,6 +1174,8 @@ export function RecitationPracticeProvider({
 
     const left = giveUpOnHeldWord(tracker);
     noteEvent({ kind: "gave-up", locations: left });
+    /* Tried for as long as the run was held there. */
+    noteMoments([{ locations: left }], []);
     for (const location of left) {
       skippedRef.current.add(location);
       gaveUpRef.current.add(location);
@@ -1066,10 +1207,10 @@ export function RecitationPracticeProvider({
     /* Giving up on the last word of the page finishes it, like reciting it
        would - otherwise the reader is left listening to a finished page. */
     if (progress.finished) pageFinished(sessionIdRef.current);
-  }, [noteEvent, pageFinished]);
+  }, [noteEvent, noteMoments, pageFinished]);
 
   const applyPhonemeUnits = useCallback(
-    (units: PhonemeEmission[], sessionId: number) => {
+    (units: PhonemeEmission[], sessionId: number, replayed = false) => {
       if (!isCurrentSession(sessionId)) return;
       /*
        * Scoring flushes the recogniser's buffered tail, so phonemes can still
@@ -1089,7 +1230,7 @@ export function RecitationPracticeProvider({
       /* Something was said, whether or not it turns out to match the page. */
       if (units.length > 0) heardPhonemesRef.current = true;
 
-      if (import.meta.env.DEV) {
+      if (import.meta.env.DEV && !replayed) {
         for (const unit of units) {
           capturedHeardRef.current.push(
             unit.alternatives
@@ -1104,8 +1245,10 @@ export function RecitationPracticeProvider({
                 ]
               : [unit.symbol, unit.confidence, unit.seconds],
           );
-          lastHeardSecondsRef.current = unit.seconds;
         }
+      }
+      if (!replayed && units.length > 0) {
+        lastHeardSecondsRef.current = units.at(-1)!.seconds;
       }
       const heldBefore = heldWord(tracker)?.[0] ?? null;
 
@@ -1115,6 +1258,58 @@ export function RecitationPracticeProvider({
        * option, and every caller passed it.
        */
       const progress = advanceTracker(tracker, units);
+      noteMoments(progress.completed, progress.skipped);
+
+      /* Started off the page? Then go where they are, once it is certain. */
+      const opening = openingRef.current;
+      if (opening) {
+        if (
+          recitedSpan(tracker) ||
+          opening.heard.length >= OPENING_GIVE_UP_UNITS
+        ) {
+          openingRef.current = null;
+        } else {
+          opening.units.push(...units);
+          /* Sound by sound, so a batch that holds the confirmation is
+             counted as it arrives rather than from its end. */
+          for (const unit of units) {
+            if (unit.confidence < 0.45) continue;
+            const [sound] = openingUnits([unit.symbol]);
+            if (!sound || sound === opening.heard.at(-1)?.[0]) continue;
+            opening.heard.push([
+              sound,
+              ...(unit.alternatives ?? [])
+                .filter((other) => other.probability >= OPENING_RUNNER_UP)
+                .flatMap((other) => openingUnits([other.symbol])),
+            ]);
+            if (!opening.openings || opening.heard.length < OPENING_MIN_UNITS) {
+              continue;
+            }
+            const found = findAyahByOpening(
+              opening.heard,
+              opening.openings,
+              opening.near,
+            );
+            if (!found || found === "wait") {
+              opening.pending = null;
+              continue;
+            }
+            if (opening.pending?.verseKey !== found.verseKey) {
+              opening.pending = {
+                verseKey: found.verseKey,
+                at: opening.heard.length,
+              };
+            }
+            if (
+              opening.heard.length - opening.pending.at >=
+              OPENING_CONFIRM_UNITS
+            ) {
+              turnPageRef.current(sessionId, found.verseKey);
+              return;
+            }
+          }
+        }
+      }
       if (progress.skipped.length > 0) {
         noteEvent({ kind: "passed-over", locations: progress.skipped });
       }
@@ -1166,8 +1361,13 @@ export function RecitationPracticeProvider({
        */
       for (const stumble of progress.stumbles) {
         for (const location of stumble.locations) {
-          if (stumbleRef.current.has(location)) continue;
-          stumbleRef.current.set(location, stumble.heard);
+          const before = stumbleRef.current.get(location);
+          if (before) before.times += 1;
+          else
+            stumbleRef.current.set(location, {
+              heard: stumble.heard,
+              times: 1,
+            });
         }
       }
 
@@ -1334,7 +1534,7 @@ export function RecitationPracticeProvider({
        */
       if (progress.finished) pageFinished(sessionId);
     },
-    [isCurrentSession, noteEvent, pageFinished],
+    [isCurrentSession, noteEvent, noteMoments, pageFinished],
   );
 
   /**
@@ -1347,17 +1547,29 @@ export function RecitationPracticeProvider({
    * arrives, and the summary waits for the reader to stop.
    */
   const turnPage = useCallback(
-    async (sessionId: number) => {
+    async (sessionId: number, startAt?: string) => {
       const tracker = trackerRef.current;
       const engine = zipformerRef.current;
       const continueWith = continueWithRef.current;
-      const span = tracker ? recitedSpan(tracker) : null;
-      if (!span || !engine || !continueWith) {
-        requestVerdict();
-        return;
+      /*
+       * Or move to the page of the ayah the reciter started: nothing on this
+       * page was recited, so there is nothing of it to score, and everything
+       * heard so far is replayed onto the new one below.
+       */
+      const opening = startAt ? openingRef.current : null;
+      const startAtPage = startAt ? startAtRef.current : null;
+      openingRef.current = null;
+      if (startAt) {
+        if (!engine || !startAtPage || !opening) return;
+      } else {
+        const span = tracker ? recitedSpan(tracker) : null;
+        if (!span || !engine || !continueWith) {
+          requestVerdict();
+          return;
+        }
+        pagesAwaitingRef.current.push(recitedPageNow(span));
+        engine.score(span, { continuing: true });
       }
-      pagesAwaitingRef.current.push(recitedPageNow(span));
-      engine.score(span, { continuing: true });
       trackerRef.current = null;
       unitsBetweenPagesRef.current = [];
       lastDispatchedRef.current = null;
@@ -1370,7 +1582,7 @@ export function RecitationPracticeProvider({
       let expected: ExpectedPracticeWord[] = [];
       let spoken: ScorableWord[] = [];
       try {
-        pageWords = await continueWith();
+        pageWords = await (startAt ? startAtPage!(startAt) : continueWith!());
         if (!stillTurning()) return;
         if (pageWords && pageWords.length > 0) {
           [expected, spoken] = await Promise.all([
@@ -1382,6 +1594,14 @@ export function RecitationPracticeProvider({
         // Ended below, as the last page of the run.
       }
       if (!stillTurning()) return;
+      if (spoken.length === 0 && startAt) {
+        /* Could not go there: carry on with the page on screen. */
+        trackerRef.current = createPhonemeTracker(spokenRef.current);
+        const heardMeanwhile = unitsBetweenPagesRef.current ?? [];
+        unitsBetweenPagesRef.current = null;
+        applyPhonemeUnits(heardMeanwhile, sessionId);
+        return;
+      }
       if (spoken.length === 0) {
         requestVerdict();
         return;
@@ -1412,6 +1632,9 @@ export function RecitationPracticeProvider({
 
       const heardMeanwhile = unitsBetweenPagesRef.current ?? [];
       unitsBetweenPagesRef.current = null;
+      if (opening && opening.units.length > 0) {
+        applyPhonemeUnits(opening.units, sessionId, true);
+      }
       if (heardMeanwhile.length > 0) {
         applyPhonemeUnits(heardMeanwhile, sessionId);
       }
@@ -1424,7 +1647,8 @@ export function RecitationPracticeProvider({
       requestVerdict,
     ],
   );
-  turnPageRef.current = (sessionId) => void turnPage(sessionId);
+  turnPageRef.current = (sessionId, startAt) =>
+    void turnPage(sessionId, startAt);
 
   const startMic = useCallback(
     async (sessionId: number) => {
@@ -1454,9 +1678,7 @@ export function RecitationPracticeProvider({
             ...(streaming
               ? {
                   onAudioBlock: (audio) => {
-                    if (import.meta.env.DEV) {
-                      capturedAudioRef.current.push(audio);
-                    }
+                    capturedAudioRef.current.push(toPcm16(audio));
                     zipformerRef.current?.push(audio);
                   },
                 }
@@ -1510,6 +1732,7 @@ export function RecitationPracticeProvider({
       releaseSessionResources();
       setTelemetry(initialRecitationPracticeTelemetry);
       continueWithRef.current = options?.continueWith ?? null;
+      startAtRef.current = options?.startAt ?? null;
       startedWithStopOnMistakeRef.current = stopOnMistakeRef.current;
       const sessionId = sessionIdRef.current;
       dispatch({ type: "start" });
@@ -1624,6 +1847,44 @@ export function RecitationPracticeProvider({
           );
           spokenRef.current = spoken;
           trackerRef.current = createPhonemeTracker(spoken);
+          /*
+           * Listen for an ayah begun off this page; see `openingRef`. The
+           * page's own ayat are left out - the cursor follows those - and
+           * of ayat that open alike, the one nearest this page is meant.
+           */
+          if (startAtRef.current) {
+            const onPage = new Set(
+              spoken.flatMap((word) =>
+                word.locations.map((location) =>
+                  location.split(":").slice(0, 2).join(":"),
+                ),
+              ),
+            );
+            const search: NonNullable<typeof openingRef.current> = {
+              openings: null,
+              near: () => 0,
+              heard: [],
+              units: [],
+              pending: null,
+            };
+            openingRef.current = search;
+            void loadAyahOpenings().then(
+              (all) => {
+                if (openingRef.current !== search) return;
+                const index = new Map(
+                  all.map((opening, at) => [opening.verseKey, at]),
+                );
+                const here = Math.min(
+                  ...[...onPage].map((key) => index.get(key) ?? Infinity),
+                );
+                search.near = (key) => Math.abs((index.get(key) ?? 0) - here);
+                search.openings = all.filter(
+                  (opening) => !onPage.has(opening.verseKey),
+                );
+              },
+              () => {},
+            );
+          }
           revealedRef.current = [];
           skippedRef.current = new Set();
           stumbleRef.current = new Map();
@@ -1776,19 +2037,11 @@ export function RecitationPracticeProvider({
    */
   const saveRun = useCallback(async (note: string) => {
     const meta = lastRunRef.current;
-    const blocks = capturedAudioRef.current;
-    if (!import.meta.env.DEV || !meta || blocks.length === 0) {
+    const wav = recordingWavRef.current;
+    if (!import.meta.env.DEV || !meta || !wav) {
       throw new Error("There is no finished run to save");
     }
-    let length = 0;
-    for (const block of blocks) length += block.length;
-    const samples = new Float32Array(length);
-    let at = 0;
-    for (const block of blocks) {
-      samples.set(block, at);
-      at += block.length;
-    }
-    return saveRecording(samples, PRACTICE_SAMPLE_RATE, { ...meta, note });
+    return saveRecording(wav, { ...meta, note });
   }, []);
 
   const toggleStopOnMistake = useCallback(() => {
@@ -1924,6 +2177,7 @@ export function RecitationPracticeProvider({
       revealHeldWord,
       skipHeldWord,
       saveRun,
+      recording,
       showDebug,
       toggleShowDebug,
       startPractice,
@@ -1941,6 +2195,7 @@ export function RecitationPracticeProvider({
       revealHeldWord,
       skipHeldWord,
       saveRun,
+      recording,
       showDebug,
       toggleShowDebug,
       startPractice,

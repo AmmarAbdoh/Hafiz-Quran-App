@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { encodeWav, toPcm16 } from "@/features/recitation-practice/model/wav";
 import { saveRecording, type RecordingMeta } from "./captureRecording";
 
 const meta: RecordingMeta = {
@@ -50,7 +51,10 @@ describe("keeping a recorded run", () => {
       .fn<typeof fetch>()
       .mockResolvedValue(new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
-    const name = await saveRecording(samples, 16_000, meta);
+    const name = await saveRecording(
+      encodeWav([toPcm16(samples)], 16_000),
+      meta,
+    );
     const sent = fetchMock.mock.calls[0]![1]!.body;
     const body = JSON.parse(sent as string) as SentBody;
     return { name, body };
@@ -110,7 +114,10 @@ describe("keeping a recorded run", () => {
     );
 
     await expect(
-      saveRecording(new Float32Array([0.1]), 16_000, meta),
+      saveRecording(
+        encodeWav([toPcm16(new Float32Array([0.1]))], 16_000),
+        meta,
+      ),
     ).rejects.toThrow("recording too large");
   });
 });
