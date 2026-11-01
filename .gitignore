@@ -77,6 +77,19 @@ scripts/tasmee/fixtures-learner-sample/
 # with `node scripts/tasmee/build-retasy-fixtures.mjs`.
 scripts/tasmee/fixtures-retasy/
 
+# Al-Ikhlas by 384 ordinary people, checked by Qur'an experts (CC BY 4.0,
+# Mendeley Data 10.17632/sxtmmr6mvk.1). People's voices and 1GB, so none of
+# it is committed: `node scripts/tasmee/build-ikhlas-fixtures.mjs`.
+scripts/tasmee/fixtures-ikhlas/
+
+# Short surahs with the wrong word named by a reviewer, from
+# sobolev210/quran-recitation-errors (MIT): `build-sobolev-fixtures.mjs`.
+scripts/tasmee/fixtures-sobolev/
+
+# Runs exported from the app with the reciter's own answers - given
+# privately, never committed: `build-feedback-fixtures.mjs`.
+scripts/tasmee/fixtures-feedback/
+
 # Gated model weights, fetched locally and never committed
 .models/
 

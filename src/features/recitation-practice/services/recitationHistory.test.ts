@@ -4,11 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   deleteAllRecitations,
   deleteRecitation,
+  exportRecitation,
   KEEP_RECITATIONS,
   listRecitations,
   recitationAudio,
   saveRecitation,
   type SavedRecitation,
+  updateRecitationFeedback,
 } from "./recitationHistory";
 
 /** Cache API over a Map, as in the reader's download tests. */
@@ -136,5 +138,101 @@ describe("recitations kept on this device", () => {
       "Cache storage is unavailable",
     );
     expect(listRecitations()).toEqual([]);
+  });
+});
+
+/* jsdom's Blob has no text(); FileReader is what it does have. */
+const readText = (blob: Blob) =>
+  new Promise<string>((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsText(blob);
+  });
+
+describe("the reader's word on a kept recitation", () => {
+  it("is stored with the entry it describes", async () => {
+    await saveRecitation(entry(1), new Blob(["wav"]));
+    updateRecitationFeedback(entry(1).id, () => ({
+      words: { "1:1:1": "mistake" },
+      missedMistake: false,
+    }));
+
+    expect(listRecitations()[0]!.feedback).toEqual({
+      words: { "1:1:1": "mistake" },
+      missedMistake: false,
+    });
+  });
+
+  /* Only worth having beside the audio it describes. */
+  it("is dropped for a recitation no longer kept", () => {
+    expect(
+      updateRecitationFeedback("gone", () => ({
+        words: {},
+        missedMistake: true,
+      })),
+    ).toBeNull();
+    expect(listRecitations()).toEqual([]);
+  });
+
+  /* The summary and settings answer for the same run; neither may write
+     back over an answer the other gave. */
+  it("changes the stored answers, not an earlier copy of them", async () => {
+    await saveRecitation(entry(1), new Blob(["wav"]));
+    updateRecitationFeedback(entry(1).id, (current) => ({
+      ...current,
+      missedMistake: true,
+    }));
+    updateRecitationFeedback(entry(1).id, (current) => ({
+      ...current,
+      words: { ...current.words, "2:1:1": "saidRight" },
+    }));
+
+    expect(listRecitations()[0]!.feedback).toEqual({
+      words: { "2:1:1": "saidRight" },
+      missedMistake: true,
+    });
+  });
+
+  it("is dropped, keeping the recording, when it does not parse", () => {
+    localStorage.setItem(
+      "artqiy.recitations.v1",
+      JSON.stringify([{ ...entry(1), feedback: { missedMistake: true } }]),
+    );
+
+    expect(listRecitations()).toHaveLength(1);
+    expect(listRecitations()[0]!.feedback).toBeUndefined();
+  });
+
+  it("is exported with the audio, whole, in one file", async () => {
+    const audio = new Uint8Array(70_000).map((_, i) => i % 251);
+    const wav = new Blob([audio]);
+    await saveRecitation(entry(1), wav);
+    /* Node's Response turns jsdom's Blob into "[object Blob]"; the real
+       Cache API returns the bytes, so hand them back as they went in. */
+    vi.spyOn(cache, "match").mockResolvedValue(new Response(audio));
+    updateRecitationFeedback(entry(1).id, () => ({
+      words: {},
+      missedMistake: true,
+    }));
+
+    const file = await exportRecitation(entry(1).id);
+    const parsed = JSON.parse(await readText(file!)) as {
+      format: string;
+      recitation: SavedRecitation;
+      audio: { base64: string };
+    };
+
+    expect(parsed.format).toBe("artqiy-recitation");
+    expect(parsed.recitation.feedback?.missedMistake).toBe(true);
+    expect(
+      Uint8Array.from(atob(parsed.audio.base64), (c) => c.charCodeAt(0)),
+    ).toEqual(audio);
+  });
+
+  it("exports nothing once the audio is gone", async () => {
+    await saveRecitation(entry(1), new Blob(["wav"]));
+    cache.store.clear();
+
+    expect(await exportRecitation(entry(1).id)).toBeNull();
   });
 });

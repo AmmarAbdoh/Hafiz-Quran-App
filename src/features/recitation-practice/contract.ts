@@ -54,6 +54,13 @@ export interface RunRecording {
   seconds: number;
   /** For each word the cursor reached, where it was said. */
   moments: Record<string, RecitedMoment>;
+  /**
+   * The id it is kept on this device under, once it has been; null while it
+   * is being written, when it failed, and when the reader keeps none. The
+   * reader's word on the verdict is stored with it, so is only asked for
+   * when there is somewhere to keep the answer.
+   */
+  keptAs: string | null;
 }
 
 export interface RecitationPracticeState {

@@ -5,6 +5,17 @@ import { formatNumber, useLocale } from "@/app/i18n";
 import type { PracticeSummaryProps } from "@/features/recitation-practice/contract";
 import { useRecordingPlayer } from "@/features/recitation-practice/hooks/useRecordingPlayer";
 import { RecordingPlayer } from "@/features/recitation-practice/components/RecordingPlayer";
+import {
+  MissedMistakeToggle,
+  WordFeedbackChoice,
+} from "@/features/recitation-practice/components/VerdictFeedback";
+import {
+  listRecitations,
+  NO_FEEDBACK,
+  updateRecitationFeedback,
+  withWordFeedback,
+  type RecitationFeedback,
+} from "@/features/recitation-practice/services/recitationHistory";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -48,6 +59,33 @@ export function PracticeSummary({
   const [note, setNote] = useState("");
   const [saved, setSaved] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  /* Asked only once the run is kept: the answer is stored beside it. */
+  const keptAs = recording?.keptAs ?? null;
+  /*
+   * Read from what is stored whenever the kept run changes or the sheet
+   * opens again: the same run can be answered in settings meanwhile, and
+   * reopening must show those answers rather than blanks or older ones.
+   *
+   * Null once the run is not kept - never, or deleted from settings since -
+   * and the question goes with it: an answer with nowhere to be kept would
+   * snap back on every tap and look like a broken button.
+   */
+  const [feedback, setFeedback] = useState<RecitationFeedback | null>(null);
+  const storedFeedback = () => {
+    const entry = listRecitations().find((saved) => saved.id === keptAs);
+    return entry ? (entry.feedback ?? NO_FEEDBACK) : null;
+  };
+  const [feedbackFor, setFeedbackFor] = useState<string | null>(null);
+  if (keptAs !== feedbackFor) {
+    setFeedbackFor(keptAs);
+    setFeedback(storedFeedback());
+  }
+  const answer = (
+    change: (current: RecitationFeedback) => RecitationFeedback,
+  ) => {
+    if (!keptAs) return;
+    setFeedback(updateRecitationFeedback(keptAs, change));
+  };
 
   /*
    * A fresh run gets a fresh note.
@@ -65,6 +103,7 @@ export function PracticeSummary({
     if (open) {
       setNote("");
       setSaved(null);
+      setFeedback(storedFeedback());
     }
   }
 
@@ -184,6 +223,19 @@ export function PracticeSummary({
                       {t(REASONS[word.heard.kind]!)}
                     </p>
                   )}
+                  {feedback && (
+                    <div className="pt-1.5">
+                      <WordFeedbackChoice
+                        word={word.text}
+                        value={feedback.words[word.location]}
+                        onChange={(value) =>
+                          answer((current) =>
+                            withWordFeedback(current, word.location, value),
+                          )
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <span className="text-label tabular-nums text-muted-foreground">
@@ -210,6 +262,27 @@ export function PracticeSummary({
               </li>
             ))}
           </ul>
+        )}
+
+        {/*
+         * The reader's word on the verdict, when there is a kept recording
+         * to store it with. Asked of a clean run too: a mistake the checker
+         * did not notice is the one only the reciter can report.
+         */}
+        {feedback && (
+          <div className="space-y-2">
+            <p className="text-label leading-6 text-muted-foreground">
+              {misreadWords.length > 0
+                ? t("practice.feedback.prompt")
+                : t("practice.feedback.promptClean")}
+            </p>
+            <MissedMistakeToggle
+              pressed={feedback.missedMistake}
+              onPressedChange={(missedMistake) =>
+                answer((current) => ({ ...current, missedMistake }))
+              }
+            />
+          </div>
         )}
 
         {onSaveRun && (

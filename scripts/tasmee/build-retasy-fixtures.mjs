@@ -22,7 +22,7 @@
  *
  * The audio is not ours to redistribute, so the whole set is gitignored.
  *
- * RAW is what `extract_retasy.py` unpacked from the dataset's parquet: the
+ * RAW is what `extract-retasy.py` unpacked from the dataset's parquet: the
  * labelled clips' WAVs and a `rows.json` of their metadata. The dataset names
  * each clip's ayah by its text, not its number, so every clip is matched to
  * an ayah of its surah by consonant skeleton. A clip that matches none - the

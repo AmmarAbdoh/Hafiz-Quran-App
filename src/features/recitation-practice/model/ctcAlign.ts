@@ -305,5 +305,14 @@ export function alignToExpected(
  * One threshold replaces the error rate, the minimum-error floor and the
  * confidence floor the string comparison needed, because a margin does not
  * care how long the word was.
+ *
+ * Lowered from 0.2 on 2026-11-01, with `CLEARLY_UNSAID_BELOW` halved beside
+ * it, once `scripts/tasmee/word-marks.mjs` could say which word a mark lands
+ * on. On the learner-mistakes test split, correct recitations with a word
+ * marked fell from 10.8% to 9.9% and correct words marked from 23.1 to 20.6
+ * per 100 clips, for the wrong word itself marked 57.2% of the time rather
+ * than 57.7%. Every other set agreed: all of the learners' correct clips
+ * 8.0% to 7.2% (12.1 to 10.5 per 100), professional reciters 2.1% to 1.8%,
+ * RetaSy 17.3 to 16.4 per 100, twin-ayah slips unchanged.
  */
-export const WORD_SAID_THRESHOLD = 0.2;
+export const WORD_SAID_THRESHOLD = 0.1;

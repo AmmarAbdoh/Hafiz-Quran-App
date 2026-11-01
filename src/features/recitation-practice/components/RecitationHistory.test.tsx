@@ -113,6 +113,62 @@ describe("recordings kept on this device", () => {
     expect(store.size).toBe(0);
   });
 
+  it("keeps the reader's word on a listed word and on what was missed", async () => {
+    renderHistory();
+
+    fireEvent.click(screen.getByRole("button", { name: "استمع" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "قرأتها صحيحة: «رَيْبَ»" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "أخطأت في كلمة لم تُذكر هنا" }),
+    );
+
+    expect(
+      (
+        JSON.parse(
+          localStorage.getItem("artqiy.recitations.v1")!,
+        ) as SavedRecitation[]
+      )[0]!.feedback,
+    ).toEqual({ words: { "2:2:3": "saidRight" }, missedMistake: true });
+    expect(
+      screen.getByRole("button", { name: "قرأتها صحيحة: «رَيْبَ»" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("exports a run as one file the reader can share", async () => {
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+    renderHistory();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "صدّر تسجيل البقرة ١–٥ مع إجاباتك",
+      }),
+    );
+
+    await vi.waitFor(() => expect(click).toHaveBeenCalledOnce());
+    expect((click.mock.contexts[0] as HTMLAnchorElement).download).toBe(
+      "artqiy-recitation-2026-10-30T10-00-00-000Z.json",
+    );
+    click.mockRestore();
+  });
+
+  it("says so when there is no audio left to export", async () => {
+    store.clear();
+    renderHistory();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "صدّر تسجيل البقرة ١–٥ مع إجاباتك",
+      }),
+    );
+    expect(
+      await screen.findByText("لم يعد هذا التسجيل موجودًا على الجهاز."),
+    ).toBeInTheDocument();
+  });
+
   it("remembers when the reader stops keeping recordings", () => {
     renderHistory();
 

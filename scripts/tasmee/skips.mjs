@@ -221,8 +221,10 @@ async function main() {
 
   /*
    * How far below the threshold a word the cursor skipped has to fall
-   * before its report is acted on. 0.2 is the threshold itself, which is
-   * the row above; a smaller bound demands a word barely heard at all.
+   * before its report is acted on. A bound at `WORD_SAID_THRESHOLD` (0.1
+   * since 2026-11-01) believes every weak word skipped, which is the row
+   * above, and 0.2 past it changes nothing more: only weak words are ever
+   * asked. A smaller bound demands a word barely heard at all.
    */
   console.log("\nhow strict to be about a word the cursor skipped:");
   console.log("  below   missed mistakes   wrongly flagged   overall");

@@ -251,6 +251,20 @@ const ar = {
         ayah: "آية {{reference}}",
         again: "أعد التسميع",
       },
+      /* The reciter's word on the verdict, kept with the recording. Asked
+         plainly and without pressure: it is optional, and the reader is
+         the only one who knows. */
+      feedback: {
+        prompt:
+          "هل كانت هذه أخطاء فعلًا؟ تبقى إجابتك مع التسجيل على جهازك، وتساعد على تحسين التسميع إن شاركته.",
+        promptClean:
+          "هل أخطأت في شيء لم يُلحظ؟ تبقى إجابتك مع التسجيل على جهازك، وتساعد على تحسين التسميع إن شاركته.",
+        question: "هل أخطأت في «{{word}}»؟",
+        mistake: "أخطأت فيها",
+        saidRight: "قرأتها صحيحة",
+        answerFor: "{{answer}}: «{{word}}»",
+        missed: "أخطأت في كلمة لم تُذكر هنا",
+      },
       title: "وضع التسميع",
       preparing: "جاري تجهيز الصفحة…",
       loadingModel: "جاري تحميل نموذج التعرف على الصوت…",
@@ -965,6 +979,10 @@ const ar = {
       clean: "لم يُلحظ خطأ",
       unavailable: "لم يعد هذا التسجيل موجودًا على الجهاز.",
       listenTo: "استمع إلى «{{word}}»",
+      exportLabel: "صدّر تسجيل {{label}} مع إجاباتك",
+      exportFailed: "تعذّر تصدير هذا التسجيل. حاول مرة أخرى.",
+      exportHint:
+        "لتساعد على تحسين التسميع، صدّر تسجيلًا مع إجاباتك وشارك الملف. لا يُرسل التطبيق شيئًا بنفسه.",
     },
     privacy: {
       title: "الخصوصية والتخزين",
@@ -1299,6 +1317,17 @@ const en: StringTree<typeof ar> = {
         gaveUp: "You stopped here and moved on",
         ayah: "ayah {{reference}}",
         again: "Recite again",
+      },
+      feedback: {
+        prompt:
+          "Were these really mistakes? Your answers stay with the recording on this device, and help improve the checker if you share it.",
+        promptClean:
+          "Did you make a mistake it did not notice? Your answer stays with the recording on this device, and helps improve the checker if you share it.",
+        question: "Did you get “{{word}}” wrong?",
+        mistake: "My mistake",
+        saidRight: "I said it right",
+        answerFor: "{{answer}}: “{{word}}”",
+        missed: "I made a mistake that is not listed",
       },
       title: "Recitation practice",
       preparing: "Preparing this page…",
@@ -2015,6 +2044,10 @@ const en: StringTree<typeof ar> = {
       clean: "No mistakes noticed",
       unavailable: "This recording is no longer on this device.",
       listenTo: "Listen to “{{word}}”",
+      exportLabel: "Export the recording of {{label}} with your answers",
+      exportFailed: "This recording could not be exported. Try again.",
+      exportHint:
+        "To help improve the checker, export a recording with your answers and share the file. The app never sends anything itself.",
     },
     privacy: {
       title: "Privacy and storage",

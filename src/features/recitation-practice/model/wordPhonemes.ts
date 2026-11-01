@@ -18,7 +18,7 @@
  * Checked against all 2,121 ayat whose two sides are the same length: it
  * recovers every one of them as a clean one-to-one, inventing no merges.
  */
-import { toPhonemeUnits } from "@/features/recitation-practice/model/phonemeTokens";
+import { toPhonemeUnits } from "./phonemeTokens.ts";
 
 const DIACRITICS = /[ؐ-ًؚ-ٰٟۖ-ۭـ]/g;
 const NON_LETTERS = /[^ء-ي]/g;

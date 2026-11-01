@@ -925,7 +925,8 @@ export function RecitationPracticeProvider({
       }
       recordingWavRef.current = wav;
       recordingUrlRef.current = URL.createObjectURL(blob);
-      setRecording({ url: recordingUrlRef.current, seconds, moments });
+      const url = recordingUrlRef.current;
+      setRecording({ url, seconds, moments, keptAs: null });
 
       if (readKeepRecordingsPreference()) {
         const verseOf = (location: string | undefined) =>
@@ -950,9 +951,16 @@ export function RecitationPracticeProvider({
             })),
           },
           blob,
-        ).catch(() => {
-          /* Storage full or unavailable: the run is still on screen to hear. */
-        });
+        )
+          .then(() =>
+            /* Only if this is still the run on screen. */
+            setRecording((shown) =>
+              shown?.url === url ? { ...shown, keptAs: recordedAt } : shown,
+            ),
+          )
+          .catch(() => {
+            /* Storage full or unavailable: the run is still on screen to hear. */
+          });
       }
     }
 

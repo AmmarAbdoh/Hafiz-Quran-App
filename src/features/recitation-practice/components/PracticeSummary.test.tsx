@@ -251,6 +251,7 @@ describe("listening back to the run", () => {
     url: "blob:run",
     seconds: 30,
     moments: { "2:3:4": { from: 5, to: 6.5 } },
+    keptAs: null,
   };
 
   /* Hearing the moment is how a reader settles whether a listed word was
@@ -286,5 +287,185 @@ describe("listening back to the run", () => {
 
     expect(screen.queryByRole("slider")).toBeNull();
     expect(screen.queryByRole("button", { name: /^استمع إلى/ })).toBeNull();
+  });
+});
+
+/*
+ * The reader's word on the verdict: the only label for which marks were
+ * real that does not come from mistakes cut into someone else's audio.
+ */
+describe("asking the reader about the verdict", () => {
+  const kept = "2026-11-01T10:00:00.000Z";
+  const recording = {
+    url: "blob:run",
+    seconds: 30,
+    moments: {},
+    keptAs: kept,
+  };
+  const stored = () =>
+    (
+      JSON.parse(localStorage.getItem("artqiy.recitations.v1")!) as {
+        feedback?: unknown;
+      }[]
+    )[0]!.feedback;
+
+  beforeEach(() => {
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+    localStorage.clear();
+    localStorage.setItem(
+      "artqiy.recitations.v1",
+      JSON.stringify([
+        {
+          id: kept,
+          recordedAt: kept,
+          from: "2:3",
+          to: "2:5",
+          seconds: 30,
+          words: [],
+        },
+      ]),
+    );
+  });
+
+  it("asks nothing when the run is not kept, as there is nowhere to keep it", () => {
+    renderSummary({ recording: { ...recording, keptAs: null } });
+
+    expect(screen.queryByRole("button", { name: /^أخطأت فيها/ })).toBeNull();
+    expect(screen.queryByText("أخطأت في كلمة لم تُذكر هنا")).toBeNull();
+  });
+
+  it("keeps the answer for a listed word with the recording", () => {
+    renderSummary({ recording });
+
+    const mistake = screen.getByRole("button", {
+      name: "أخطأت فيها: «ٱلْكِتَٰبُ»",
+    });
+    fireEvent.click(mistake);
+    fireEvent.click(
+      screen.getByRole("button", { name: "قرأتها صحيحة: «أُولَٰئِكَ»" }),
+    );
+
+    expect(mistake).toHaveAttribute("aria-pressed", "true");
+    expect(stored()).toEqual({
+      words: { "2:3:4": "mistake", "2:5:1": "saidRight" },
+      missedMistake: false,
+    });
+  });
+
+  /* A mis-tap must not become a label. */
+  it("takes an answer back when it is pressed again", () => {
+    renderSummary({ recording });
+
+    const mistake = screen.getByRole("button", {
+      name: "أخطأت فيها: «ٱلْكِتَٰبُ»",
+    });
+    fireEvent.click(mistake);
+    fireEvent.click(mistake);
+
+    expect(mistake).toHaveAttribute("aria-pressed", "false");
+    expect(stored()).toEqual({ words: {}, missedMistake: false });
+  });
+
+  /* A mistake it did not notice is the one only the reciter can report. */
+  it("asks a clean run whether something was missed", () => {
+    renderSummary({ recording, misreadWords: [] });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "أخطأت في كلمة لم تُذكر هنا" }),
+    );
+
+    expect(stored()).toEqual({ words: {}, missedMistake: true });
+  });
+
+  it("shows the answers already given when the summary is opened again", () => {
+    const entries = JSON.parse(
+      localStorage.getItem("artqiy.recitations.v1")!,
+    ) as { feedback?: unknown }[];
+    entries[0]!.feedback = {
+      words: { "2:3:4": "mistake" },
+      missedMistake: true,
+    };
+    localStorage.setItem("artqiy.recitations.v1", JSON.stringify(entries));
+
+    renderSummary({ recording });
+
+    expect(
+      screen.getByRole("button", { name: "أخطأت فيها: «ٱلْكِتَٰبُ»" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "أخطأت في كلمة لم تُذكر هنا" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  /* The sheet stays mounted between openings; settings can answer for the
+     same run meanwhile, and that answer must survive the next tap here. */
+  it("keeps an answer given elsewhere while the sheet was closed", () => {
+    const props = {
+      open: true,
+      onOpenChange: vi.fn(),
+      misreadWords: MISREAD,
+      totalWords: 15,
+      progressIndex: 15,
+      stoppedShort: false,
+      recording,
+      onPractiseAgain: vi.fn(),
+    };
+    const { rerender } = render(
+      <LocaleProvider>
+        <PracticeSummary {...props} />
+      </LocaleProvider>,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "أخطأت فيها: «ٱلْكِتَٰبُ»" }),
+    );
+    rerender(
+      <LocaleProvider>
+        <PracticeSummary {...props} open={false} />
+      </LocaleProvider>,
+    );
+
+    const entries = JSON.parse(
+      localStorage.getItem("artqiy.recitations.v1")!,
+    ) as { feedback?: { missedMistake: boolean } }[];
+    entries[0]!.feedback!.missedMistake = true;
+    localStorage.setItem("artqiy.recitations.v1", JSON.stringify(entries));
+
+    rerender(
+      <LocaleProvider>
+        <PracticeSummary {...props} />
+      </LocaleProvider>,
+    );
+    expect(
+      screen.getByRole("button", { name: "أخطأت في كلمة لم تُذكر هنا" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(
+      screen.getByRole("button", { name: "قرأتها صحيحة: «أُولَٰئِكَ»" }),
+    );
+
+    expect(stored()).toEqual({
+      words: { "2:3:4": "mistake", "2:5:1": "saidRight" },
+      missedMistake: true,
+    });
+  });
+
+  /* Deleted from settings while the summary stayed open: an answer with
+     nowhere to be kept would snap back on every tap. */
+  it("stops asking once the run is no longer kept", () => {
+    localStorage.setItem("artqiy.recitations.v1", "[]");
+    renderSummary({ recording });
+
+    expect(screen.queryByRole("button", { name: /^أخطأت فيها/ })).toBeNull();
+    expect(screen.queryByText("أخطأت في كلمة لم تُذكر هنا")).toBeNull();
+  });
+
+  /* Voice control finds a button by what it shows (WCAG 2.5.3). */
+  it("names each answer by its visible words first", () => {
+    renderSummary({ recording });
+
+    for (const button of screen.getAllByRole("button", {
+      name: /^(أخطأت فيها|قرأتها صحيحة): «/,
+    })) {
+      expect(button.getAttribute("aria-label")).toContain(button.textContent);
+    }
   });
 });

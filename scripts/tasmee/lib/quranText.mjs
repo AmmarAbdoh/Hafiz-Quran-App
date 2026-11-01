@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { gunzipSync } from "node:zlib";
 import path from "node:path";
+import { groupWrittenWords } from "../../../src/features/recitation-practice/model/wordPhonemes.ts";
 
 const CORE_PATH = path.resolve("public/data/quran/v1/core.json.gz");
 
@@ -101,4 +102,51 @@ export function skeleton(text) {
     out += SAME_LETTER.get(code) ?? character;
   }
   return out;
+}
+
+/**
+ * Where a named word sits among an ayah's words, compared by skeleton, or -1
+ * when it is not there or is there more than once.
+ *
+ * `spelling` reduces a word to what is compared; the skeleton by default.
+ *
+ * A word named by its text alone does not say which of two copies was
+ * wrong, and taking the first counts a mark on the real one as a mark on the
+ * wrong word. Better left untargeted.
+ */
+export function onlyIndexOf(words, named, spelling = skeleton) {
+  const wanted = spelling(named);
+  const found = words.flatMap((word, index) =>
+    spelling(word) === wanted ? [index] : [],
+  );
+  return found.length === 1 ? found[0] : -1;
+}
+
+/**
+ * Which spoken word, counted from 1, holds one of an ayah's written words.
+ *
+ * The bench numbers words as they are said - `verseKey:n` over the ayah's
+ * `aya_phonemes_list` - and that can join two written words into one:
+ * 112:4 says يَكُن لَّهُۥ as one, so its fifth written word is its fourth
+ * spoken. Grouped the way the app groups them (`groupWrittenWords`).
+ *
+ * `ayah` is the model's entry for it, and `written` counts its own words
+ * (`aya_text`) from 0. Null when the word is not in it, or when the ayah's
+ * words cannot be grouped: the app then follows the whole ayah as one
+ * sound, and no single word of it can be the target.
+ */
+export function spokenPosition(ayah, written, inventory) {
+  if (written < 0) return null;
+  const groups = groupWrittenWords(
+    ayah.aya_text.split(/\s+/).filter(Boolean),
+    ayah.aya_phonemes_list,
+    inventory,
+  );
+  if (!groups) return null;
+  let covered = 0;
+  for (const [index, size] of groups.entries()) {
+    covered += size;
+    if (written < covered) return index + 1;
+  }
+  return null;
 }

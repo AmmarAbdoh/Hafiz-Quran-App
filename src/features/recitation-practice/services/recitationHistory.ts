@@ -2,6 +2,7 @@ import type {
   MisreadWord,
   RecitedMoment,
 } from "@/features/recitation-practice/contract";
+import { toBase64 } from "@/features/recitation-practice/services/base64";
 import { safeStorage } from "@/shared/storage";
 
 /*
@@ -46,6 +47,42 @@ export interface SavedRecitation {
   stoppedShort: boolean;
   /** The words the verdict listed, and where in the audio each was said. */
   words: (MisreadWord & { moment: RecitedMoment | null })[];
+  /** What the reader said about the verdict; absent until they say anything. */
+  feedback?: RecitationFeedback;
+}
+
+/**
+ * The reader's own word on the verdict.
+ *
+ * The one label nothing else can supply: every measurement of which marks
+ * are right so far came from mistakes cut into other people's recitations,
+ * and only the reciter knows which of theirs were real. Added to the v1
+ * entry as an optional field, so entries saved before it still parse.
+ */
+export interface RecitationFeedback {
+  /** For each listed word they answered, whether it really was a mistake. */
+  words: Record<string, WordFeedback>;
+  /** They made a mistake the list does not have. */
+  missedMistake: boolean;
+}
+
+export type WordFeedback = "mistake" | "saidRight";
+
+export const NO_FEEDBACK: RecitationFeedback = {
+  words: {},
+  missedMistake: false,
+};
+
+/** The feedback with one word's answer changed, or taken back. */
+export function withWordFeedback(
+  feedback: RecitationFeedback,
+  location: string,
+  value: WordFeedback | undefined,
+): RecitationFeedback {
+  const words = { ...feedback.words };
+  if (value) words[location] = value;
+  else delete words[location];
+  return { ...feedback, words };
 }
 
 function isSavedRecitation(value: unknown): value is SavedRecitation {
@@ -61,12 +98,35 @@ function isSavedRecitation(value: unknown): value is SavedRecitation {
   );
 }
 
+function isRecitationFeedback(value: unknown): value is RecitationFeedback {
+  if (typeof value !== "object" || value === null) return false;
+  const { words, missedMistake } = value as Partial<RecitationFeedback>;
+  return (
+    typeof missedMistake === "boolean" &&
+    typeof words === "object" &&
+    words !== null &&
+    !Array.isArray(words) &&
+    Object.values(words).every(
+      (answer) => answer === "mistake" || answer === "saidRight",
+    )
+  );
+}
+
 function readIndex(): SavedRecitation[] {
   const raw = safeStorage.getItem(INDEX_KEY);
   if (!raw) return [];
   try {
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(isSavedRecitation) : [];
+    if (!Array.isArray(parsed)) return [];
+    /* Answers that do not parse are dropped and the recording kept: losing
+       the label is better than losing the run, or crashing the list. */
+    return parsed
+      .filter(isSavedRecitation)
+      .map((entry) =>
+        entry.feedback === undefined || isRecitationFeedback(entry.feedback)
+          ? entry
+          : { ...entry, feedback: undefined },
+      );
   } catch {
     return [];
   }
@@ -121,9 +181,66 @@ export async function saveRecitation(
 
 /** The recording's audio, or null when the browser no longer has it. */
 export async function recitationAudio(id: string): Promise<Blob | null> {
-  const cache = await openCache();
-  const response = await cache?.match(AUDIO_PATH + id);
+  const response = await cachedAudio(id);
   return response ? await response.blob() : null;
+}
+
+async function cachedAudio(id: string): Promise<Response | null> {
+  const cache = await openCache();
+  return (await cache?.match(AUDIO_PATH + id)) ?? null;
+}
+
+/**
+ * Change what the reader said about a kept recitation, and return it.
+ *
+ * The change is applied to what is stored, not to a copy a screen read
+ * earlier: the summary and the recordings in settings both answer for the
+ * same run, and one must not write back over an answer given in the other.
+ *
+ * Returns null, storing nothing, when it is no longer kept: the label is
+ * only worth having beside the audio it describes.
+ */
+export function updateRecitationFeedback(
+  id: string,
+  change: (current: RecitationFeedback) => RecitationFeedback,
+): RecitationFeedback | null {
+  const entries = readIndex();
+  const entry = entries.find((e) => e.id === id);
+  if (!entry) return null;
+  entry.feedback = change(entry.feedback ?? NO_FEEDBACK);
+  writeIndex(entries);
+  return entry.feedback;
+}
+
+/**
+ * One file holding a kept recitation: what was judged, what the reader said
+ * about it, and the audio - so it can be sent to whoever is improving the
+ * checker. Null when the browser no longer has the audio.
+ *
+ * JSON with the audio inside, rather than two files, because what someone
+ * sends has to arrive whole; a label without its recording is useless, and
+ * so is the reverse.
+ */
+export async function exportRecitation(id: string): Promise<Blob | null> {
+  const entry = readIndex().find((e) => e.id === id);
+  const audio = entry ? await cachedAudio(id) : null;
+  if (!entry || !audio) return null;
+  const base64 = toBase64(new Uint8Array(await audio.arrayBuffer()));
+  /*
+   * In parts, with the audio spliced in rather than passed through
+   * `JSON.stringify`: base64 needs no escaping, and stringifying it would
+   * make one more copy of a recording that is already tens of megabytes on
+   * a long run - on a phone, the copy that runs out of memory.
+   */
+  const head = JSON.stringify({
+    format: "artqiy-recitation",
+    version: 1,
+    recitation: entry,
+    audio: { type: "audio/wav" },
+  });
+  return new Blob([head.slice(0, -2), ',"base64":"', base64, '"}}'], {
+    type: "application/json",
+  });
 }
 
 export async function deleteRecitation(id: string): Promise<void> {

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Headphones, Trash2, Volume2 } from "lucide-react";
+import { Download, Headphones, Trash2, Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatDate, formatNumber, useLocale } from "@/app/i18n";
 import { useSurahNames } from "@/domain/quran";
@@ -10,11 +10,19 @@ import {
   RecordingPlayer,
 } from "@/features/recitation-practice/components/RecordingPlayer";
 import {
+  MissedMistakeToggle,
+  WordFeedbackChoice,
+} from "@/features/recitation-practice/components/VerdictFeedback";
+import {
   deleteAllRecitations,
   deleteRecitation,
+  exportRecitation,
   KEEP_RECITATIONS,
   listRecitations,
   recitationAudio,
+  updateRecitationFeedback,
+  type RecitationFeedback,
+  withWordFeedback,
   type SavedRecitation,
 } from "@/features/recitation-practice/services/recitationHistory";
 import { Panel } from "@/shared/components/Panel";
@@ -46,6 +54,11 @@ export function RecitationHistory() {
   /* Only the newest request may open a recording: the audio is read
      asynchronously, and tapping two in a row must not show the first. */
   const requestRef = useRef(0);
+  /* The run whose export just failed, and why, said beside that run. */
+  const [exportFailed, setExportFailed] = useState<{
+    id: string;
+    reason: "unavailable" | "failed";
+  } | null>(null);
   const player = useRecordingPlayer(
     open?.url ?? null,
     entries.find((entry) => entry.id === open?.id)?.seconds,
@@ -74,6 +87,45 @@ export function RecitationHistory() {
     if (open?.id === id) setOpen(null);
     await deleteRecitation(id);
     setEntries(listRecitations());
+  };
+
+  const answer = (
+    id: string,
+    change: (current: RecitationFeedback) => RecitationFeedback,
+  ) => {
+    updateRecitationFeedback(id, change);
+    setEntries(listRecitations());
+  };
+
+  /*
+   * Saved as a file the reader can send on. Nothing is uploaded: sharing a
+   * recording of their voice is theirs to do, not the app's.
+   *
+   * The link is put in the page to be clicked, which some browsers require,
+   * and the file's URL is kept a while after: Safari starts the download
+   * after the click returns, and revoking it at once saved nothing.
+   */
+  const download = async (id: string) => {
+    setExportFailed(null);
+    let file: Blob | null;
+    try {
+      file = await exportRecitation(id);
+    } catch {
+      setExportFailed({ id, reason: "failed" });
+      return;
+    }
+    if (!file) {
+      setExportFailed({ id, reason: "unavailable" });
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `artqiy-recitation-${id.replace(/[:.]/g, "-")}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 40_000);
   };
 
   const removeAll = async () => {
@@ -192,6 +244,19 @@ export function RecitationHistory() {
                       >
                         {isOpen ? t("recordings.hide") : t("recordings.listen")}
                       </Button>
+                      {/* Not offered once the run is known to have no
+                          audio: there would be nothing to send. */}
+                      {!(isOpen && !open.url) && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t("recordings.exportLabel", { label })}
+                          onClick={() => void download(entry.id)}
+                        >
+                          <Download className="h-4 w-4" aria-hidden />
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="ghost"
@@ -204,6 +269,14 @@ export function RecitationHistory() {
                     </div>
                   </div>
 
+                  {exportFailed?.id === entry.id && (
+                    <p aria-live="polite" className="text-sm text-destructive">
+                      {exportFailed.reason === "unavailable"
+                        ? t("recordings.unavailable")
+                        : t("recordings.exportFailed")}
+                    </p>
+                  )}
+
                   {isOpen &&
                     (open.url ? (
                       <div className="space-y-2">
@@ -213,15 +286,30 @@ export function RecitationHistory() {
                             {entry.words.map((word) => (
                               <li
                                 key={word.location}
-                                className="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 odd:bg-surface-sunken"
+                                className="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 py-2 odd:bg-surface-sunken"
                               >
-                                <bdi
-                                  dir="rtl"
-                                  lang="ar"
-                                  className="truncate text-body"
-                                >
-                                  {word.text}
-                                </bdi>
+                                <div className="min-w-0 space-y-1.5">
+                                  <bdi
+                                    dir="rtl"
+                                    lang="ar"
+                                    className="block truncate text-body"
+                                  >
+                                    {word.text}
+                                  </bdi>
+                                  <WordFeedbackChoice
+                                    word={word.text}
+                                    value={entry.feedback?.words[word.location]}
+                                    onChange={(value) =>
+                                      answer(entry.id, (current) =>
+                                        withWordFeedback(
+                                          current,
+                                          word.location,
+                                          value,
+                                        ),
+                                      )
+                                    }
+                                  />
+                                </div>
                                 {word.moment && (
                                   <Button
                                     type="button"
@@ -241,6 +329,15 @@ export function RecitationHistory() {
                             ))}
                           </ul>
                         )}
+                        <MissedMistakeToggle
+                          pressed={entry.feedback?.missedMistake ?? false}
+                          onPressedChange={(missedMistake) =>
+                            answer(entry.id, (current) => ({
+                              ...current,
+                              missedMistake,
+                            }))
+                          }
+                        />
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">
@@ -251,6 +348,12 @@ export function RecitationHistory() {
               );
             })}
           </ul>
+        )}
+
+        {entries.length > 0 && (
+          <p className="text-sm leading-6 text-muted-foreground">
+            {t("recordings.exportHint")}
+          </p>
         )}
 
         {entries.length > 0 && (
