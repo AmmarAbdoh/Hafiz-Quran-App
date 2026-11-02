@@ -129,6 +129,25 @@ const CATCH_UP_MAX_EDITS = 2;
  */
 const DEFAULT_RUNNER_UP_ACCEPTED = 0.1;
 const DEFAULT_LAST_WORD_TAIL_FORGIVEN = 2;
+/*
+ * A page sound never heard, when catching up, costs half a sound misheard:
+ * at speed the recogniser drops sounds far more often than it swaps them
+ * (on hadr, 25-39% of the page's sounds never arrive, 2% arrive changed).
+ * Only sounds dropped from words it heard something of; see `moveOver`.
+ * With `catchUpAhead`, measured 2026-11-02 against the defaults before:
+ *
+ *                                              before   adopted
+ *   learners (18,020 correct): marked per 100    10.4     10.1
+ *   RetaSy (355 correct): marked per 100         16.1     14.6
+ *   whole recitations: stumbles a minute         1.73     1.65
+ *   learner mistakes marked on the word         57.0%    57.0%
+ *   learner mistakes with nothing said          24.8%    24.6%
+ *   professional mistakes with nothing said     19.1%    19.0%
+ *
+ * Letting the cheaper gap cover whole words as well took the recitations to
+ * 1.53 stumbles a minute, and walked past a four-sound word nobody said.
+ */
+const DEFAULT_CATCH_UP_GAP_COST = 0.5;
 
 /**
  * How forgiving the cursor is of the recogniser, for the bench to compare.
@@ -149,6 +168,15 @@ export interface TrackerOptions {
    * where it is read in `advanceTracker`.
    */
   lastWordTailForgiven?: number;
+  /** A word's closing short vowel may go unheard; see `heardAs`. */
+  finalVowelForgiven?: boolean;
+  /**
+   * What a page sound never heard costs when catching up, against a whole
+   * edit for one misheard; see `DEFAULT_CATCH_UP_GAP_COST`.
+   */
+  catchUpGapCost?: number;
+  /** Catch up a few words ahead once the resync finds nothing; see `catchUpAhead`. */
+  catchUpAhead?: boolean;
 }
 
 /**
@@ -215,6 +243,11 @@ export interface PhonemeProgress {
    * moment the reciter went back a line.
    */
   heldAt: string[] | null;
+  /**
+   * What was heard of the next page before this one finished; see
+   * `expectNextPage`. For the next page's cursor, ahead of anything new.
+   */
+  carriedOver: PhonemeEmission[];
 }
 
 /**
@@ -271,11 +304,17 @@ interface TrackerState {
   acceptRunnerUpAt: number | null;
   catchUp: boolean;
   lastWordTailForgiven: number;
+  finalVowelForgiven: boolean;
+  catchUpGapCost: number;
+  catchUpAhead: boolean;
   /**
    * A jump back into an ayah's twin, not yet known to be a repeat or a slip;
    * see `slippedBackIntoTwin`.
    */
   twinDetour: { left: number; heard: string[]; ayahEnd: number } | null;
+  /** The next page's words, once known; see `expectNextPage`. */
+  following: ExpectedWord[];
+  carriedOver: PhonemeEmission[];
 }
 
 /**
@@ -302,14 +341,7 @@ export function createPhonemeTracker(
   options: TrackerOptions = {},
 ): TrackerState {
   return {
-    expected: expected.map((word) => {
-      const units: string[] = [];
-      for (const unit of word.units) {
-        const identity = phonemeIdentity(unit);
-        if (identity !== units.at(-1)) units.push(identity);
-      }
-      return { locations: word.locations, units };
-    }),
+    expected: asIdentities(expected),
     wordIndex: 0,
     unitIndex: 0,
     forgiven: 0,
@@ -324,8 +356,65 @@ export function createPhonemeTracker(
     catchUp: options.catchUp ?? true,
     lastWordTailForgiven:
       options.lastWordTailForgiven ?? DEFAULT_LAST_WORD_TAIL_FORGIVEN,
+    finalVowelForgiven: options.finalVowelForgiven ?? true,
+    catchUpGapCost: options.catchUpGapCost ?? DEFAULT_CATCH_UP_GAP_COST,
+    catchUpAhead: options.catchUpAhead ?? true,
     twinDetour: null,
+    following: [],
+    carriedOver: [],
   };
+}
+
+/** Words with their units reduced as `createPhonemeTracker` describes. */
+function asIdentities(words: readonly ExpectedWord[]): ExpectedWord[] {
+  return words.map((word) => {
+    const units: string[] = [];
+    for (const unit of word.units) {
+      const identity = phonemeIdentity(unit);
+      if (identity !== units.at(-1)) units.push(identity);
+    }
+    return { locations: word.locations, units };
+  });
+}
+
+/**
+ * Tell the cursor which words come after this page, so it can see the
+ * reciter turn it.
+ *
+ * A page turns when its last word is heard. When that word is misheard, the
+ * reciter carries on into the next page and nothing they say fits this one:
+ * on a live recitation of Faatir the recogniser heard غَفُورٌ شَكُورٌ as
+ * nothing like it, and the cursor sat at the bottom of the page for two
+ * minutes, eighty-eight stumbles, while the reciter recited three pages on.
+ * So once nothing on this page fits, the next page's words are searched the
+ * way the resync searches this one, near their start. A run found there
+ * finishes this page - its unheard words reported passed over, as any jump
+ * reports them - and hands what was heard to the next page's cursor in
+ * `carriedOver`.
+ */
+export function expectNextPage(state: TrackerState, words: ExpectedWord[]) {
+  state.following = asIdentities(words);
+}
+
+/**
+ * Where on the next page the stray sounds are, if the reciter has turned it.
+ *
+ * Only from this page's last ayah, and only on all of what was heard,
+ * near the next page's start: three sounds in common, which is enough near
+ * the cursor, turned a teacher's page early whenever a line opened like the
+ * next page did.
+ */
+function turnedThePage(state: TrackerState): RunMatch | null {
+  if (state.heldAt !== -1 || state.following.length === 0) return null;
+  const last = state.expected.length - 1;
+  if (last < 0 || lastWordOfAyah(state.expected, state.wordIndex) !== last) {
+    return null;
+  }
+  return (
+    occurrences(state.following, state.stray).find(
+      (found) => found.fromWord <= NEAR_JUMP_WORDS,
+    ) ?? null
+  );
 }
 
 /**
@@ -609,6 +698,13 @@ interface RunMatch {
    * dropping something we just heard the end of.
    */
   fromWord: number;
+  /**
+   * Where in `fromWord` the run began, and how many of the stray sounds it
+   * used. Known for a run found in what was heard, not for a restart, and
+   * what lets `heardOnTheWay` look at the sounds before it.
+   */
+  fromUnit?: number;
+  length?: number;
 }
 
 /** Every place in the passage where `needle` occurs as consecutive units. */
@@ -634,7 +730,13 @@ function occurrences(
         }
       }
       if (matched === needle.length) {
-        found.push({ wordIndex: w, unitIndex: u, fromWord: word });
+        found.push({
+          wordIndex: w,
+          unitIndex: u,
+          fromWord: word,
+          fromUnit: unit,
+          length: needle.length,
+        });
       }
     }
   }
@@ -761,8 +863,18 @@ function heardAs(
   state: TrackerState,
   emission: PhonemeEmission,
   wanted: string | null,
+  /** `wanted` is the last sound of its word. */
+  closesWord = false,
 ): string {
   const winner = phonemeIdentity(emission.symbol);
+  if (
+    closesWord &&
+    state.finalVowelForgiven &&
+    wanted !== null &&
+    winner === withoutClosingVowel(wanted)
+  ) {
+    return wanted;
+  }
   const floor = state.acceptRunnerUpAt;
   if (winner === wanted || wanted === null || floor === null) return winner;
   for (const alternative of emission.alternatives ?? []) {
@@ -777,17 +889,47 @@ function heardAs(
 }
 
 /**
+ * A single letter carrying a short vowel, which a word's last sound may lose.
+ *
+ * Joined to the next word, a closing fatha, damma or kasra is short and
+ * light, and the recogniser often hears the letter bare: on a reciter's
+ * المدثر 74:19-20, فَقُتِلَ كَيْفَ and ثُمَّ قُتِلَ كَيْفَ both came through as
+ * قُتِل, and waiting for a لَ that never arrived stranded the cursor at the
+ * first. Every way it recovers was blocked by the same missing vowel, so it
+ * moved only when 74:20 lit 74:19's words, then passed over 74:20 as unsaid.
+ *
+ * The letter itself must be heard, and only the last sound of a word is
+ * excused, so this cannot assemble a word out of a different one. It is the
+ * cursor following, not the verdict: the aligner still scores the vowel.
+ */
+function withoutClosingVowel(unit: string): string | null {
+  const [letter, vowel, ...rest] = [...unit];
+  if (letter === undefined || vowel === undefined || rest.length > 0) {
+    return null;
+  }
+  const isLetter = letter >= "ء" && letter <= "ي";
+  return isLetter && SHORT_VOWELS.has(vowel) ? letter : null;
+}
+
+/** Fatha, damma and kasra. */
+const SHORT_VOWELS = new Set(["َ", "ُ", "ِ"]);
+
+/**
  * Two runs of sounds lined up end to end, at the fewest sounds misheard,
  * dropped or added; with which of `wanted` were heard exactly.
  */
 function editAlign(
   heard: readonly string[],
   wanted: readonly string[],
+  /** What one of `wanted` never heard costs. */
+  gapCost = 1,
 ): { cost: number; matched: boolean[] } {
   const rows = heard.length + 1;
   const cols = wanted.length + 1;
   const cost: number[][] = Array.from({ length: rows }, (_, i) =>
-    Array.from({ length: cols }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
+    Array.from({ length: cols }, (_, j) =>
+      i === 0 ? j * gapCost : j === 0 ? i : 0,
+    ),
   );
   for (let i = 1; i < rows; i += 1) {
     for (let j = 1; j < cols; j += 1) {
@@ -795,7 +937,7 @@ function editAlign(
       cost[i]![j] = Math.min(
         cost[i - 1]![j - 1]! + same,
         cost[i - 1]![j]! + 1,
-        cost[i]![j - 1]! + 1,
+        cost[i]![j - 1]! + gapCost,
       );
     }
   }
@@ -828,16 +970,16 @@ function editAlign(
  * twenty seconds at a word they had said right the first time.
  *
  * So once the last few sounds heard continue the page exactly, the stretch
- * before them is lined up against the page with up to two sounds misheard,
- * dropped or added, and the cursor moves to where they lead. Not further:
- * the window is only as long as what was heard, so this cannot reach the
+ * before them is lined up against the page with up to two sounds misheard
+ * or added - a page sound never heard counting `catchUpGapCost` of one -
+ * and the cursor moves to where they lead. Not further: the window is only
+ * as long as what was heard and the gaps it allows, so this cannot reach the
  * distant matches the resync exists for.
  *
- * A word moved over counts as recited only if half its sounds or more were
- * heard exactly. Anything less is reported as passed over, and the verdict -
- * which has the audio - decides; catching up never makes a word unsaid
- * invisible. Nor does it carry a reciter past the word they are held at,
- * unless that word is one of the recited ones.
+ * A word moved over counts as recited only if more than half its sounds
+ * were heard exactly. Anything less is reported as passed over, and the
+ * verdict - which has the audio - decides; catching up never makes a word
+ * unsaid invisible. See `moveOver`.
  */
 function catchUp(
   state: TrackerState,
@@ -849,7 +991,9 @@ function catchUp(
 
   const ahead: { unit: string; word: number }[] = [];
   let [word, unit] = [state.wordIndex, state.unitIndex];
-  while (ahead.length < stray.length + CATCH_UP_MAX_EDITS) {
+  const reach =
+    stray.length + Math.floor(CATCH_UP_MAX_EDITS / state.catchUpGapCost);
+  while (ahead.length < reach) {
     const here = unitAt(state, word, unit);
     if (here === null) break;
     ahead.push({ unit: here, word });
@@ -868,6 +1012,7 @@ function catchUp(
     const { cost, matched } = editAlign(
       prefix,
       before.map((step) => step.unit),
+      state.catchUpGapCost,
     );
     if (cost > CATCH_UP_MAX_EDITS) continue;
     if (!best || cost < best.cost) best = { end, cost, matched };
@@ -881,14 +1026,43 @@ function catchUp(
       i >= best.end - CATCH_UP_CONFIRM_UNITS || best.matched[i] === true;
     if (exact) heardIn.set(step.word, (heardIn.get(step.word) ?? 0) + 1);
   });
-  /* Where the cursor lands: just after the last sound caught up with. */
+  return moveOver(state, heardIn, best.end, completed, skipped);
+}
+
+/**
+ * Move the cursor `steps` sounds on after catching up, accounting for every
+ * word it moves over: recited when more than half its sounds were heard
+ * exactly, passed over otherwise.
+ *
+ * Words in between with none of their sounds heard may be moved over, as
+ * before `catchUpGapCost`, up to `CATCH_UP_MAX_EDITS` sounds of them in all:
+ * the cheaper gap is for sounds the recogniser dropped from words it heard,
+ * and a longer word left out is someone who needs stopping at it - which is
+ * the stumble's job, and the resync's once they have plainly moved on. Nor
+ * does it carry them past the word they are held at, unless that word is
+ * one of the recited ones.
+ */
+function moveOver(
+  state: TrackerState,
+  heardIn: ReadonlyMap<number, number>,
+  steps: number,
+  completed: CompletedWord[],
+  skipped: string[],
+): boolean {
   let [toWord, toUnit] = [state.wordIndex, state.unitIndex];
-  for (let i = 0; i < best.end; i += 1) {
+  for (let i = 0; i < steps; i += 1) {
     [toWord, toUnit] = nextPosition(state, toWord, toUnit);
   }
   const recited = (index: number) =>
     (heardIn.get(index) ?? 0) * 2 > (state.expected[index]?.units.length ?? 0);
 
+  let unheard = 0;
+  for (let index = state.wordIndex; index < toWord; index += 1) {
+    if (!heardIn.get(index)) {
+      unheard += state.expected[index]?.units.length ?? 0;
+    }
+  }
+  if (unheard > CATCH_UP_MAX_EDITS) return false;
   if (
     state.heldAt !== -1 &&
     state.heldAt >= state.wordIndex &&
@@ -913,6 +1087,138 @@ function catchUp(
   state.forgiven = 0;
   state.stray = [];
   return true;
+}
+
+/**
+ * Catch up with a reciter a few words ahead, through sounds the recogniser
+ * dropped.
+ *
+ * At speed the recogniser drops a quarter to a third of the page's sounds.
+ * The resync needs three of them in a row, exactly, and `catchUp` has to
+ * start at the cursor, so a reciter who got two words ahead was never found
+ * again: on a hadr recitation of Saad the cursor waited at قَالُوا رَبَّنَا
+ * while six ayat went by, every sound of them heard and none three in a row.
+ *
+ * So once the resync has found nothing, the stray sounds are lined up
+ * against the page anywhere within `NEAR_JUMP_WORDS` ahead, a page sound
+ * never heard costing `catchUpGapCost` and anything misheard or added a
+ * whole edit, the last sound heard matching exactly, and the cursor moves
+ * as `catchUp` moves it - see `moveOver`. A word with nothing of it heard
+ * still stops it, so this follows a recogniser that dropped sounds, never a
+ * reciter who dropped a word.
+ */
+function catchUpAhead(
+  state: TrackerState,
+  completed: CompletedWord[],
+  skipped: string[],
+): boolean {
+  const stray = state.stray;
+  const lastStart = state.wordIndex + NEAR_JUMP_WORDS;
+  const reach =
+    stray.length + Math.floor(CATCH_UP_MAX_EDITS / state.catchUpGapCost);
+  const steps: { unit: string; word: number }[] = [];
+  let starts = 0;
+  let [word, unit] = [state.wordIndex, state.unitIndex];
+  while (steps.length < starts + reach) {
+    const here = unitAt(state, word, unit);
+    if (here === null) break;
+    steps.push({ unit: here, word });
+    if (word <= lastStart) starts = steps.length;
+    [word, unit] = nextPosition(state, word, unit);
+  }
+
+  let best: {
+    start: number;
+    end: number;
+    cost: number;
+    matched: boolean[];
+  } | null = null;
+  for (let start = 0; start < starts; start += 1) {
+    for (
+      let end = start + 1;
+      end <= Math.min(steps.length, start + reach);
+      end += 1
+    ) {
+      if (steps[end - 1]!.unit !== stray.at(-1)) continue;
+      const { cost, matched } = editAlign(
+        stray,
+        steps.slice(start, end).map((step) => step.unit),
+        state.catchUpGapCost,
+      );
+      if (cost > CATCH_UP_MAX_EDITS) continue;
+      if (!best || cost < best.cost) best = { start, end, cost, matched };
+    }
+  }
+  if (!best) return false;
+
+  const heardIn = new Map<number, number>([[state.wordIndex, state.unitIndex]]);
+  best.matched.forEach((exact, i) => {
+    const step = steps[best.start + i]!;
+    if (exact) heardIn.set(step.word, (heardIn.get(step.word) ?? 0) + 1);
+  });
+  return moveOver(state, heardIn, best.end, completed, skipped);
+}
+
+/**
+ * The words a jump forward moves over that the reciter said anyway.
+ *
+ * The resync believes a run of sounds that continues the page further on,
+ * and everything between the cursor and that run used to be reported passed
+ * over. But the sounds heard before the run were often those very words,
+ * misheard by a sound or two - and the word the cursor was waiting at could
+ * be most of the way through. On a reciter's المدثر 74:11 the cursor was
+ * three of ذَرْنِي's four sounds in, then heard وَمَ for وَمَنْ and لَقْتُ for
+ * خَلَقْتُ; the jump reported ذَرْنِي and وَمَنْ unsaid, and an unsaid report is
+ * half of what makes a word red.
+ *
+ * So the sounds before the run are lined up against the page between the
+ * cursor and the run, as `catchUp` lines them up, and a word moved over
+ * counts as recited by the same measure: more than half its sounds heard,
+ * the ones the cursor had already reached included. Fewer, and it is
+ * reported passed over as before, for the verdict to judge with the audio.
+ *
+ * Measured 2026-11-01. On 18,020 correct learner recitations the words
+ * wrongly passed over fell from 4,388 to 4,143, and correct words marked red
+ * from 10.5 to 10.4 per 100 clips (professionals 11.0 to 10.8, RetaSy 16.4
+ * to 16.1). The price is the one `catchUp` pays: a dropped word whose
+ * neighbours sound enough like it is now credited, and mistakes with nothing
+ * marked rose from 24.5% to 24.8% on the learner test split and from 18.4%
+ * to 19.1% on the professionals - nine and eight mistakes. Taken for the
+ * same reason that was: accusing someone who recited correctly is worse.
+ */
+function heardOnTheWay(state: TrackerState, found: RunMatch): Set<number> {
+  const credited = new Set<number>();
+  if (found.fromUnit === undefined || found.length === undefined) {
+    return credited;
+  }
+  const steps: { unit: string; word: number }[] = [];
+  let [word, unit] = [state.wordIndex, state.unitIndex];
+  while (
+    word < found.fromWord ||
+    (word === found.fromWord && unit < found.fromUnit)
+  ) {
+    const here = unitAt(state, word, unit);
+    if (here === null) break;
+    steps.push({ unit: here, word });
+    [word, unit] = nextPosition(state, word, unit);
+  }
+  const heardIn = new Map<number, number>([[state.wordIndex, state.unitIndex]]);
+  const before = state.stray.slice(0, state.stray.length - found.length);
+  if (before.length > 0 && steps.length > 0) {
+    const { matched } = editAlign(
+      before,
+      steps.map((step) => step.unit),
+    );
+    steps.forEach((step, i) => {
+      if (matched[i]) heardIn.set(step.word, (heardIn.get(step.word) ?? 0) + 1);
+    });
+  }
+  for (const [index, heard] of heardIn) {
+    if (heard * 2 > (state.expected[index]?.units.length ?? 0)) {
+      credited.add(index);
+    }
+  }
+  return credited;
 }
 
 function closeWord(state: TrackerState, completed: CompletedWord[]) {
@@ -950,7 +1256,13 @@ export function advanceTracker(
 
     /* Length is the recogniser's weakest dimension and the page's most
        variable one; only the sound itself is compared. */
-    const heard = heardAs(state, emission, expectedUnit);
+    const heard = heardAs(
+      state,
+      emission,
+      expectedUnit,
+      state.unitIndex ===
+        (state.expected[state.wordIndex]?.units.length ?? 0) - 1,
+    );
 
     if (heard === expectedUnit) {
       state.stray = [];
@@ -1171,6 +1483,10 @@ export function advanceTracker(
          * wrong, and only the aligner has looked at the audio.
          */
         const leaving = state.wordIndex;
+        /* Read before the cursor moves and the stray run is cleared. */
+        const heardAnyway = restart
+          ? new Set<number>()
+          : heardOnTheWay(state, found);
         const detour = state.twinDetour;
         if (detour && found.fromWord > detour.ayahEnd) {
           /* Back before finishing the twin: that was a slip, not a repeat. */
@@ -1200,7 +1516,14 @@ export function advanceTracker(
             word < found.fromWord;
             word += 1
           ) {
-            skipped.push(...(state.expected[word]?.locations ?? []));
+            const passed = state.expected[word];
+            if (!passed) continue;
+            if (heardAnyway.has(word)) {
+              completed.push({ locations: passed.locations });
+              noteRecited(state, word);
+            } else {
+              skipped.push(...passed.locations);
+            }
           }
           // `max`, because a run can begin behind the cursor and end ahead of
           // it when the reciter repeated a word before carrying on.
@@ -1216,6 +1539,43 @@ export function advanceTracker(
             }
           }
         }
+        continue;
+      }
+      const onNextPage = turnedThePage(state);
+      if (onNextPage) {
+        const end = state.expected.length;
+        const heardAnyway = heardOnTheWay(state, {
+          wordIndex: end,
+          unitIndex: 0,
+          fromWord: end,
+          fromUnit: 0,
+          length: onNextPage.length ?? state.stray.length,
+        });
+        for (
+          let word = Math.max(state.wordIndex, state.furthest);
+          word < end;
+          word += 1
+        ) {
+          const passed = state.expected[word]!;
+          if (heardAnyway.has(word)) {
+            completed.push({ locations: passed.locations });
+            noteRecited(state, word);
+          } else {
+            skipped.push(...passed.locations);
+          }
+        }
+        state.carriedOver = state.stray.map((symbol) => ({
+          id: -1,
+          symbol,
+          confidence: 1,
+          seconds: emission.seconds,
+        }));
+        state.wordIndex = end;
+        state.unitIndex = 0;
+        state.stray = [];
+        continue;
+      }
+      if (state.catchUpAhead && catchUpAhead(state, completed, skipped)) {
         continue;
       }
       // Still nowhere: the reciter is trying this word and not getting it.
@@ -1255,6 +1615,8 @@ export function advanceTracker(
   }
 
   const current = state.expected[state.wordIndex] ?? null;
+  const carriedOver = state.carriedOver;
+  state.carriedOver = [];
   return {
     completed,
     currentLocations: current?.locations ?? [],
@@ -1263,5 +1625,6 @@ export function advanceTracker(
     skipped,
     stumbles,
     heldAt: heldWord(state),
+    carriedOver,
   };
 }

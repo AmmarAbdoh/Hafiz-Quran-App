@@ -94,6 +94,7 @@ import {
 import {
   advanceTracker,
   createPhonemeTracker,
+  expectNextPage,
   giveUpOnHeldWord,
   heldWord,
   holdAt,
@@ -315,6 +316,8 @@ export function RecitationPracticeProvider({
     null,
   );
   const startAtRef = useRef<PracticeRunOptions["startAt"] | null>(null);
+  /** The next page's words without turning to it; see `peekNext`. */
+  const peekNextRef = useRef<PracticeRunOptions["peekNext"] | null>(null);
   /**
    * Pages sent to be scored and not yet answered, oldest first.
    *
@@ -334,6 +337,11 @@ export function RecitationPracticeProvider({
    * opening words as skipped.
    */
   const unitsBetweenPagesRef = useRef<PhonemeEmission[] | null>(null);
+  /**
+   * What the cursor heard of the next page before this one finished, for
+   * the next page's cursor; see `expectNextPage`.
+   */
+  const carriedOverRef = useRef<PhonemeEmission[]>([]);
   /** Set below, once `turnPage` exists; it and `applyPhonemeUnits` call
       each other. */
   const turnPageRef = useRef<(sessionId: number, startAt?: string) => void>(
@@ -493,6 +501,8 @@ export function RecitationPracticeProvider({
     alignerRef.current = createAlignerState();
     misreadRef.current = [];
     continueWithRef.current = null;
+    peekNextRef.current = null;
+    carriedOverRef.current = [];
     pagesAwaitingRef.current = [];
     pagesJudgedRef.current = [];
     unitsBetweenPagesRef.current = null;
@@ -1267,6 +1277,9 @@ export function RecitationPracticeProvider({
        */
       const progress = advanceTracker(tracker, units);
       noteMoments(progress.completed, progress.skipped);
+      if (progress.carriedOver.length > 0) {
+        carriedOverRef.current = progress.carriedOver;
+      }
 
       /* Started off the page? Then go where they are, once it is certain. */
       const opening = openingRef.current;
@@ -1546,6 +1559,34 @@ export function RecitationPracticeProvider({
   );
 
   /**
+   * Show the cursor what the next page opens with, so a reciter who carries
+   * on past a misheard last word is followed onto it; see `expectNextPage`.
+   *
+   * For the cursor standing when it was asked: by the time the words arrive
+   * the page may have turned, and they would be the wrong page's next.
+   * Failing to get them changes nothing - the page turns when its last word
+   * is heard, as it always has.
+   */
+  const lookAhead = useCallback(
+    (sessionId: number) => {
+      const tracker = trackerRef.current;
+      const peekNext = peekNextRef.current;
+      if (!tracker || !peekNext) return;
+      void peekNext()
+        .then((words) =>
+          words && words.length > 0 ? buildPageSpokenWords(words) : [],
+        )
+        .then((spoken) => {
+          if (isCurrentSession(sessionId) && trackerRef.current === tracker) {
+            expectNextPage(tracker, spoken);
+          }
+        })
+        .catch(() => {});
+    },
+    [isCurrentSession],
+  );
+
+  /**
    * Carry the recitation on to the next page.
    *
    * People memorise more than a page at a time, and a run that ended at the
@@ -1630,6 +1671,7 @@ export function RecitationPracticeProvider({
       const { labels, spans } = labelsOf(spoken);
       engine.expect(labels, spans);
       trackerRef.current = createPhonemeTracker(spoken);
+      lookAhead(sessionId);
       cursorHeldRef.current = { wordIndex: 0, since: performance.now() };
       dispatch({
         type: "page-turned",
@@ -1640,8 +1682,13 @@ export function RecitationPracticeProvider({
 
       const heardMeanwhile = unitsBetweenPagesRef.current ?? [];
       unitsBetweenPagesRef.current = null;
+      const carriedOver = carriedOverRef.current;
+      carriedOverRef.current = [];
       if (opening && opening.units.length > 0) {
         applyPhonemeUnits(opening.units, sessionId, true);
+      }
+      if (carriedOver.length > 0) {
+        applyPhonemeUnits(carriedOver, sessionId, true);
       }
       if (heardMeanwhile.length > 0) {
         applyPhonemeUnits(heardMeanwhile, sessionId);
@@ -1650,6 +1697,7 @@ export function RecitationPracticeProvider({
     [
       applyPhonemeUnits,
       isCurrentSession,
+      lookAhead,
       noteEvent,
       recitedPageNow,
       requestVerdict,
@@ -1740,6 +1788,7 @@ export function RecitationPracticeProvider({
       releaseSessionResources();
       setTelemetry(initialRecitationPracticeTelemetry);
       continueWithRef.current = options?.continueWith ?? null;
+      peekNextRef.current = options?.peekNext ?? null;
       startAtRef.current = options?.startAt ?? null;
       startedWithStopOnMistakeRef.current = stopOnMistakeRef.current;
       const sessionId = sessionIdRef.current;
@@ -1855,6 +1904,7 @@ export function RecitationPracticeProvider({
           );
           spokenRef.current = spoken;
           trackerRef.current = createPhonemeTracker(spoken);
+          lookAhead(sessionId);
           /*
            * Listen for an ayah begun off this page; see `openingRef`. The
            * page's own ayat are left out - the cursor follows those - and
@@ -2023,6 +2073,7 @@ export function RecitationPracticeProvider({
       failPractice,
       initModel,
       isCurrentSession,
+      lookAhead,
       releaseSessionResources,
       startMic,
     ],

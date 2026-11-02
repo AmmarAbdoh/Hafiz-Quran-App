@@ -312,26 +312,45 @@ export function QuranReaderPage() {
   const continueRecitationRef = useRef(
     (): Promise<MushafWord[] | null> => Promise.resolve(null),
   );
+  /** The words a recitation reaches on `page`, or null past where it ends. */
+  const recitableWordsOn = async (page: number) => {
+    if (route.layoutMode === "page") {
+      return page > totalPages
+        ? null
+        : recitableWordsOf(await loadPageLayout(page));
+    }
+    const layout = surahLayout.pageLayouts.find(
+      (candidate) => candidate.page === page,
+    );
+    return layout ? recitableWordsOf(layout, practiceOnlySurah) : null;
+  };
   continueRecitationRef.current = async () => {
     const recited = recitedPageRef.current;
     if (!recited) return null;
     const next = recited.current + 1;
-    if (route.layoutMode === "page") {
-      if (next > totalPages) return null;
-      const layout = await loadPageLayout(next);
-      recited.current = next;
-      navigation.changePage(next, { followPractice: true });
-      return recitableWordsOf(layout);
-    }
-    const layout = surahLayout.pageLayouts.find((page) => page.page === next);
-    if (!layout) return null;
+    const words = await recitableWordsOn(next);
+    if (!words) return null;
     recited.current = next;
-    return recitableWordsOf(layout, practiceOnlySurah);
+    if (route.layoutMode === "page") {
+      navigation.changePage(next, { followPractice: true });
+    }
+    return words;
   };
   const continueRecitation = useCallback(
     () => continueRecitationRef.current(),
     [],
   );
+  /** The same page's words, for the cursor to look ahead to; not turned to. */
+  const peekRecitationRef = useRef(
+    (): Promise<MushafWord[] | null> => Promise.resolve(null),
+  );
+  peekRecitationRef.current = () => {
+    const recited = recitedPageRef.current;
+    return recited
+      ? recitableWordsOn(recited.current + 1)
+      : Promise.resolve(null);
+  };
+  const peekRecitation = useCallback(() => peekRecitationRef.current(), []);
 
   /*
    * The page of an ayah the reciter started that is not on this one, turned
@@ -394,10 +413,12 @@ export function QuranReaderPage() {
     };
     await startPractice(words, {
       continueWith: continueRecitation,
+      peekNext: peekRecitation,
       startAt: startRecitationAt,
     });
   }, [
     continueRecitation,
+    peekRecitation,
     startRecitationAt,
     finishPractice,
     practiceActive,
@@ -421,8 +442,17 @@ export function QuranReaderPage() {
       navigation.changePage(recited.first, { followPractice: true });
     }
     recited.current = recited.first;
-    void startPractice(words, { continueWith: continueRecitation });
-  }, [continueRecitation, navigation, route.layoutMode, startPractice]);
+    void startPractice(words, {
+      continueWith: continueRecitation,
+      peekNext: peekRecitation,
+    });
+  }, [
+    continueRecitation,
+    navigation,
+    peekRecitation,
+    route.layoutMode,
+    startPractice,
+  ]);
 
   useEffect(() => {
     if (route.layoutMode !== "page") return;

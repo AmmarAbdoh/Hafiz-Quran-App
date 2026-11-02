@@ -28,15 +28,16 @@ node scripts/tasmee/evaluate.mjs --runner zipformer-app   --fixtures scripts/tas
 Each script below caches its model pass, so only the first run costs ten
 minutes and every question after it is answered in a second:
 
-| script          | what it answers                                                                                    |
-| --------------- | -------------------------------------------------------------------------------------------------- |
-| `sweep.mjs`     | per-word alignment scores, and the threshold curve over them                                       |
-| `rules.mjs`     | whether a different shape of verdict rule does better                                              |
-| `aggregate.mjs` | how a word's many phonemes should become one score                                                 |
-| `cursor.mjs`    | whether the **live cursor** keeps up: words lit, stalls, spurious skips                            |
-| `skips.mjs`     | what the cursor's report is worth to the verdict, and how strictly to believe it                   |
-| `stumbles.mjs`  | what the cursor's stumble is worth: how often it fires on a clean run, and what listing it catches |
-| `dropped.mjs`   | which sounds the model does not emit, per expected unit and per word-opening unit                  |
+| script              | what it answers                                                                                    |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| `sweep.mjs`         | per-word alignment scores, and the threshold curve over them                                       |
+| `rules.mjs`         | whether a different shape of verdict rule does better                                              |
+| `aggregate.mjs`     | how a word's many phonemes should become one score                                                 |
+| `cursor.mjs`        | whether the **live cursor** keeps up: words lit, stalls, spurious skips                            |
+| `cursor-timing.mjs` | how far behind the reciter the cursor runs over a whole recitation, page by page, against timings  |
+| `skips.mjs`         | what the cursor's report is worth to the verdict, and how strictly to believe it                   |
+| `stumbles.mjs`      | what the cursor's stumble is worth: how often it fires on a clean run, and what listing it catches |
+| `dropped.mjs`       | which sounds the model does not emit, per expected unit and per word-opening unit                  |
 
 ## Three fixture sets, and what each is for
 
@@ -72,16 +73,17 @@ Every mistake in the sets above was made by cutting audio. These were judged
 by a person, so they are the check on whether a red mark is right for
 someone ordinary. All are test-only and gitignored; each builder takes
 `--raw <the downloaded dataset>` and says in its header where that comes from
-and how to cite it. Two need the download unpacked first, by the Python
-script beside them: `extract-retasy.py` (pyarrow) and `extract-ikhlas.py`
+and how to cite it. Three need the download unpacked first, by the Python script beside them:
+`extract-retasy.py` and `extract-qud.py` (pyarrow) and `extract-ikhlas.py`
 (openpyxl).
 
-| set                 | clips | judged by                  | what only it can show                                   |
-| ------------------- | ----- | -------------------------- | ------------------------------------------------------- |
-| `fixtures-retasy`   | 781   | crowd annotators, per clip | non-Arabic speakers; verdict agreement, not which word  |
-| `fixtures-ikhlas`   | 1,494 | five Qur'an experts        | 384 ordinary people whose words are right: false marks  |
-| `fixtures-sobolev`  | 451   | a reviewer, per word       | whether the mark lands on the word a person named       |
-| `fixtures-feedback` | any   | the reciter, in the app    | the marks the app really showed, answered by the reader |
+| set                 | clips   | judged by                  | what only it can show                                   |
+| ------------------- | ------- | -------------------------- | ------------------------------------------------------- |
+| `fixtures-retasy`   | 781     | crowd annotators, per clip | non-Arabic speakers; verdict agreement, not which word  |
+| `fixtures-ikhlas`   | 1,494   | five Qur'an experts        | 384 ordinary people whose words are right: false marks  |
+| `fixtures-sobolev`  | 451     | a reviewer, per word       | whether the mark lands on the word a person named       |
+| `fixtures-feedback` | any     | the reciter, in the app    | the marks the app really showed, answered by the reader |
+| `fixtures-qud`      | 16 (6h) | reviewed word timings      | whether the cursor keeps up over a whole recitation     |
 
 `fixtures-feedback` comes from the app itself: Settings → Practice
 recordings exports a run with the reader's "my mistake" / "I said it right"
@@ -92,6 +94,19 @@ counted as a correct one. A run that stopped short is a `mistake`
 (kind `reader-stopped-short`), as the bench's runner calls it. The builder
 fetches each ayah's mushaf words from quran.com, as the app does, so that it
 can number the answered words the way the bench does.
+
+`cursor-timing.mjs` follows each `fixtures-qud` recording page by page, as
+the app does: a fresh cursor on each mushaf page, told the next page's
+opening, and the next page once it finishes. Given a whole surah at once,
+the cursor found places for a run of sounds to fit that a page does not
+have, and overstated the jumps tenfold. Stumbles while nothing of the Quran
+is being said - the takbir, the previous track's tail - are counted apart
+as `aside`, and the three prayer recordings are totalled apart: each rak'ah
+ends partway down a page and begins again with Al-Faatihah, which the app
+does not follow mid-run. On 2026-11-02 the thirteen recitations came to
+96.8% of words lit, 0.3s after the word at the median and 0.8s at the 90th
+percentile, with 1.65 false stumbles a minute; hadr and live reverberant
+recordings are still where it struggles (75-85% lit).
 
 `cursor.mjs`, `skips.mjs` and `stumbles.mjs` exist because everything else
 here measures the verdict, and the cursor — the part a reciter watches — went

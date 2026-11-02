@@ -825,6 +825,76 @@ describe("a streaming recitation", () => {
       expect(practice.current.completed).toBe(true);
       expect(engine.expect).not.toHaveBeenCalled();
     });
+
+    /*
+     * Measured on a live recitation of Faatir: the last word of a page was
+     * misheard, nothing the reciter said next fitted the page, and the
+     * cursor waited at its foot for two minutes while they recited on.
+     */
+    describe("a last word misheard", () => {
+      const OPENING = [
+        {
+          locations: ["1:2:1"],
+          units: ["ءَ", "ل", "حَ", "م", "دُ"],
+          ids: [19, 20, 21, 22, 23],
+        },
+        {
+          locations: ["1:2:2"],
+          units: ["لِ", "للَ", "اا", "هِ"],
+          ids: [24, 25, 26, 27],
+        },
+      ];
+      /* The first two sounds of 1:1:2, then the next page's opening. */
+      const reciteOnPastIt = (callbacks: () => ZipformerCallbacks) =>
+        act(() =>
+          callbacks().onUnits(
+            say(["بِ", "س", "مِ", "لَ", "ءَ", "ل", "حَ", "م", "دُ", "لِ"]),
+          ),
+        );
+
+      it("follows the reciter onto the next page", async () => {
+        /* This page, the next one looked ahead to, then turned to. */
+        practiceMocks.buildSpokenWords
+          .mockResolvedValueOnce(SPOKEN)
+          .mockResolvedValueOnce(OPENING)
+          .mockResolvedValueOnce(OPENING);
+        const peekNext = vi
+          .fn()
+          .mockResolvedValueOnce(NEXT_PAGE)
+          .mockResolvedValue(null);
+        const continueWith = vi.fn().mockResolvedValue(NEXT_PAGE);
+        const { practice, engine, callbacks } = await startRun(SPOKEN, {
+          continueWith,
+          peekNext,
+        });
+        await settle();
+
+        reciteOnPastIt(callbacks);
+        await settle();
+
+        expect(continueWith).toHaveBeenCalledOnce();
+        expect(engine.score).toHaveBeenCalledWith(
+          { from: 0, to: 2 },
+          { continuing: true },
+        );
+        /* What was heard of it is not lost in the turn. */
+        expect(practice.current.currentWordLocation).toBe("1:2:2");
+        expect(practice.current.progressIndex).toBe(1);
+      });
+
+      it("waits at the foot of the page without a look ahead", async () => {
+        const continueWith = vi.fn().mockResolvedValue(NEXT_PAGE);
+        const { practice, callbacks } = await startRun(SPOKEN, {
+          continueWith,
+        });
+
+        reciteOnPastIt(callbacks);
+        await settle();
+
+        expect(continueWith).not.toHaveBeenCalled();
+        expect(practice.current.currentWordLocation).toBe("1:1:2");
+      });
+    });
   });
 
   /*

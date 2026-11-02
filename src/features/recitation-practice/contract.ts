@@ -242,6 +242,14 @@ export interface PracticeRunOptions {
    */
   continueWith?: () => Promise<MushafWord[] | null>;
   /**
+   * The words `continueWith` would give next, without turning to them; null
+   * when there is no next page. Asked as each page begins, so the cursor
+   * can follow a reciter onto the next page when the last word of this one
+   * was misheard - which otherwise leaves it waiting at the foot of the page
+   * for the rest of the run.
+   */
+  peekNext?: () => Promise<MushafWord[] | null>;
+  /**
    * The words of the page an ayah is on, for a reciter who starts an ayah
    * that is not on the page on screen; null to stay where they are. Asked
    * at most once, before anything on the page has been recited, and whoever

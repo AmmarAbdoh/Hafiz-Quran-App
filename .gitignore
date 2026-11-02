@@ -90,6 +90,10 @@ scripts/tasmee/fixtures-sobolev/
 # privately, never committed: `build-feedback-fixtures.mjs`.
 scripts/tasmee/fixtures-feedback/
 
+# Whole recitations with reviewed word timings, from the Quran Recitation
+# Alignment Benchmark (CC BY 4.0): `build-qud-fixtures.mjs`.
+scripts/tasmee/fixtures-qud/
+
 # Gated model weights, fetched locally and never committed
 .models/
 
