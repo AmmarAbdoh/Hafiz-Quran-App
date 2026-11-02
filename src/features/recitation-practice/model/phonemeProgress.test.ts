@@ -1522,7 +1522,7 @@ describe("a reciter carried on to the next page", () => {
       "وَ",
       "للَ",
       "ذِ",
-      "ۦ",
+      "ۦۦ",
       "ءَ",
       "و",
     ]);
@@ -1543,16 +1543,84 @@ describe("a reciter carried on to the next page", () => {
     expect(progress.currentLocations).toEqual(["35:30:2"]);
   });
 
+  it("hands on what it heard as it was heard, and the rest of the batch", () => {
+    const tracker = createPhonemeTracker(PAGE);
+    expectNextPage(tracker, NEXT);
+    advanceTracker(tracker, say([...PAGE[0]!.units, ...PAGE[1]!.units]));
+    const heard = say([...OPENING, "حَ", "ي", "نَ"]);
+    /* Too doubtful for the stray run, and still something the next page
+       may want. */
+    heard.splice(3, 0, { id: 99, symbol: "ٮ", confidence: 0.3, seconds: 9 });
+
+    const progress = advanceTracker(tracker, heard);
+
+    expect(progress.finished).toBe(true);
+    expect(progress.carriedOver).toEqual(heard);
+    const next = advanceTracker(
+      createPhonemeTracker(NEXT),
+      progress.carriedOver,
+    );
+    expect(next.completed).toEqual([{ locations: ["35:31:1"] }]);
+    expect(next.stumbles).toEqual([]);
+  });
+
+  it("hands on the sounds after a last word heard to the end", () => {
+    const tracker = createPhonemeTracker(PAGE);
+    advanceTracker(tracker, say([...PAGE[0]!.units, ...PAGE[1]!.units]));
+
+    const progress = advanceTracker(
+      tracker,
+      say([...PAGE[2]!.units, "وَ", "للَ"]),
+    );
+
+    expect(progress.finished).toBe(true);
+    expect(progress.carriedOver.map((unit) => unit.symbol)).toEqual([
+      "وَ",
+      "للَ",
+    ]);
+  });
+
   /* Short of the page's last ayah, the next page's opening is a reciter
      who lost their place, and the resync and the stumble are for that. */
-  it("turns only from the page's last ayah", () => {
-    const tracker = createPhonemeTracker(PAGE);
+  it("turns only once the reciter has reached the page's last ayah", () => {
+    const tracker = createPhonemeTracker([
+      { locations: ["35:29:14"], units: ["تِ", "جَاا", "رَ", "تَ"] },
+      ...PAGE,
+    ]);
+    expectNextPage(tracker, NEXT);
+    advanceTracker(tracker, say(["تِ", "جَاا", "رَ", "تَ"]));
+
+    const progress = advanceTracker(tracker, say(OPENING));
+
+    expect(progress.finished).toBe(false);
+    expect(progress.carriedOver).toEqual([]);
+  });
+
+  /* Opening with the next page is starting somewhere else, which the
+     search for an ayah begun off the page answers. */
+  it("never turns a page nothing was recited on", () => {
+    const tracker = createPhonemeTracker(PAGE.slice(1));
     expectNextPage(tracker, NEXT);
 
     const progress = advanceTracker(tracker, say(OPENING));
 
     expect(progress.finished).toBe(false);
     expect(progress.carriedOver).toEqual([]);
+  });
+
+  it("turns even when three of the sounds fit a few words back", () => {
+    const tracker = createPhonemeTracker([
+      { locations: ["35:30:1"], units: ["لِ", "ۦۦ", "ءَ", "و", "م"] },
+      { locations: ["35:30:2"], units: ["غَ", "فُ", "ر"] },
+      { locations: ["35:30:3"], units: ["شَ", "كُ", "ۥۥۥۥ", "ر"] },
+    ]);
+    expectNextPage(tracker, NEXT);
+    advanceTracker(tracker, say(["لِ", "ۦۦ", "ءَ", "و", "م", "غَ", "فُ", "ر"]));
+
+    const progress = advanceTracker(tracker, say(OPENING));
+
+    expect(progress.finished).toBe(true);
+    expect(progress.skipped).toEqual(["35:30:3"]);
   });
 
   it("does not carry a held reciter past the word they are stopped at", () => {
@@ -1565,5 +1633,35 @@ describe("a reciter carried on to the next page", () => {
 
     expect(progress.finished).toBe(false);
     expect(progress.heldAt).toEqual(["35:30:2"]);
+  });
+});
+
+describe("a closing vowel the recogniser did not hear", () => {
+  const WORDS: ExpectedWord[] = [
+    { locations: ["74:20:2"], units: ["قُ", "تِ", "لَ"] },
+    { locations: ["74:20:3"], units: ["لَ", "كَ", "م"] },
+    { locations: ["74:20:4"], units: ["قَ", "دْ"] },
+  ];
+
+  /* The bare ل is what came; the next word's لَ is still to arrive, and
+     taking the one for both left it with nowhere to go. */
+  it("waits for the next word's opening in its own right", () => {
+    const tracker = createPhonemeTracker(WORDS);
+
+    const progress = advanceTracker(
+      tracker,
+      say(["قُ", "تِ", "ل", "لَ", "طَ", "ظِ", "صُ", "ضَ", "غِ"]),
+    );
+
+    expect(progress.completed).toEqual([{ locations: ["74:20:2"] }]);
+    expect(progress.stumbles).toEqual([]);
+  });
+});
+
+describe("catching up, configured", () => {
+  it("refuses a gap that costs nothing", () => {
+    expect(() =>
+      createPhonemeTracker(FATIHAH_2, { catchUpGapCost: 0 }),
+    ).toThrow(RangeError);
   });
 });

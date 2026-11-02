@@ -100,6 +100,7 @@ export function QuranReaderPage() {
     error,
     errorRetryable,
     loadPageLayout,
+    preloadPageLayout,
     loadSurahLayouts,
     retryCoreData,
     clearError,
@@ -312,12 +313,13 @@ export function QuranReaderPage() {
   const continueRecitationRef = useRef(
     (): Promise<MushafWord[] | null> => Promise.resolve(null),
   );
-  /** The words a recitation reaches on `page`, or null past where it ends. */
-  const recitableWordsOn = async (page: number) => {
+  /**
+   * The words a recitation reaches on `page`, or null past where it ends;
+   * loaded by `load`, which is quiet for a page not on screen yet.
+   */
+  const recitableWordsOn = async (page: number, load = loadPageLayout) => {
     if (route.layoutMode === "page") {
-      return page > totalPages
-        ? null
-        : recitableWordsOf(await loadPageLayout(page));
+      return page > totalPages ? null : recitableWordsOf(await load(page));
     }
     const layout = surahLayout.pageLayouts.find(
       (candidate) => candidate.page === page,
@@ -340,14 +342,18 @@ export function QuranReaderPage() {
     () => continueRecitationRef.current(),
     [],
   );
-  /** The same page's words, for the cursor to look ahead to; not turned to. */
+  /**
+   * The next page's words, for the cursor to look ahead to; not turned to,
+   * and fetched without the reader's loading and error screens, since the
+   * page being recited is the one on screen.
+   */
   const peekRecitationRef = useRef(
     (): Promise<MushafWord[] | null> => Promise.resolve(null),
   );
   peekRecitationRef.current = () => {
     const recited = recitedPageRef.current;
     return recited
-      ? recitableWordsOn(recited.current + 1)
+      ? recitableWordsOn(recited.current + 1, preloadPageLayout)
       : Promise.resolve(null);
   };
   const peekRecitation = useCallback(() => peekRecitationRef.current(), []);

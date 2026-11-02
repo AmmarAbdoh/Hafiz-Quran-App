@@ -21,9 +21,12 @@ raw, out = sys.argv[1], sys.argv[2]
 os.makedirs(out, exist_ok=True)
 for name in sorted(glob.glob(os.path.join(raw, "v1", "*.parquet"))):
     for record in pq.read_table(name).to_pylist():
-        audio = record.pop("audio") or {}
+        audio = (record.pop("audio") or {}).get("bytes")
+        if not audio:
+            print(record["id"], "has no audio, skipped", file=sys.stderr)
+            continue
         with open(os.path.join(out, f"{record['id']}.mp3"), "wb") as handle:
-            handle.write(audio["bytes"])
+            handle.write(audio)
         with open(os.path.join(out, f"{record['id']}.json"), "w", encoding="utf-8") as handle:
             json.dump(record, handle, ensure_ascii=False, default=str)
         print(record["id"], record["duration_s"], "s")

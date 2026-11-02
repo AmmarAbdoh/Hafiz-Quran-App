@@ -1646,6 +1646,7 @@ export function RecitationPracticeProvider({
       if (spoken.length === 0 && startAt) {
         /* Could not go there: carry on with the page on screen. */
         trackerRef.current = createPhonemeTracker(spokenRef.current);
+        lookAhead(sessionId);
         const heardMeanwhile = unitsBetweenPagesRef.current ?? [];
         unitsBetweenPagesRef.current = null;
         applyPhonemeUnits(heardMeanwhile, sessionId);

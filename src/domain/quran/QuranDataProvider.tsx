@@ -25,10 +25,20 @@ export interface QuranDataContextValue {
   error: string | null;
   errorRetryable: boolean;
   loadPageLayout: (page: number) => Promise<MushafPageLayout>;
+  /**
+   * A page's layout fetched in the background, for a page that is not on
+   * screen yet: no skeleton while it loads and no error screen if it fails,
+   * which `loadPageLayout` shows for the page being read. The caller deals
+   * with failure; a later `loadPageLayout` of the page finds it cached.
+   */
+  preloadPageLayout: (page: number) => Promise<MushafPageLayout>;
   loadSurahLayouts: (surah: number) => Promise<MushafPageLayout[]>;
   retryCoreData: () => void;
   clearError: () => void;
 }
+
+const preloadPageLayout = (page: number) =>
+  quranRepository.loadPageLayout(page);
 
 const QuranDataContext = createContext<QuranDataContextValue | null>(null);
 
@@ -194,6 +204,7 @@ export function QuranDataProvider({ children }: { children: ReactNode }) {
       error,
       errorRetryable,
       loadPageLayout,
+      preloadPageLayout,
       loadSurahLayouts,
       retryCoreData,
       clearError,

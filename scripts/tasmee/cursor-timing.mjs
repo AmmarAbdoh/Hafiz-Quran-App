@@ -228,8 +228,8 @@ async function main() {
       if (reciting(posted)) stumbles += progress.stumbles.length;
       else aside += progress.stumbles.length;
       if (!progress.finished) return;
-      /* What the app does too: the rest of this batch is not replayed, but
-         what the cursor heard of the next page is. */
+      /* What the app does too: everything heard after the page finished,
+         the rest of this batch included, goes on to the next page. */
       if (onPage === passages.length - 1) {
         finished = true;
         return;
