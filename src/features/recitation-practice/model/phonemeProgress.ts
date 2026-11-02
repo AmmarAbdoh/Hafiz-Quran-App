@@ -319,16 +319,18 @@ interface TrackerState {
   /**
    * What each of `stray` was heard in: its emission, then any too doubtful
    * to count that came before the next, so the run can be handed to the
-   * next page as the recogniser sent it. Written only with `stray`, by
-   * `addStray`, `clearStray` and `keepStrayTail`.
+   * next page as the recogniser sent it. Written only by `addStray`,
+   * `addDoubtful`, `clearStray` and `keepStrayTail`, which keep it in step.
    */
   strayEmissions: PhonemeEmission[][];
-  /**
-   * The current word's opening was taken from the last word's closing
-   * sound, as a doubling across the boundary; see where it is set.
-   */
-  openedByDoubling: boolean;
 }
+
+/**
+ * Doubtful emissions kept after each stray sound. Between two confident
+ * sounds a couple is the recogniser hesitating; more is noise, which would
+ * be replayed onto the next page's cursor if the page turned.
+ */
+const DOUBTFUL_KEPT = 2;
 
 /**
  * Build a tracker over the words a reciter is about to say.
@@ -382,7 +384,6 @@ export function createPhonemeTracker(
     twinDetour: null,
     following: [],
     strayEmissions: [],
-    openedByDoubling: false,
   };
 }
 
@@ -453,6 +454,13 @@ function addStray(
 ) {
   state.stray.push(sound);
   state.strayEmissions.push([emission]);
+}
+
+/** A doubtful emission among the stray run's sounds: not one of them, and
+    still part of what was heard. */
+function addDoubtful(state: TrackerState, emission: PhonemeEmission) {
+  const group = state.strayEmissions.at(-1);
+  if (group && group.length <= DOUBTFUL_KEPT) group.push(emission);
 }
 
 function clearStray(state: TrackerState) {
@@ -1071,29 +1079,26 @@ function catchUp(
     ahead.map((step) => step.unit),
     state.catchUpGapCost,
   );
-  let best: { end: number; cost: number } | null = null;
+  const ends: { end: number; cost: number }[] = [];
   for (let end = CATCH_UP_CONFIRM_UNITS; end <= ahead.length; end += 1) {
     const confirms = tail.every(
       (sound, i) => ahead[end - CATCH_UP_CONFIRM_UNITS + i]!.unit === sound,
     );
     if (!confirms) continue;
     const cost = aligned.cost(end - CATCH_UP_CONFIRM_UNITS);
-    if (cost > CATCH_UP_MAX_EDITS) continue;
-    if (!best || cost < best.cost) best = { end, cost };
+    if (cost <= CATCH_UP_MAX_EDITS) ends.push({ end, cost });
   }
-  if (!best) return false;
 
-  const exact = [
-    ...aligned.matched(best.end - CATCH_UP_CONFIRM_UNITS),
-    ...tail.map(() => true),
-  ];
-  return moveOver(
-    state,
-    heardInWords(state, ahead.slice(0, best.end), exact),
-    best.end,
-    completed,
-    skipped,
-  );
+  /* Cheapest first, and the nearest of those; a stable sort keeps both. */
+  for (const { end } of ends.sort((a, b) => a.cost - b.cost)) {
+    const exact = [
+      ...aligned.matched(end - CATCH_UP_CONFIRM_UNITS),
+      ...tail.map(() => true),
+    ];
+    const heardIn = heardInWords(state, ahead.slice(0, end), exact);
+    if (moveOver(state, heardIn, end, completed, skipped)) return true;
+  }
+  return false;
 }
 
 /** How far catching up looks: the sounds heard, and the gaps it allows. */
@@ -1123,7 +1128,11 @@ function heardInWords(
 /**
  * Move the cursor `steps` sounds on after catching up, accounting for every
  * word it moves over: recited when more than half its sounds were heard
- * exactly, passed over otherwise.
+ * exactly, passed over otherwise. False, and nothing moved, when the move
+ * is not allowed; the caller then tries its next way of lining the sounds
+ * up, so the cheapest refused does not hide a dearer one that is fine -
+ * which is how a held reader, whose cheapest match passes the word they
+ * are held at, is still followed through the word itself.
  *
  * Words in between with none of their sounds heard may be moved over, as
  * before `catchUpGapCost`, up to `CATCH_UP_MAX_EDITS` sounds of them in all:
@@ -1206,36 +1215,38 @@ function catchUpAhead(
   }
 
   /* One alignment per start answers for every end after it. */
-  let best: {
+  const windows: {
     start: number;
     length: number;
     cost: number;
     aligned: ReturnType<typeof alignPrefixes>;
-  } | null = null;
+  }[] = [];
   for (let start = 0; start < starts; start += 1) {
     const units = steps.slice(start, start + reach).map((step) => step.unit);
     const aligned = alignPrefixes(stray, units, state.catchUpGapCost);
     for (let length = 1; length <= units.length; length += 1) {
       if (units[length - 1] !== stray.at(-1)) continue;
       const cost = aligned.cost(length);
-      if (cost > CATCH_UP_MAX_EDITS) continue;
-      if (!best || cost < best.cost) best = { start, length, cost, aligned };
+      if (cost <= CATCH_UP_MAX_EDITS) {
+        windows.push({ start, length, cost, aligned });
+      }
     }
   }
-  if (!best) return false;
 
-  const { start, length, aligned } = best;
-  return moveOver(
-    state,
-    heardInWords(
+  /* Cheapest first; see `moveOver` for why not only the cheapest. */
+  for (const { start, length, aligned } of windows.sort(
+    (a, b) => a.cost - b.cost,
+  )) {
+    const heardIn = heardInWords(
       state,
       steps.slice(start, start + length),
       aligned.matched(length),
-    ),
-    start + length,
-    completed,
-    skipped,
-  );
+    );
+    if (moveOver(state, heardIn, start + length, completed, skipped)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -1366,9 +1377,6 @@ export function advanceTracker(
       carriedOver.push(...emissions.slice(at));
       break;
     }
-    const openedByDoubling = state.openedByDoubling;
-    state.openedByDoubling = false;
-
     /* Length is the recogniser's weakest dimension and the page's most
        variable one; only the sound itself is compared. */
     const heard = heardAs(
@@ -1397,29 +1405,27 @@ export function advanceTracker(
        * strand the cursor until a resync and then report the word just
        * finished as one the reciter was carried past.
        *
-       * The sound counted, which is the one the page wanted: the decoder
-       * merges the two even when it heard the first without its closing
-       * vowel. When they did come apart, the opening arriving next is
-       * absorbed below rather than left in the stray run.
+       * Either the sound counted or the one sent: the decoder merges the
+       * two even when it heard the first without its closing vowel, and a
+       * runner-up taken for this word's ending can leave the winner as the
+       * next one's opening.
+       *
+       * When the two did come apart, the opening said again is left to the
+       * stray run like any other sound. Absorbing it was tried: on whole
+       * recitations and every mistake set it changed nothing, and in
+       * randomised runs it swallowed the word's own later sounds wherever
+       * they matched its opening.
        */
       const next = state.expected[state.wordIndex];
       if (
         state.unitIndex === 0 &&
         next !== undefined &&
         next.units.length > 1 &&
-        next.units[0] === heard
+        (next.units[0] === heard ||
+          next.units[0] === phonemeIdentity(emission.symbol))
       ) {
         state.unitIndex = 1;
-        state.openedByDoubling = true;
       }
-      continue;
-    }
-
-    /* The opening the doubling above took as said, said after all. */
-    if (
-      openedByDoubling &&
-      heard === state.expected[state.wordIndex]?.units[0]
-    ) {
       continue;
     }
 
@@ -1521,11 +1527,15 @@ export function advanceTracker(
       clearStray(state);
       closeWord(state, completed);
       /*
-       * Not handed on: as often the word's own ending misheard as the next
-       * page's first sound, and a stray sound there stops the next page
-       * forgiving its opening. Measured on whole recitations, handing it on
-       * made no difference.
+       * Handed on only when it is what the next page opens with. It is as
+       * often this word's own ending misheard, and a stray sound there stops
+       * the next page forgiving its opening; dropping the next page's real
+       * first sound loses a short opening word, which cannot be forgiven.
        */
+      const opening = state.following[0]?.units[0] ?? null;
+      if (opening !== null && heardAs(state, emission, opening) === opening) {
+        carriedOver.push(emission);
+      }
       continue;
     }
 
@@ -1545,8 +1555,7 @@ export function advanceTracker(
       addStray(state, heard, emission);
       if (state.catchUp && catchUp(state, completed, skipped)) continue;
     } else {
-      /* Not one of the run's sounds, and still part of what was heard. */
-      state.strayEmissions.at(-1)?.push(emission);
+      addDoubtful(state, emission);
     }
 
     if (state.stray.length >= RESYNC_AFTER_STRAY_UNITS) {

@@ -1640,10 +1640,17 @@ export function RecitationPracticeProvider({
       const stillTurning = () =>
         isCurrentSession(sessionId) && !completedRef.current;
       let pageWords: MushafWord[] | null = null;
+      let turnReader = () => {};
       let expected: ExpectedPracticeWord[] = [];
       let spoken: ScorableWord[] = [];
       try {
-        pageWords = await (startAt ? startAtPage!(startAt) : continueWith!());
+        if (startAt) {
+          const starting = await startAtPage!(startAt);
+          pageWords = starting?.words ?? null;
+          if (starting) turnReader = starting.turn;
+        } else {
+          pageWords = await continueWith!();
+        }
         if (!stillTurning()) return;
         if (pageWords && pageWords.length > 0) {
           [expected, spoken] = await Promise.all([
@@ -1656,15 +1663,8 @@ export function RecitationPracticeProvider({
       }
       if (!stillTurning()) return;
       if (spoken.length === 0 && startAt) {
-        /*
-         * The reader turned to the ayah's page and its words did not load,
-         * so the page on screen is one the cursor cannot follow.
-         */
-        if (pageWords && pageWords.length > 0) {
-          failPractice("wordDataLoad");
-          return;
-        }
-        /* Could not go there: carry on with the page on screen. */
+        /* Could not go there, and the reader was not turned: carry on with
+           the page on screen. */
         startTracker(spokenRef.current, sessionId);
         const heardMeanwhile = unitsBetweenPagesRef.current ?? [];
         unitsBetweenPagesRef.current = null;
@@ -1675,6 +1675,7 @@ export function RecitationPracticeProvider({
         requestVerdict();
         return;
       }
+      turnReader();
 
       expectedWordsRef.current = expected;
       wordTextRef.current = new Map(
@@ -1715,7 +1716,6 @@ export function RecitationPracticeProvider({
     },
     [
       applyPhonemeUnits,
-      failPractice,
       isCurrentSession,
       noteEvent,
       recitedPageNow,

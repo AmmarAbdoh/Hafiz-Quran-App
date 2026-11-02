@@ -10,6 +10,7 @@ import {
   releaseHold,
   type ExpectedWord,
 } from "./phonemeProgress";
+import { phonemeIdentity } from "./phonemeTokens";
 
 /** Al-Fatihah 1:2, in the units the recogniser actually emits. */
 const FATIHAH_2: ExpectedWord[] = [
@@ -1580,6 +1581,34 @@ describe("a reciter carried on to the next page", () => {
     ]);
   });
 
+  describe("a last word faded at its end", () => {
+    const fadedThen = (next: string) => {
+      const tracker = createPhonemeTracker(PAGE);
+      expectNextPage(tracker, NEXT);
+      advanceTracker(tracker, say([...PAGE[0]!.units, ...PAGE[1]!.units]));
+      return advanceTracker(
+        tracker,
+        say([...PAGE[2]!.units.slice(0, 7), next]),
+      );
+    };
+
+    it("hands on the sound that finished it when it opens the next page", () => {
+      const progress = fadedThen("وَ");
+
+      expect(progress.finished).toBe(true);
+      expect(progress.carriedOver.map((unit) => unit.symbol)).toEqual(["وَ"]);
+    });
+
+    /* As likely its own ending misheard, and a stray sound would stop the
+       next page forgiving its opening. */
+    it("drops it when it does not", () => {
+      const progress = fadedThen("ل");
+
+      expect(progress.finished).toBe(true);
+      expect(progress.carriedOver).toEqual([]);
+    });
+  });
+
   /* Short of the page's last ayah, the next page's opening is a reciter
      who lost their place, and the resync and the stumble are for that. */
   it("turns only once the reciter has reached the page's last ayah", () => {
@@ -1637,11 +1666,6 @@ describe("a reciter carried on to the next page", () => {
 });
 
 describe("a doubling across a word boundary, heard unusually", () => {
-  const WORDS: ExpectedWord[] = [
-    { locations: ["74:20:2"], units: ["قُ", "تِ", "لَ"] },
-    { locations: ["74:20:3"], units: ["لَ", "كَ", "م"] },
-    { locations: ["74:20:4"], units: ["قَ", "دْ"] },
-  ];
   const MIN_AN: ExpectedWord[] = [
     { locations: ["1:1:1"], units: ["وَ", "مِ", "نَ"] },
     { locations: ["1:1:2"], units: ["نَ", "اا"] },
@@ -1682,18 +1706,84 @@ describe("a doubling across a word boundary, heard unusually", () => {
     expect(progress.skipped).toEqual([]);
   });
 
-  /* The bare ل came, then the next word's لَ in its own right: the second
-     is the opening the doubling took as said, not a stray sound. */
-  it("absorbs the next word's opening when it comes apart", () => {
-    const tracker = createPhonemeTracker(WORDS);
+  /* No doubling at all: the runner-up closed this word, and the winner
+     was the next one opening. */
+  it("takes the next word's opening from a winner beaten to this word's end", () => {
+    const heard = say(["كَ", "تَ", "مَ", "ن", "قَ", "دْ", "رُ"]);
+    heard[2] = {
+      ...heard[2]!,
+      confidence: 0.65,
+      alternatives: [{ symbol: "بَ", probability: 0.28 }],
+    };
 
     const progress = advanceTracker(
-      tracker,
-      say(["قُ", "تِ", "ل", "لَ", "طَ", "ظِ", "صُ", "ضَ", "غِ"]),
+      createPhonemeTracker([
+        { locations: ["1:1:1"], units: ["كَ", "تَ", "بَ"] },
+        { locations: ["1:1:2"], units: ["مَ", "ن"] },
+        { locations: ["1:1:3"], units: ["قَ", "دْ", "رُ"] },
+      ]),
+      heard,
     );
 
-    expect(progress.completed).toEqual([{ locations: ["74:20:2"] }]);
-    expect(progress.stumbles).toEqual([]);
+    expect(progress.completed).toHaveLength(3);
+    expect(progress.skipped).toEqual([]);
+  });
+
+  it("takes a closing vowel's bare letter as the next word's bare opening", () => {
+    const progress = advanceTracker(
+      createPhonemeTracker([
+        { locations: ["1:1:1"], units: ["قُ", "تِ", "لَ"] },
+        { locations: ["1:1:2"], units: ["ل", "خَ"] },
+        { locations: ["1:1:3"], units: ["قَ", "دْ", "رُ"] },
+      ]),
+      say(["قُ", "تِ", "ل", "خَ", "قَ", "دْ", "رُ"]),
+    );
+
+    expect(progress.completed).toHaveLength(3);
+    expect(progress.skipped).toEqual([]);
+  });
+});
+
+/*
+ * Found by randomised comparison: three sounds, so nearly every way of
+ * lining what was heard up against the page fits somewhere. The cheapest
+ * moved over a word with nothing of it heard, which is refused; trying
+ * only that one left the cursor two words short of the end for good.
+ */
+describe("catching up when the cheapest way is refused", () => {
+  const WORDS: ExpectedWord[] = [
+    ["نَ", "نَ", "بَ", "تَ", "تَ"],
+    ["تَ", "بَ"],
+    ["بَ", "تَ", "تَ", "تَ"],
+    ["نَ", "تَ", "نَ", "نَ"],
+    ["تَ", "تَ", "بَ"],
+    ["بَ", "نَ", "بَ", "بَ", "تَ"],
+    ["تَ"],
+    ["بَ", "بَ", "بَ", "تَ"],
+    ["بَ", "تَ", "بَ", "نَ"],
+    ["بَ", "بَ", "نَ"],
+    ["تَ", "بَ"],
+    ["نَ", "تَ", "تَ", "نَ", "نَ"],
+    ["بَ", "بَ", "تَ"],
+    ["نَ", "بَ", "نَ", "بَ"],
+  ].map((units, w) => ({
+    locations: [`1:${1 + Math.floor(w / 5)}:${(w % 5) + 1}`],
+    units,
+  }));
+  const HEARD = [
+    "نَ نَ بَ تَ تَ تَ بَ نَ تَ نَ تَ تَ بَ بَ نَ بَ بَ تَ بَ بَ بَ تَ",
+    "بَ تَ بَ نَ بَ تَ بَ نَ تَ نَ تَ تَ نَ نَ بَ بَ تَ نَ بَ نَ بَ",
+  ];
+
+  it("tries the next cheapest and follows the reciter to the end", () => {
+    const tracker = createPhonemeTracker(WORDS);
+    const heard = HEARD.join(" ").split(" ");
+    let progress = advanceTracker(tracker, []);
+    for (let at = 0; at < heard.length; at += 3) {
+      progress = advanceTracker(tracker, say(heard.slice(at, at + 3)));
+    }
+
+    expect(progress.finished).toBe(true);
   });
 });
 
@@ -1702,5 +1792,91 @@ describe("catching up, configured", () => {
     expect(() =>
       createPhonemeTracker(FATIHAH_2, { catchUpGapCost: 0 }),
     ).toThrow(RangeError);
+  });
+});
+
+/*
+ * The stray run keeps its sounds and the emissions they were heard in as
+ * two arrays, because every reader wants the sounds alone. They stay in
+ * step only while every write goes through the helpers that keep them so;
+ * one that does not would hand the next page the wrong emissions, silently.
+ * So this drives the tracker through rough recitations and checks after
+ * every step.
+ */
+describe("the stray run and what it was heard in", () => {
+  /* A bare letter beside its voweled form, so excused closing vowels and
+     doublings across words both happen. */
+  const SOUNDS = ["بَ", "تَ", "نَ", "مَ", "لَ", "ل"];
+
+  it("stay in step through rough recitations, holds and page turns", () => {
+    let seed = 20261102;
+    const random = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    };
+    const pick = <T>(items: readonly T[]) =>
+      items[Math.floor(random() * items.length)]!;
+    const passage = (): ExpectedWord[] =>
+      Array.from({ length: 4 + Math.floor(random() * 16) }, (_, w) => ({
+        locations: [`1:${1 + Math.floor(w / 5)}:${(w % 5) + 1}`],
+        units: Array.from({ length: 1 + Math.floor(random() * 4) }, () =>
+          pick(SOUNDS),
+        ),
+      }));
+
+    for (let run = 0; run < 2000; run += 1) {
+      const words = passage();
+      const tracker = createPhonemeTracker(words);
+      if (random() < 0.5) expectNextPage(tracker, passage());
+
+      /* The passage as a struggling recogniser hears it. */
+      const heard: PhonemeEmission[] = [];
+      const emit = (symbol: string, confidence: number) =>
+        heard.push({
+          id: heard.length,
+          symbol,
+          confidence,
+          seconds: heard.length * 0.04,
+          ...(random() < 0.2
+            ? { alternatives: [{ symbol: pick(SOUNDS), probability: 0.3 }] }
+            : {}),
+        });
+      for (const word of words) {
+        if (random() < 0.08) continue;
+        for (const unit of word.units) {
+          const roll = random();
+          if (roll < 0.2) continue;
+          emit(roll < 0.3 ? pick(SOUNDS) : unit, 0.95);
+          while (random() < 0.15) emit(pick(SOUNDS), random() * 0.45);
+          if (random() < 0.05) emit(pick(SOUNDS), 0.95);
+        }
+      }
+
+      const inStep = () => {
+        expect(tracker.strayEmissions).toHaveLength(tracker.stray.length);
+        tracker.strayEmissions.forEach((group, i) => {
+          const [own, ...doubtful] = group;
+          expect(phonemeIdentity(own!.symbol)).toBe(tracker.stray[i]);
+          expect(own!.confidence).toBeGreaterThanOrEqual(0.45);
+          expect(doubtful.length).toBeLessThanOrEqual(2);
+          for (const other of doubtful) {
+            expect(other.confidence).toBeLessThan(0.45);
+          }
+        });
+      };
+      for (let at = 0; at < heard.length; ) {
+        const size = 1 + Math.floor(random() * 6);
+        const progress = advanceTracker(tracker, heard.slice(at, at + size));
+        at += size;
+        inStep();
+        const stumble = progress.stumbles[0];
+        if (stumble && random() < 0.5) holdAt(tracker, stumble.wordIndex);
+        else if (progress.heldAt && random() < 0.3) {
+          if (random() < 0.5) releaseHold(tracker);
+          else giveUpOnHeldWord(tracker);
+          inStep();
+        }
+      }
+    }
   });
 });

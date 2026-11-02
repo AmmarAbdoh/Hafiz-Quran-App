@@ -49,6 +49,7 @@ import { useVerseHighlight } from "@/features/quran-reader/hooks/useVerseHighlig
 import {
   PracticeSummary,
   useRecitationPractice,
+  type StartingPage,
 } from "@/features/recitation-practice";
 import { Button } from "@/shared/components/ui/button";
 import { useTheme } from "@/shared/hooks/use-theme";
@@ -364,17 +365,17 @@ export function QuranReaderPage() {
    * shown there, and following it would mean leaving the view they chose.
    */
   const startRecitationAtRef = useRef<
-    (verseKey: string) => Promise<MushafWord[] | null>
+    (verseKey: string) => Promise<StartingPage | null>
   >(() => Promise.resolve(null));
   startRecitationAtRef.current = async (verseKey) => {
     const page = findVersePage(mushafData, verseKey);
     if (!page) return null;
+    const pageView = route.layoutMode === "page";
     let words: MushafWord[];
-    if (route.layoutMode === "page") {
-      /* Quietly: if it fails, the run carries on with the page on screen,
-         which the reader's error screen would hide. */
+    if (pageView) {
+      /* Quietly: until the run turns to it, the page on screen stays, and
+         the reader's error screen would hide it. */
       words = recitableWordsOf(await preloadPageLayout(page));
-      navigation.changePage(page, { followPractice: true });
     } else {
       const surah = Number(verseKey.split(":")[0]);
       const layout = surahLayout.pageLayouts.find(
@@ -383,9 +384,17 @@ export function QuranReaderPage() {
       if (surah !== route.currentSurahNumber || !layout) return null;
       words = recitableWordsOf(layout, practiceOnlySurah);
     }
-    recitedWordsRef.current = words;
-    recitedPageRef.current = { first: page, current: page };
-    return words;
+    const turn = () => {
+      if (pageView) {
+        /* Cached by the preload, so it is on hand for the page's first
+           render rather than a skeleton. */
+        void loadPageLayout(page);
+        navigation.changePage(page, { followPractice: true });
+      }
+      recitedWordsRef.current = words;
+      recitedPageRef.current = { first: page, current: page };
+    };
+    return { words, turn };
   };
   const startRecitationAt = useCallback(
     (verseKey: string) => startRecitationAtRef.current(verseKey),

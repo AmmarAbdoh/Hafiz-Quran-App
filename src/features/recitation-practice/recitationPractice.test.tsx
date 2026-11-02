@@ -917,26 +917,41 @@ describe("a streaming recitation", () => {
     ];
     const OPENING = AYAH_2_2.flatMap((word) => word.units);
 
-    it("moves the run to that ayah's page, with the cursor where they are", async () => {
+    const startingAt = () => ({
+      words: [{}] as MushafWord[],
+      turn: vi.fn(),
+    });
+    /* A run that asks for 2:2's page after hearing its opening. */
+    const startOpening = async (
+      startAt: NonNullable<PracticeRunOptions["startAt"]>,
+    ) => {
       practiceMocks.loadOpenings.mockResolvedValue([
         { verseKey: "2:2", units: OPENING, next: "2:3" },
       ]);
-      const startAt = vi.fn().mockResolvedValue([{}] as MushafWord[]);
-      const { practice, engine, callbacks } = await startRun(SPOKEN, {
-        startAt,
-      });
-      practiceMocks.buildExpectedWords.mockResolvedValueOnce([]);
-      practiceMocks.buildSpokenWords.mockResolvedValueOnce(AYAH_2_2);
+      const run = await startRun(SPOKEN, { startAt });
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
-
+      return run;
+    };
+    const sayOpening = async (callbacks: () => ZipformerCallbacks) => {
       act(() => callbacks().onUnits(say(OPENING.slice(0, 14))));
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
+    };
+
+    it("moves the run to that ayah's page, with the cursor where they are", async () => {
+      const starting = startingAt();
+      const startAt = vi.fn().mockResolvedValue(starting);
+      const { practice, engine, callbacks } = await startOpening(startAt);
+      practiceMocks.buildExpectedWords.mockResolvedValueOnce([]);
+      practiceMocks.buildSpokenWords.mockResolvedValueOnce(AYAH_2_2);
+
+      await sayOpening(callbacks);
 
       expect(startAt).toHaveBeenCalledWith("2:2");
+      expect(starting.turn).toHaveBeenCalledTimes(1);
       expect(engine.expect).toHaveBeenCalled();
       /* The whole of 2:2:1 was said, and the cursor is inside 2:2:2. */
       expect(practice.current.currentWordLocation).toBe("2:2:2");
@@ -944,14 +959,8 @@ describe("a streaming recitation", () => {
     });
 
     it("stays on the page once something on it has been recited", async () => {
-      practiceMocks.loadOpenings.mockResolvedValue([
-        { verseKey: "2:2", units: OPENING, next: "2:3" },
-      ]);
-      const startAt = vi.fn().mockResolvedValue([{}] as MushafWord[]);
-      const { callbacks } = await startRun(SPOKEN, { startAt });
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      });
+      const startAt = vi.fn().mockResolvedValue(startingAt());
+      const { callbacks } = await startOpening(startAt);
 
       act(() => callbacks().onUnits(say(SPOKEN[0]!.units)));
       act(() => callbacks().onUnits(say(OPENING.slice(0, 14))));
@@ -959,51 +968,56 @@ describe("a streaming recitation", () => {
       expect(startAt).not.toHaveBeenCalled();
     });
 
-    /* The reader has turned to 2:2's page; following the old one there
-       would light words that are not on screen. */
-    it("ends the run when that page's words do not load", async () => {
-      practiceMocks.loadOpenings.mockResolvedValue([
-        { verseKey: "2:2", units: OPENING, next: "2:3" },
-      ]);
-      const startAt = vi.fn().mockResolvedValue([{}] as MushafWord[]);
-      const { practice, callbacks } = await startRun(SPOKEN, { startAt });
-      practiceMocks.buildExpectedWords.mockResolvedValueOnce([]);
-      practiceMocks.buildSpokenWords.mockRejectedValueOnce(
-        new Error("offline"),
-      );
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+    /*
+     * Each way of not getting there leaves the reader on the page it shows
+     * and the run following that page. Turning the reader first and then
+     * failing would leave the cursor on a page that is not on screen.
+     */
+    describe("carrying on with the page on screen", () => {
+      const followsThePageOnScreen = (
+        practice: { current: RecitationPracticeValue },
+        callbacks: () => ZipformerCallbacks,
+      ) => {
+        act(() => callbacks().onUnits(say(SPOKEN[0]!.units)));
+        expect(practice.current.error).toBeNull();
+        expect(practice.current.currentWordLocation).toBe("1:1:2");
+      };
+
+      it("when that page's words do not load", async () => {
+        const starting = startingAt();
+        const { practice, callbacks } = await startOpening(
+          vi.fn().mockResolvedValue(starting),
+        );
+        practiceMocks.buildExpectedWords.mockResolvedValueOnce([]);
+        practiceMocks.buildSpokenWords.mockRejectedValueOnce(
+          new Error("offline"),
+        );
+
+        await sayOpening(callbacks);
+
+        expect(starting.turn).not.toHaveBeenCalled();
+        followsThePageOnScreen(practice, callbacks);
       });
 
-      act(() => callbacks().onUnits(say(OPENING.slice(0, 14))));
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+      it("when the page itself does not load", async () => {
+        const { practice, callbacks } = await startOpening(
+          vi.fn().mockRejectedValue(new Error("offline")),
+        );
+
+        await sayOpening(callbacks);
+
+        followsThePageOnScreen(practice, callbacks);
       });
 
-      expect(startAt).toHaveBeenCalledWith("2:2");
-      expect(practice.current.error).toBe("wordDataLoad");
-      expect(practice.current.active).toBe(false);
-    });
+      it("when there is nowhere to go", async () => {
+        const { practice, callbacks } = await startOpening(
+          vi.fn().mockResolvedValue(null),
+        );
 
-    it("carries on with the page on screen when it could not turn", async () => {
-      practiceMocks.loadOpenings.mockResolvedValue([
-        { verseKey: "2:2", units: OPENING, next: "2:3" },
-      ]);
-      const startAt = vi.fn().mockResolvedValue(null);
-      const { practice, callbacks } = await startRun(SPOKEN, { startAt });
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await sayOpening(callbacks);
+
+        followsThePageOnScreen(practice, callbacks);
       });
-
-      act(() => callbacks().onUnits(say(OPENING.slice(0, 14))));
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      });
-      act(() => callbacks().onUnits(say(SPOKEN[0]!.units)));
-
-      expect(startAt).toHaveBeenCalledWith("2:2");
-      expect(practice.current.error).toBeNull();
-      expect(practice.current.currentWordLocation).toBe("1:1:2");
     });
   });
 });

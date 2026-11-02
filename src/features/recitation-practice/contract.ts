@@ -250,12 +250,21 @@ export interface PracticeRunOptions {
    */
   peekNext?: () => Promise<MushafWord[] | null>;
   /**
-   * The words of the page an ayah is on, for a reciter who starts an ayah
-   * that is not on the page on screen; null to stay where they are. Asked
-   * at most once, before anything on the page has been recited, and whoever
-   * supplies it turns the page to match.
+   * The page an ayah is on, for a reciter who starts an ayah that is not on
+   * the page on screen; null to stay where they are. Asked at most once,
+   * before anything on the page has been recited.
    */
-  startAt?: (verseKey: string) => Promise<MushafWord[] | null>;
+  startAt?: (verseKey: string) => Promise<StartingPage | null>;
+}
+
+export interface StartingPage {
+  words: MushafWord[];
+  /**
+   * Turn the reader to this page. Called only once the run can follow it,
+   * so a page whose words fail to load leaves the reader where it was, and
+   * the run carries on with the page on screen.
+   */
+  turn: () => void;
 }
 
 export interface RecitationPracticeProviderProps {
