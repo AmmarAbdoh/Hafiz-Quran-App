@@ -958,5 +958,52 @@ describe("a streaming recitation", () => {
 
       expect(startAt).not.toHaveBeenCalled();
     });
+
+    /* The reader has turned to 2:2's page; following the old one there
+       would light words that are not on screen. */
+    it("ends the run when that page's words do not load", async () => {
+      practiceMocks.loadOpenings.mockResolvedValue([
+        { verseKey: "2:2", units: OPENING, next: "2:3" },
+      ]);
+      const startAt = vi.fn().mockResolvedValue([{}] as MushafWord[]);
+      const { practice, callbacks } = await startRun(SPOKEN, { startAt });
+      practiceMocks.buildExpectedWords.mockResolvedValueOnce([]);
+      practiceMocks.buildSpokenWords.mockRejectedValueOnce(
+        new Error("offline"),
+      );
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      act(() => callbacks().onUnits(say(OPENING.slice(0, 14))));
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(startAt).toHaveBeenCalledWith("2:2");
+      expect(practice.current.error).toBe("wordDataLoad");
+      expect(practice.current.active).toBe(false);
+    });
+
+    it("carries on with the page on screen when it could not turn", async () => {
+      practiceMocks.loadOpenings.mockResolvedValue([
+        { verseKey: "2:2", units: OPENING, next: "2:3" },
+      ]);
+      const startAt = vi.fn().mockResolvedValue(null);
+      const { practice, callbacks } = await startRun(SPOKEN, { startAt });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      act(() => callbacks().onUnits(say(OPENING.slice(0, 14))));
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      act(() => callbacks().onUnits(say(SPOKEN[0]!.units)));
+
+      expect(startAt).toHaveBeenCalledWith("2:2");
+      expect(practice.current.error).toBeNull();
+      expect(practice.current.currentWordLocation).toBe("1:1:2");
+    });
   });
 });

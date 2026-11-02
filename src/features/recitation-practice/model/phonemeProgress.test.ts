@@ -1636,16 +1636,55 @@ describe("a reciter carried on to the next page", () => {
   });
 });
 
-describe("a closing vowel the recogniser did not hear", () => {
+describe("a doubling across a word boundary, heard unusually", () => {
   const WORDS: ExpectedWord[] = [
     { locations: ["74:20:2"], units: ["قُ", "تِ", "لَ"] },
     { locations: ["74:20:3"], units: ["لَ", "كَ", "م"] },
     { locations: ["74:20:4"], units: ["قَ", "دْ"] },
   ];
+  const MIN_AN: ExpectedWord[] = [
+    { locations: ["1:1:1"], units: ["وَ", "مِ", "نَ"] },
+    { locations: ["1:1:2"], units: ["نَ", "اا"] },
+    { locations: ["1:1:3"], units: ["قَ", "دْ", "رُ"] },
+  ];
 
-  /* The bare ل is what came; the next word's لَ is still to arrive, and
-     taking the one for both left it with nowhere to go. */
-  it("waits for the next word's opening in its own right", () => {
+  /* The decoder merges the two sounds whether or not it heard the first's
+     vowel, so one bare ن is both. */
+  it("takes one sound for both when the first lost its vowel", () => {
+    const progress = advanceTracker(
+      createPhonemeTracker(MIN_AN),
+      say(["وَ", "مِ", "ن", "اا", "قَ", "دْ", "رُ"]),
+    );
+
+    expect(progress.completed.flatMap((word) => word.locations)).toEqual([
+      "1:1:1",
+      "1:1:2",
+      "1:1:3",
+    ]);
+    expect(progress.skipped).toEqual([]);
+  });
+
+  it("takes one sound for both when it came as a runner-up", () => {
+    const heard = say(["وَ", "مِ", "مَ", "اا", "قَ", "دْ", "رُ"]);
+    heard[2] = {
+      ...heard[2]!,
+      confidence: 0.65,
+      alternatives: [{ symbol: "نَ", probability: 0.28 }],
+    };
+
+    const progress = advanceTracker(createPhonemeTracker(MIN_AN), heard);
+
+    expect(progress.completed.flatMap((word) => word.locations)).toEqual([
+      "1:1:1",
+      "1:1:2",
+      "1:1:3",
+    ]);
+    expect(progress.skipped).toEqual([]);
+  });
+
+  /* The bare ل came, then the next word's لَ in its own right: the second
+     is the opening the doubling took as said, not a stray sound. */
+  it("absorbs the next word's opening when it comes apart", () => {
     const tracker = createPhonemeTracker(WORDS);
 
     const progress = advanceTracker(

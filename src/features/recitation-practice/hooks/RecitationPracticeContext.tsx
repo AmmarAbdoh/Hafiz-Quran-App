@@ -1587,6 +1587,18 @@ export function RecitationPracticeProvider({
   );
 
   /**
+   * A cursor over `spoken`, shown what follows it. Every cursor is made
+   * here, so none is left without the next page to follow a reciter onto.
+   */
+  const startTracker = useCallback(
+    (spoken: ScorableWord[], sessionId: number) => {
+      trackerRef.current = createPhonemeTracker(spoken);
+      lookAhead(sessionId);
+    },
+    [lookAhead],
+  );
+
+  /**
    * Carry the recitation on to the next page.
    *
    * People memorise more than a page at a time, and a run that ended at the
@@ -1644,9 +1656,16 @@ export function RecitationPracticeProvider({
       }
       if (!stillTurning()) return;
       if (spoken.length === 0 && startAt) {
+        /*
+         * The reader turned to the ayah's page and its words did not load,
+         * so the page on screen is one the cursor cannot follow.
+         */
+        if (pageWords && pageWords.length > 0) {
+          failPractice("wordDataLoad");
+          return;
+        }
         /* Could not go there: carry on with the page on screen. */
-        trackerRef.current = createPhonemeTracker(spokenRef.current);
-        lookAhead(sessionId);
+        startTracker(spokenRef.current, sessionId);
         const heardMeanwhile = unitsBetweenPagesRef.current ?? [];
         unitsBetweenPagesRef.current = null;
         applyPhonemeUnits(heardMeanwhile, sessionId);
@@ -1671,8 +1690,7 @@ export function RecitationPracticeProvider({
       gaveUpRef.current = new Set();
       const { labels, spans } = labelsOf(spoken);
       engine.expect(labels, spans);
-      trackerRef.current = createPhonemeTracker(spoken);
-      lookAhead(sessionId);
+      startTracker(spoken, sessionId);
       cursorHeldRef.current = { wordIndex: 0, since: performance.now() };
       dispatch({
         type: "page-turned",
@@ -1697,11 +1715,12 @@ export function RecitationPracticeProvider({
     },
     [
       applyPhonemeUnits,
+      failPractice,
       isCurrentSession,
-      lookAhead,
       noteEvent,
       recitedPageNow,
       requestVerdict,
+      startTracker,
     ],
   );
   turnPageRef.current = (sessionId, startAt) =>
@@ -1904,8 +1923,7 @@ export function RecitationPracticeProvider({
             ]),
           );
           spokenRef.current = spoken;
-          trackerRef.current = createPhonemeTracker(spoken);
-          lookAhead(sessionId);
+          startTracker(spoken, sessionId);
           /*
            * Listen for an ayah begun off this page; see `openingRef`. The
            * page's own ayat are left out - the cursor follows those - and
@@ -2074,9 +2092,9 @@ export function RecitationPracticeProvider({
       failPractice,
       initModel,
       isCurrentSession,
-      lookAhead,
       releaseSessionResources,
       startMic,
+      startTracker,
     ],
   );
 

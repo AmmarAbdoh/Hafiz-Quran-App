@@ -371,7 +371,9 @@ export function QuranReaderPage() {
     if (!page) return null;
     let words: MushafWord[];
     if (route.layoutMode === "page") {
-      words = recitableWordsOf(await loadPageLayout(page));
+      /* Quietly: if it fails, the run carries on with the page on screen,
+         which the reader's error screen would hide. */
+      words = recitableWordsOf(await preloadPageLayout(page));
       navigation.changePage(page, { followPractice: true });
     } else {
       const surah = Number(verseKey.split(":")[0]);
