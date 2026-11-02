@@ -31,6 +31,7 @@ import {
   modelFileRequest,
   modelFileResponse,
 } from "@/features/recitation-practice/services/modelFile";
+import { pauseStopsOf } from "@/features/recitation-practice/model/pauseStops";
 import { fetchVerseWordTexts } from "@/features/recitation-practice/services/pageWordText";
 
 interface AyahPhonemes {
@@ -155,9 +156,14 @@ export async function buildPageSpokenWords(
     const onThisPage = new Map(words.map((word) => [word.word, word.location]));
     const pageLocations = new Set(onThisPage.values());
     const datasetWords = ayah.aya_text.trim().split(/\s+/);
-    const positions = mushafPositions(
+    const mushafWords = await fetchVerseWordTexts(verseKey);
+    const positions = mushafPositions(datasetWords, mushafWords);
+    /* Where the mushaf allows a stop, which the sounds alone cannot say. */
+    const stops = pauseStopsOf(
       datasetWords,
-      await fetchVerseWordTexts(verseKey),
+      mushafWords,
+      ayah.aya_phonemes_list,
+      inventory,
     );
     const written = datasetWords.map((text, index) => {
       const position = positions[index]!;
@@ -167,18 +173,18 @@ export async function buildPageSpokenWords(
       };
     });
 
-    for (const sound of buildSpokenWords(
-      written,
-      ayah.aya_phonemes_list,
-      inventory,
-    )) {
+    const sounds = buildSpokenWords(written, ayah.aya_phonemes_list, inventory);
+    for (const [index, sound] of sounds.entries()) {
       // A mushaf word the dataset splits in two can appear twice in a sound.
       const here = [...new Set(sound.locations)].filter((location) =>
         pageLocations.has(location),
       );
       if (here.length === 0) continue;
+      /* One sound per phonological word, unless the ayah could not be split. */
+      const stopsHere = sounds.length === stops.length ? stops[index] : [];
       spoken.push({
         ...sound,
+        ...(stopsHere?.length ? { stops: stopsHere } : {}),
         locations: here,
         ids: sound.units
           .map((unit) => idOf.get(unit))

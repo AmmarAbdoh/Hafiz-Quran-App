@@ -19,6 +19,7 @@
  * recovers every one of them as a clean one-to-one, inventing no merges.
  */
 import { toPhonemeUnits } from "./phonemeTokens.ts";
+import type { PauseStop } from "./pauseStops.ts";
 
 const DIACRITICS = /[ؐ-ًؚ-ٰٟۖ-ۭـ]/g;
 const NON_LETTERS = /[^ء-ي]/g;
@@ -147,6 +148,8 @@ export interface SpokenWord {
   locations: string[];
   /** Its phonemes, in the units the recogniser emits. */
   units: string[];
+  /** Where a reciter may stop in it; see `pauseStops.ts`. */
+  stops?: PauseStop[];
 }
 
 /** A spoken word with its phonemes resolved to recogniser token ids. */

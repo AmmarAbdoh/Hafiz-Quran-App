@@ -103,9 +103,12 @@ have, and overstated the jumps tenfold. Stumbles while nothing of the Quran
 is being said - the takbir, the previous track's tail - are counted apart
 as `aside`, and the three prayer recordings are totalled apart: each rak'ah
 ends partway down a page and begins again with Al-Faatihah, which the app
-does not follow mid-run. On 2026-11-02 the thirteen recitations came to
-96.9% of words lit, 0.3s after the word at the median and 0.8s at the 90th
-percentile, with 1.66 false stumbles a minute; hadr and live reverberant
+does not follow mid-run. Like the app, the cursor is told where the mushaf
+allows a stop (`pauseStops.ts`): the model's phonemes are the ayah recited
+straight through, and a reciter who stops at a pause mark says the word
+before it differently. On 2026-11-02 the thirteen recitations came to
+97.0% of words lit, 0.3s after the word at the median and 0.8s at the 90th
+percentile, with 1.59 false stumbles a minute; hadr and live reverberant
 recordings are still where it struggles (75-85% lit).
 
 `cursor.mjs`, `skips.mjs` and `stumbles.mjs` exist because everything else

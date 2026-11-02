@@ -1362,9 +1362,10 @@ export function RecitationPracticeProvider({
           ...reading,
           heard: [
             ...reading.heard,
-            ...units.map((unit) => ({
+            ...units.map((unit, index) => ({
               symbol: unit.symbol,
               confidence: unit.confidence,
+              endsWord: progress.movedOnAfter.includes(index),
             })),
           ].slice(-HEARD_PHONEMES_KEPT),
           expected: spokenRef.current[progress.wordIndex]?.units ?? [],

@@ -130,6 +130,8 @@ interface HeardPhoneme {
   symbol: string;
   /** 0 to 1, from the frame that emitted it. */
   confidence: number;
+  /** The cursor moved on to another word after it: the end of a word heard. */
+  endsWord: boolean;
 }
 
 export interface RecitationPracticeTelemetry {

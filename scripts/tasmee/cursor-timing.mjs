@@ -34,7 +34,7 @@ import path from "node:path";
 import { gunzipSync } from "node:zlib";
 import { flag } from "./lib/args.mjs";
 import { readWavAsFloat32 } from "./lib/audio.mjs";
-import { spokenPosition } from "./lib/quranText.mjs";
+import { pauseStopsByVerse, spokenPosition } from "./lib/quranText.mjs";
 import { createZipformer } from "./lib/zipformer.mjs";
 import {
   parseTokenTable,
@@ -148,6 +148,7 @@ async function main() {
   const unitsOf = await emissions(clips);
 
   const pageOf = await versePages();
+  const stopsOf = await pauseStopsByVerse(quran, inventory);
 
   const rows = [];
   for (const clip of clips) {
@@ -173,8 +174,13 @@ async function main() {
         quran[key]?.aya_phonemes_list ?? []
       ).entries()) {
         const units = toPhonemeUnits(word, inventory);
+        const stops = stopsOf.get(key)?.[index] ?? [];
         if (units.length > 0)
-          passages.at(-1).push({ locations: [`${key}:${index + 1}`], units });
+          passages.at(-1).push({
+            locations: [`${key}:${index + 1}`],
+            units,
+            ...(stops.length > 0 ? { stops } : {}),
+          });
       }
     }
 

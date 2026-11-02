@@ -34,6 +34,15 @@ const say = (
 const flat = (words: ExpectedWord[]) => words.flatMap((w) => w.units);
 
 describe("following a recitation that is going well", () => {
+  it("says after which sounds it moved on to the next word", () => {
+    const tracker = createPhonemeTracker(FATIHAH_2);
+
+    const progress = advanceTracker(tracker, say(flat(FATIHAH_2)));
+
+    /* The last sound of each of the four words, 5, 4, 3 and 6 long. */
+    expect(progress.movedOnAfter).toEqual([4, 8, 11, 17]);
+  });
+
   it("marks each word as it is finished and names the next one", () => {
     const tracker = createPhonemeTracker(FATIHAH_2);
 
@@ -1783,6 +1792,102 @@ describe("catching up when the cheapest way is refused", () => {
       progress = advanceTracker(tracker, say(heard.slice(at, at + 3)));
     }
 
+    expect(progress.finished).toBe(true);
+  });
+});
+
+/*
+ * A reciter stopped at 3:7's مُتَشَٰبِهَٰتٌ ۖ, where the mark allows it, and
+ * was held 36 seconds: the page's sounds join it to فَأَمَّا, and the stopped
+ * ت - heard as تِ, its release - was nothing they allowed for.
+ */
+describe("stopping at a pause mark", () => {
+  const STOP = {
+    from: 7,
+    at: 9,
+    letters: ["ت"],
+    alif: false,
+    opening: null,
+    hamza: false,
+  };
+  const words = (stops: boolean): ExpectedWord[] => [
+    { locations: ["3:7:12"], units: ["وَ", "ءُ", "خَ", "رُ"] },
+    {
+      locations: ["3:7:13", "3:7:14"],
+      units: [
+        ..."مُ تَ شَ اا بِ هَ اا تُ ںںں".split(" "),
+        ..."فَ ءَ ممممَ".split(" "),
+      ],
+      ...(stops ? { stops: [STOP] } : {}),
+    },
+    { locations: ["3:7:15"], units: ["للَ", "ذِ", "ۦۦ", "نَ"] },
+  ];
+  /* What the recogniser heard of it: a stray هَاا, and the stop. */
+  const HEARD = [
+    ..."وَ ءُ خَ رُ مُ تَ شَ اا هَ اا بِ هَ اا تِ".split(" "),
+    ..."فَ ءَ ممممَ للَ ذِ ۦۦ نَ".split(" "),
+  ];
+
+  it("follows the stopped ending and the next word started afresh", () => {
+    const progress = advanceTracker(
+      createPhonemeTracker(words(true)),
+      say(HEARD),
+    );
+
+    expect(progress.stumbles).toEqual([]);
+    expect(progress.skipped).toEqual([]);
+    expect(progress.finished).toBe(true);
+  });
+
+  it("stumbled there before, with only the joined sounds to go on", () => {
+    const progress = advanceTracker(
+      createPhonemeTracker(words(false)),
+      say(HEARD),
+    );
+
+    expect(progress.stumbles.map((stumble) => stumble.locations)).toEqual([
+      ["3:7:13", "3:7:14"],
+    ]);
+  });
+
+  it("still waits for the next word after the stop", () => {
+    const tracker = createPhonemeTracker(words(true));
+
+    const progress = advanceTracker(
+      tracker,
+      say([..."وَ ءُ خَ رُ مُ تَ شَ اا بِ هَ اا ت".split(" "), "للَ", "ذِ"]),
+    );
+
+    expect(progress.currentLocations).toEqual(["3:7:13", "3:7:14"]);
+    expect(progress.completed.flatMap((word) => word.locations)).toEqual([
+      "3:7:12",
+    ]);
+  });
+
+  /* حَنِيفٗاۚ وَمَا: the alif of the stop, then وَ once, not the merged وووَ. */
+  it("takes the merged opening said once", () => {
+    const progress = advanceTracker(
+      createPhonemeTracker([
+        {
+          locations: ["3:67:7", "3:67:8"],
+          units: ["حَ", "نِ", "ۦۦ", "فَ", "وووَ", "مَ", "اا"],
+          stops: [
+            {
+              from: 4,
+              at: 4,
+              letters: [],
+              alif: true,
+              opening: "وَ",
+              hamza: false,
+            },
+          ],
+        },
+        { locations: ["3:67:9"], units: ["كَ", "اا", "نَ"] },
+      ]),
+      say(["حَ", "نِ", "ۦۦ", "فَ", "اا", "وَ", "مَ", "اا", "كَ", "اا", "نَ"]),
+    );
+
+    expect(progress.stumbles).toEqual([]);
     expect(progress.finished).toBe(true);
   });
 });

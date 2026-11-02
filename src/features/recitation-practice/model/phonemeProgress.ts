@@ -26,6 +26,7 @@ import type { PhonemeEmission } from "@/features/recitation-practice/model/ctcGr
 /* Relative and extensioned so Node can load this unchanged: the cursor
    bench in scripts/tasmee follows the same tracker the reader does. */
 import { isDoubledConsonant, phonemeIdentity } from "./phonemeTokens.ts";
+import type { PauseStop } from "./pauseStops.ts";
 
 /** Below this, the recogniser's own doubt, not the reciter's mistake. */
 const CONFIDENCE_FLOOR = 0.45;
@@ -187,6 +188,8 @@ export interface TrackerOptions {
 export interface ExpectedWord {
   locations: string[];
   units: string[];
+  /** Where in it a reciter may stop at a pause mark; see `pauseStops.ts`. */
+  stops?: PauseStop[];
 }
 
 /*
@@ -250,6 +253,12 @@ export interface PhonemeProgress {
    * ahead of anything new.
    */
   carriedOver: PhonemeEmission[];
+  /**
+   * Which of the emissions just fed were followed by the cursor standing on
+   * another word, as indices into them: where one word heard ends and the
+   * next begins, for showing what was heard as words.
+   */
+  movedOnAfter: number[];
 }
 
 /**
@@ -391,11 +400,22 @@ export function createPhonemeTracker(
 function asIdentities(words: readonly ExpectedWord[]): ExpectedWord[] {
   return words.map((word) => {
     const units: string[] = [];
+    /* Where each unit lands once repeats are dropped, for the stops. */
+    const landsAt: number[] = [];
     for (const unit of word.units) {
       const identity = phonemeIdentity(unit);
       if (identity !== units.at(-1)) units.push(identity);
+      landsAt.push(units.length - 1);
     }
-    return { locations: word.locations, units };
+    const reduced = (index: number) => landsAt[index] ?? units.length;
+    const stops = word.stops?.map((stop) => ({
+      ...stop,
+      from: reduced(stop.from),
+      at: reduced(stop.at),
+    }));
+    return stops?.length
+      ? { locations: word.locations, units, stops }
+      : { locations: word.locations, units };
   });
 }
 
@@ -1342,6 +1362,52 @@ function passOver(
   }
 }
 
+/** The release a stopped letter may come out with: `تِ`, `بڇ`. */
+const STOP_RELEASE = /[\u064E\u064F\u0650\u0687]$/u;
+
+/**
+ * Follow a reciter who stopped at a pause mark inside the word the cursor
+ * is on, which the page's sounds, recited straight through, do not allow
+ * for: the stopped ending in place of the sounds only joining makes, the
+ * next word started afresh, its hamzat al-wasl sounded. See `PauseStop`.
+ *
+ * Only inside the stretch between the stopped word's ending and the next
+ * word's first sound, so it can carry the cursor over nothing but sounds
+ * that stopping leaves out.
+ */
+function stoppedAtPause(
+  state: TrackerState,
+  emission: PhonemeEmission,
+  heard: string,
+  completed: CompletedWord[],
+): boolean {
+  const word = state.expected[state.wordIndex];
+  const stop = word?.stops?.find(
+    (candidate) =>
+      state.unitIndex >= candidate.from && state.unitIndex <= candidate.at,
+  );
+  if (!word || !stop) return false;
+  const sent = phonemeIdentity(emission.symbol);
+  const ending = sent.replace(STOP_RELEASE, "");
+
+  if (stop.letters.includes(ending) || (stop.alif && sent === "ا")) {
+    clearStray(state);
+    if (stop.at < word.units.length) state.unitIndex = stop.at;
+    else closeWord(state, completed);
+    return true;
+  }
+  if (stop.at === word.units.length) return false;
+  /* The next word begun, whether or not the ending was heard. */
+  if (heard === word.units[stop.at] || sent === stop.opening) {
+    clearStray(state);
+    const [next, unit] = nextPosition(state, state.wordIndex, stop.at);
+    if (next !== state.wordIndex) closeWord(state, completed);
+    else state.unitIndex = unit;
+    return true;
+  }
+  return stop.hamza && state.unitIndex === stop.at && sent.startsWith("ء");
+}
+
 function closeWord(state: TrackerState, completed: CompletedWord[]) {
   const word = state.expected[state.wordIndex];
   if (!word) return;
@@ -1369,8 +1435,12 @@ export function advanceTracker(
   const stumbles: Stumble[] = [];
   /* Heard after this page finished; see `PhonemeProgress.carriedOver`. */
   const carriedOver: PhonemeEmission[] = [];
+  const movedOnAfter: number[] = [];
+  let standingOn = state.wordIndex;
 
   for (const [at, emission] of emissions.entries()) {
+    if (state.wordIndex !== standingOn) movedOnAfter.push(at - 1);
+    standingOn = state.wordIndex;
     state.furthest = Math.max(state.furthest, state.wordIndex);
     const expectedUnit = unitAt(state, state.wordIndex, state.unitIndex);
     if (expectedUnit === null) {
@@ -1428,6 +1498,10 @@ export function advanceTracker(
       }
       continue;
     }
+
+    /* Stopped at a pause mark. Before forgiveness, which would spend the
+       word's one forgiven sound on an ending that was right. */
+    if (stoppedAtPause(state, emission, heard, completed)) continue;
 
     /*
      * One phoneme of this word, missing, is forgiven.
@@ -1725,6 +1799,7 @@ export function advanceTracker(
       keepStrayTail(state);
     }
   }
+  if (state.wordIndex !== standingOn) movedOnAfter.push(emissions.length - 1);
   state.furthest = Math.max(state.furthest, state.wordIndex);
   const detour = state.twinDetour;
   const repeatEnd = detour ? state.expected[detour.ayahEnd] : undefined;
@@ -1755,5 +1830,6 @@ export function advanceTracker(
     stumbles,
     heldAt: heldWord(state),
     carriedOver,
+    movedOnAfter,
   };
 }

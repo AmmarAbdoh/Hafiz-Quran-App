@@ -43,6 +43,7 @@ import {
   WEAK_WORDS_TOLERATED,
 } from "../../src/features/recitation-practice/model/practiceVerdict.ts";
 import { WORD_SAID_THRESHOLD } from "../../src/features/recitation-practice/model/ctcAlign.ts";
+import { pauseStopsByVerse } from "./lib/quranText.mjs";
 
 const FIXTURES = path.resolve(
   flag("fixtures", "scripts/tasmee/fixtures-learner-mistakes"),
@@ -135,6 +136,7 @@ async function main() {
   const { inventory } = parseTokenTable(
     await readFile(`${MODEL_DIR}/tokens.txt`, "utf8"),
   );
+  const stopsOf = await pauseStopsByVerse(quran, inventory);
   const clipOf = new Map(manifest.clips.map((clip) => [clip.id, clip]));
   const heardOf = new Map(emissions.map((row) => [row.id, row]));
 
@@ -156,11 +158,13 @@ async function main() {
         quran[key]?.aya_phonemes_list ?? []
       ).entries()) {
         const units = toPhonemeUnits(word, inventory);
+        const stops = stopsOf.get(key)?.[index] ?? [];
         if (units.length > 0) {
           expected.push({
             ayah: key,
             locations: [`${key}:${index + 1}`],
             units,
+            ...(stops.length > 0 ? { stops } : {}),
           });
         }
       }

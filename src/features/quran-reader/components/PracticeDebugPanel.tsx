@@ -6,15 +6,19 @@
  * moves whether the audio is usable or clipped into mush, and it says nothing
  * about which phonemes came out.
  *
- * So this shows both sides. The heard phonemes are in the model's own
- * phonetic alphabet, which is deliberately not translated: it is what the
- * recogniser emitted, and prettifying it would hide the thing being
- * diagnosed. Beside them sits what the page expects at the cursor, which is
- * what turns a list of symbols into an answer.
+ * So this shows both sides: what was heard, and beside it what the page
+ * expects at the cursor, which is what turns a list of sounds into an
+ * answer. Both are written as Arabic letters, as the summary writes them,
+ * and what was heard is split into words where the cursor moved on: in the
+ * model's phonetic alphabet, a sound at a time, nobody could read it. The
+ * symbol itself is kept on each sound, with how sure the model was, for
+ * the one thing letters lose - how long a madd was held.
  */
+import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 import {
   PRACTICE_SAMPLE_RATE,
+  phonemesAsLetters,
   useRecitationPracticeTelemetry,
 } from "@/features/recitation-practice";
 import { formatNumber, useLocale } from "@/app/i18n";
@@ -27,15 +31,24 @@ const CLIPPING_CONCERN = 0.001;
 
 function Row({
   label,
+  arabic = false,
   children,
 }: {
   label: string;
+  /** Words to read, so set as text rather than as a code readout. */
+  arabic?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <span className="text-muted-foreground shrink-0">{label}</span>
-      <span className="text-end font-mono text-label break-all">
+      <span
+        className={
+          arabic
+            ? "text-end text-base leading-relaxed"
+            : "text-end font-mono text-label break-all"
+        }
+      >
         {children}
       </span>
     </div>
@@ -64,9 +77,10 @@ export function PracticeDebugPanel() {
         {t("practice.debugHint")}
       </p>
 
-      {/* The phonemes themselves stay LTR-neutral but are Arabic glyphs, so
-          the run is marked RTL to keep the order the model emitted. */}
-      <Row label={t("practice.debugHeard")}>
+      {/* Arabic in either locale, and in the order the model emitted it.
+          Each sound is its own span so a doubtful one can be dimmed; the
+          letters still join across them. */}
+      <Row label={t("practice.debugHeard")} arabic={heard.length > 0}>
         {heard.length === 0 ? (
           <span className="text-muted-foreground">
             {t("practice.debugNothingYet")}
@@ -74,28 +88,30 @@ export function PracticeDebugPanel() {
         ) : (
           <span dir="rtl" lang="ar">
             {heard.map((phoneme, index) => (
-              <span
-                key={`${index}-${phoneme.symbol}`}
-                className={
-                  phoneme.confidence < UNSURE_BELOW
-                    ? "text-muted-foreground"
-                    : undefined
-                }
-                title={`${Math.round(phoneme.confidence * 100)}%`}
-              >
-                {phoneme.symbol}{" "}
-              </span>
+              <Fragment key={`${index}-${phoneme.symbol}`}>
+                <span
+                  className={
+                    phoneme.confidence < UNSURE_BELOW
+                      ? "text-muted-foreground"
+                      : undefined
+                  }
+                  title={`${phoneme.symbol} · ${Math.round(phoneme.confidence * 100)}%`}
+                >
+                  {phonemesAsLetters([phoneme.symbol])}
+                </span>
+                {phoneme.endsWord ? " " : null}
+              </Fragment>
             ))}
           </span>
         )}
       </Row>
 
-      <Row label={t("practice.debugExpected")}>
+      <Row label={t("practice.debugExpected")} arabic={expected.length > 0}>
         {expected.length === 0 ? (
           <span className="text-muted-foreground">—</span>
         ) : (
-          <span dir="rtl" lang="ar">
-            {expected.join(" ")}
+          <span dir="rtl" lang="ar" title={expected.join(" ")}>
+            {phonemesAsLetters(expected)}
           </span>
         )}
       </Row>

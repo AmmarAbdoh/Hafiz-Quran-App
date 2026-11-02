@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { gunzipSync } from "node:zlib";
 import path from "node:path";
 import { groupWrittenWords } from "../../../src/features/recitation-practice/model/wordPhonemes.ts";
+import { pauseStopsOf } from "../../../src/features/recitation-practice/model/pauseStops.ts";
 
 const CORE_PATH = path.resolve("public/data/quran/v1/core.json.gz");
 
@@ -19,6 +20,33 @@ async function loadCore() {
     JSON.parse(gunzipSync(buffer).toString("utf8")),
   );
   return corePromise;
+}
+
+/**
+ * Each ayah's pause stops, per spoken word, as the app gives them to the
+ * cursor: from the model's words and the mushaf's, which carry the marks.
+ */
+export async function pauseStopsByVerse(quran, inventory) {
+  const core = await loadCore();
+  const stops = new Map();
+  for (const verse of core.mushafVerses) {
+    const key = `${verse.sura_no}:${verse.aya_no}`;
+    const ayah = quran[key];
+    if (!ayah) continue;
+    const mushaf = verse.aya_text
+      .split(/\s+/)
+      .filter((word) => /[ء-يٱ]/u.test(word));
+    stops.set(
+      key,
+      pauseStopsOf(
+        ayah.aya_text.trim().split(/\s+/),
+        mushaf,
+        ayah.aya_phonemes_list,
+        inventory,
+      ),
+    );
+  }
+  return stops;
 }
 
 export async function getVerse(surah, ayah) {
