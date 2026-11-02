@@ -49,6 +49,11 @@ export async function pauseStopsByVerse(quran, inventory) {
   return stops;
 }
 
+/** Every ayah, as the app's verse data has them. */
+export async function allVerses() {
+  return (await loadCore()).mushafVerses;
+}
+
 export async function getVerse(surah, ayah) {
   const core = await loadCore();
   const verse = core.mushafVerses.find(

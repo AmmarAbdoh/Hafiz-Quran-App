@@ -323,6 +323,11 @@ interface TrackerState {
    * see `slippedBackIntoTwin`.
    */
   twinDetour: { left: number; heard: string[]; ayahEnd: number } | null;
+  /**
+   * The cursor's last jump forward, from where to where, so starting the
+   * ayah it jumped from again can still undo it; see `backFloor`.
+   */
+  jumpedAhead: { from: number; to: number } | null;
   /** The next page's words, once known; see `expectNextPage`. */
   following: ExpectedWord[];
   /**
@@ -391,6 +396,7 @@ export function createPhonemeTracker(
     catchUpGapCost,
     catchUpAhead: options.catchUpAhead ?? true,
     twinDetour: null,
+    jumpedAhead: null,
     following: [],
     strayEmissions: [],
   };
@@ -615,6 +621,8 @@ function findRun(
   expected: readonly ExpectedWord[],
   stray: readonly string[],
   near: number,
+  /** No run beginning before this word; see `backFloor`. */
+  floor = 0,
 ): RunMatch | null {
   if (stray.length < RESYNC_CONFIRM_UNITS) return null;
 
@@ -627,6 +635,7 @@ function findRun(
   const tail = stray.slice(-RESYNC_CONFIRM_UNITS);
 
   for (const found of occurrences(expected, stray)) {
+    if (found.fromWord < floor) continue;
     if (rank(found.wordIndex) < bestRank) {
       best = found;
       bestRank = rank(found.wordIndex);
@@ -634,6 +643,7 @@ function findRun(
   }
   for (const found of occurrences(expected, tail)) {
     if (Math.abs(found.wordIndex - near) > NEAR_JUMP_WORDS) continue;
+    if (found.fromWord < floor) continue;
     if (rank(found.wordIndex) < bestRank) {
       best = found;
       bestRank = rank(found.wordIndex);
@@ -699,6 +709,8 @@ function findAyahRestart(
   expected: readonly ExpectedWord[],
   stray: readonly string[],
   near: number,
+  /** No ayah opening before this word; see `backFloor`. */
+  floor = 0,
 ): RunMatch | null {
   if (stray.length < AYAH_RESTART_UNITS) return null;
 
@@ -706,7 +718,7 @@ function findAyahRestart(
   let bestEnd = -1;
 
   for (const [start, word] of expected.entries()) {
-    if (!opensAyah(word)) continue;
+    if (start < floor || !opensAyah(word)) continue;
 
     /* The opening, far enough in to be unmistakable, with the position each
        unit sits at so the cursor can resume mid-word. */
@@ -872,6 +884,44 @@ function slippedBackIntoTwin(
 ): boolean {
   if (atWord - toWord <= NEAR_JUMP_WORDS) return false;
   return sharesLeadIn(expected, atWord, toWord);
+}
+
+/**
+ * How far back the cursor may follow a reciter: to the start of the ayah
+ * before the one it is in, and no further.
+ *
+ * Saying words from further back is not going back over the last ayah,
+ * which is how people memorise; it is a slip. On a reciter's 3:14 the cursor
+ * was waiting at لِلنَّاسِ when they said زُيِّنَ لِلَّذِينَ كَفَرُوا, borrowing
+ * from another ayah, and it followed لِلَّذِينَ كَفَرُوا to 3:12, two ayat and
+ * thirty-one words back, as though they had gone back there. Refused, it is
+ * what it was: something else said at لِلنَّاسِ.
+ *
+ * Counted from where the cursor jumped from, while it is still in the ayah
+ * it jumped to: a jump ahead can be wrong, and starting the ayah it left is
+ * how a reciter brings it back - which is what `findAyahRestart` is for.
+ */
+function backFloor(state: TrackerState): number {
+  const jump = state.jumpedAhead;
+  const anchor =
+    jump && state.wordIndex <= lastWordOfAyah(state.expected, jump.to)
+      ? Math.min(state.wordIndex, jump.from)
+      : state.wordIndex;
+  const own = firstWordOfAyah(
+    state.expected,
+    Math.min(anchor, state.expected.length - 1),
+  );
+  return own > 0 ? firstWordOfAyah(state.expected, own - 1) : 0;
+}
+
+/** The index of the first word of the ayah `word` belongs to. */
+function firstWordOfAyah(expected: readonly ExpectedWord[], word: number) {
+  const ayah = (index: number) =>
+    expected[index]?.locations[0]?.split(":").slice(0, 2).join(":");
+  const own = ayah(word);
+  let first = word;
+  while (first > 0 && ayah(first - 1) === own) first -= 1;
+  return first;
 }
 
 /** The index of the last word of the ayah `word` belongs to. */
@@ -1644,14 +1694,16 @@ export function advanceTracker(
        * saying where they are, and the point of it is to work when the rest
        * of this cannot. See `findAyahRestart`.
        */
+      const floor = backFloor(state);
       const restart = findAyahRestart(
         state.expected,
         state.stray,
         state.furthest,
+        floor,
       );
       const run = restart
         ? null
-        : findRun(state.expected, state.stray, state.wordIndex);
+        : findRun(state.expected, state.stray, state.wordIndex, floor);
       const found =
         restart ??
         (run && slippedIntoTwin(state.expected, state.wordIndex, run.fromWord)
@@ -1758,6 +1810,10 @@ export function advanceTracker(
         state.wordIndex = found.wordIndex;
         state.unitIndex = found.unitIndex;
         clearStray(state);
+        state.jumpedAhead =
+          found.wordIndex > leaving
+            ? { from: leaving, to: found.wordIndex }
+            : state.jumpedAhead;
         if (found.wordIndex > leaving) {
           passOver(
             state,

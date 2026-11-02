@@ -157,6 +157,9 @@ async function main() {
       for (const [index, word] of (
         quran[key]?.aya_phonemes_list ?? []
       ).entries()) {
+        /* Only the stretch recited, for a clip cut from inside an ayah. */
+        const range = clip.words;
+        if (range && (index + 1 < range.from || index + 1 > range.to)) continue;
         const units = toPhonemeUnits(word, inventory);
         const stops = stopsOf.get(key)?.[index] ?? [];
         if (units.length > 0) {

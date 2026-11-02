@@ -65,8 +65,15 @@ async function load() {
   });
 }
 
-/** The expected phoneme sequence for a clip, flattened, with word spans. */
-function expectedFor(verseKeys) {
+/**
+ * The expected phoneme sequence for a clip, flattened, with word spans.
+ *
+ * `range`, the clip's `words` when it has them, is the stretch of a one-ayah
+ * clip that was recited, as spoken words counted from 1: a set of sentences
+ * cut from the middle of ayat is judged on the sentence, not on the ayah
+ * around it.
+ */
+function expectedFor(verseKeys, range = null) {
   const labels = [];
   const spans = [];
   /** Each word's units and page locations, for replaying the cursor. */
@@ -75,6 +82,7 @@ function expectedFor(verseKeys) {
     const ayah = quran[key];
     if (!ayah) return null;
     for (const [index, word] of ayah.aya_phonemes_list.entries()) {
+      if (range && (index + 1 < range.from || index + 1 > range.to)) continue;
       const from = labels.length;
       const units = toPhonemeUnits(word, zipformer.inventory);
       for (const unit of units) {
@@ -92,7 +100,7 @@ function expectedFor(verseKeys) {
 
 async function measure(clip, fixtures) {
   const keys = clip.verseKeys ?? [clip.verseKey];
-  const expected = expectedFor(keys);
+  const expected = expectedFor(keys, clip.words ?? null);
   if (!expected) return { id: clip.id, skipped: "no phonemes" };
 
   const audio = await readWavAsFloat32(path.join(fixtures, clip.audio));

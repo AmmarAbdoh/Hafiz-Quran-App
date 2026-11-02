@@ -74,8 +74,8 @@ by a person, so they are the check on whether a red mark is right for
 someone ordinary. All are test-only and gitignored; each builder takes
 `--raw <the downloaded dataset>` and says in its header where that comes from
 and how to cite it. Three need the download unpacked first, by the Python script beside them:
-`extract-retasy.py` and `extract-qud.py` (pyarrow) and `extract-ikhlas.py`
-(openpyxl).
+`extract-retasy.py`, `extract-qud.py` and `extract-iqra-extra.py` (pyarrow)
+and `extract-ikhlas.py` (openpyxl).
 
 | set                 | clips   | judged by                  | what only it can show                                   |
 | ------------------- | ------- | -------------------------- | ------------------------------------------------------- |
@@ -84,6 +84,25 @@ and how to cite it. Three need the download unpacked first, by the Python script
 | `fixtures-sobolev`  | 451     | a reviewer, per word       | whether the mark lands on the word a person named       |
 | `fixtures-feedback` | any     | the reciter, in the app    | the marks the app really showed, answered by the reader |
 | `fixtures-qud`      | 16 (6h) | reviewed word timings      | whether the cursor keeps up over a whole recitation     |
+| `fixtures-iqra`     | 1,302   | annotated phonemes         | one sound wrong in a word: is that word marked          |
+| `fixtures-qlbench`  | 590     | held out of training       | false marks on phone recordings the model never heard   |
+
+`fixtures-iqra` (IqraEval/Iqra_Extra_IS26, gated) plants one mistake in each
+of 97 sentences - ص for س, a vowel changed - and has them read by several
+people; 38 more sentences have none. Its readers read standard Arabic
+rather than recite, with no ghunna or idgham, and only the planted spot was
+checked, so its "correct" clips are not correct recitation and their 27%
+marked says little. What it does measure is the planted word: on 2026-11-02
+a letter swapped was marked 9.9% of the time and a vowel 13.8%, against
+about 5% for any other word of the same readers. The verdict asks whether a
+word was said, and a word with one sound wrong mostly was.
+
+`fixtures-qlbench` (Quran-Lab/quranic-asr-benchmark, gated, NPL-1.2:
+evaluation only, never redistributed) is 590 correct clips Quran-Lab held
+out of training; the learner set's own recordings come from the same
+Tarteel source and may have been heard in training. Its 200 phone
+recordings got a mark on 2.5% of clips on 2026-11-02, studio reciters 1.5%
+and 0.5%.
 
 `fixtures-feedback` comes from the app itself: Settings → Practice
 recordings exports a run with the reader's "my mistake" / "I said it right"

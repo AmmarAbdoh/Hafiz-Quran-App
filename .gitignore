@@ -94,6 +94,15 @@ scripts/tasmee/fixtures-feedback/
 # Alignment Benchmark (CC BY 4.0): `build-qud-fixtures.mjs`.
 scripts/tasmee/fixtures-qud/
 
+# People's voices with planted mispronunciations, from the gated
+# IqraEval/Iqra_Extra_IS26: `build-iqra-fixtures.mjs`.
+scripts/tasmee/fixtures-iqra/
+
+# Correct recitations held out of the model's training, from the gated
+# Quran-Lab/quranic-asr-benchmark (NPL-1.2, evaluation only):
+# `build-qlbench-fixtures.mjs`.
+scripts/tasmee/fixtures-qlbench/
+
 # Gated model weights, fetched locally and never committed
 .models/
 

@@ -1273,7 +1273,9 @@ describe("a reciter who slips into an ayah's twin", () => {
     advanceTracker(tracker, say(flat(PAGE.slice(5, AT_47))));
   };
 
-  it("marks the word left behind when a slip back into the twin comes back", () => {
+  /* Further back than the ayah before 2:47, so not followed: what was said
+     there is reported at once, at the word the reciter was waiting at. */
+  it("reports a slip back into a twin far behind as said in place", () => {
     const tracker = createPhonemeTracker(PAGE);
     reciteUpTo47(tracker);
 
@@ -1285,14 +1287,13 @@ describe("a reciter who slips into an ayah's twin", () => {
     /* ...then 2:47 begun again and said right. */
     const back = advanceTracker(tracker, say(flat(PAGE.slice(AT_47 - 3))));
 
-    expect(slipped.stumbles).toEqual([]);
-    expect(back.stumbles.map((stumble) => stumble.locations)).toEqual([
+    expect(slipped.stumbles.map((stumble) => stumble.locations)).toEqual([
       ["2:47:4"],
     ]);
     expect(back.finished).toBe(true);
   });
 
-  it("says nothing of a reciter who went back and said the earlier ayah through", () => {
+  it("does not follow a reciter back further than the ayah before", () => {
     const tracker = createPhonemeTracker(PAGE);
     reciteUpTo47(tracker);
 
@@ -1301,7 +1302,8 @@ describe("a reciter who slips into an ayah's twin", () => {
       ...say(flat(PAGE.slice(5))),
     ]);
 
-    expect(repeated.stumbles).toEqual([]);
+    expect(repeated.stumbles.length).toBeGreaterThan(0);
+    expect(repeated.stumbles[0]?.locations).toEqual(["2:47:4"]);
   });
 
   it("still follows a reciter who arrives at the far ayah by its own words", () => {
@@ -1886,6 +1888,55 @@ describe("stopping at a pause mark", () => {
       ]),
       say(["حَ", "نِ", "ۦۦ", "فَ", "اا", "وَ", "مَ", "اا", "كَ", "اا", "نَ"]),
     );
+
+    expect(progress.stumbles).toEqual([]);
+    expect(progress.finished).toBe(true);
+  });
+});
+
+/*
+ * A reciter on 3:14 said زُيِّنَ لِلَّذِينَ كَفَرُوا for زُيِّنَ لِلنَّاسِ, and the
+ * cursor followed لِلَّذِينَ كَفَرُوا to 3:12's قُل لِّلَّذِينَ كَفَرُوا, two ayat
+ * back. Only the ayah it is in and the one before are places to go back to.
+ */
+describe("going back only as far as the ayah before", () => {
+  const AYAT: ExpectedWord[] = [
+    {
+      locations: ["3:12:1", "3:12:2"],
+      units: ["قُ", "للِ", "للَ", "ذِ", "ۦۦ", "نَ"],
+    },
+    { locations: ["3:12:3"], units: ["كَ", "فَ", "رُ", "ۥۥ"] },
+    { locations: ["3:12:4"], units: ["سَ", "تُ", "غ", "لَ", "بُ", "ۥۥ", "نَ"] },
+    { locations: ["3:13:1"], units: ["قَ", "د", "كَ", "اا", "نَ"] },
+    {
+      locations: ["3:13:2"],
+      units: ["لَ", "كُ", "م", "ءَ", "اا", "يَ", "تُ", "ن"],
+    },
+    { locations: ["3:14:1"], units: ["زُ", "ييِ", "نَ"] },
+    { locations: ["3:14:2"], units: ["لِ", "ننننَ", "اا", "سِ"] },
+    { locations: ["3:14:3"], units: ["حُ", "ببُ"] },
+  ];
+
+  it("hears words from two ayat back as something else said here", () => {
+    const tracker = createPhonemeTracker(AYAT);
+    advanceTracker(tracker, say(flat(AYAT.slice(0, 6))));
+
+    const progress = advanceTracker(
+      tracker,
+      say(["لِ", "للَ", "ذِ", "ۦۦ", "نَ", "كَ", "فَ", "رُ", "ۥۥ"]),
+    );
+
+    expect(progress.currentLocations).toEqual(["3:14:2"]);
+    expect(progress.stumbles.map((stumble) => stumble.locations)).toEqual([
+      ["3:14:2"],
+    ]);
+  });
+
+  it("still follows a reciter back over the ayah before", () => {
+    const tracker = createPhonemeTracker(AYAT);
+    advanceTracker(tracker, say(flat(AYAT.slice(0, 6))));
+
+    const progress = advanceTracker(tracker, say(flat(AYAT.slice(3))));
 
     expect(progress.stumbles).toEqual([]);
     expect(progress.finished).toBe(true);
