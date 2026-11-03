@@ -156,6 +156,18 @@ export const PRACTICE_PHONEMES_URL =
 export const PRACTICE_MODEL_STORAGE_KEY = "quran-practice-whisper-model";
 /** When true, every weak word is marked; see `STRICT_WEAK_WORDS_TOLERATED`. */
 export const PRACTICE_STRICT_STORAGE_KEY = "quran-practice-strict";
+/**
+ * Whether strict reciter mode can be chosen at all.
+ *
+ * Kept out of the app until it is ready: it accuses one correct recitation
+ * in sixteen, and the reciters it is for - those who hold every madd its
+ * full length - are graded on it from the emitted symbol, which cannot say
+ * how long a sound was held. A build with VITE_ENABLE_STRICT_RECITER_MODE
+ * set to "true" shows it in Settings again; otherwise it is off, whatever a
+ * device stored while it was offered.
+ */
+export const STRICT_MODE_AVAILABLE =
+  configured.VITE_ENABLE_STRICT_RECITER_MODE === "true";
 /** When true, a wrong word stops the run, sounds, and shows what it should be. */
 export const PRACTICE_STOP_ON_MISTAKE_STORAGE_KEY =
   "quran-practice-stop-on-mistake";

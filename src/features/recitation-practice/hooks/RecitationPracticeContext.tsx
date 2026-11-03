@@ -146,15 +146,18 @@ function readHideAyatPreference(): boolean {
 }
 
 /**
- * On unless turned off: being told which word was wrong is the help.
+ * Off unless turned on.
  *
- * Defaulting it off silently took the sound and the revealed word away from
- * every reader already on a Whisper model, where they had been unconditional.
- * Stored "false" is the only answer that turns it off, so nobody who chose
- * that has it put back.
+ * Measured as the better default: a stumble the cursor gets wrong - the
+ * recogniser mishearing, a stop at a pause mark, a voice in the room - held
+ * a reciter at a word they had said right, for as long as 36 seconds, and
+ * the error sound told them they were wrong. Off, the cursor still waits at
+ * a word it has not heard and the summary still lists it; only the
+ * interruption is gone. Anyone who chose it keeps it: stored "true" is the
+ * only answer that turns it on.
  */
 function readStopOnMistakePreference(): boolean {
-  return safeStorage.getItem(PRACTICE_STOP_ON_MISTAKE_STORAGE_KEY) !== "false";
+  return safeStorage.getItem(PRACTICE_STOP_ON_MISTAKE_STORAGE_KEY) === "true";
 }
 
 /** Off unless asked for: it is a diagnostic, and it reads as nonsense. */

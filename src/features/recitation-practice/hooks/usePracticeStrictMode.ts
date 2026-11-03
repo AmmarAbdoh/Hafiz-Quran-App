@@ -1,5 +1,8 @@
 import { useSyncExternalStore } from "react";
-import { PRACTICE_STRICT_STORAGE_KEY } from "@/features/recitation-practice/model/practiceConfig";
+import {
+  PRACTICE_STRICT_STORAGE_KEY,
+  STRICT_MODE_AVAILABLE,
+} from "@/features/recitation-practice/model/practiceConfig";
 import { createStoredPreference, safeStorage } from "@/shared/storage";
 
 /**
@@ -12,10 +15,14 @@ import { createStoredPreference, safeStorage } from "@/shared/storage";
  * without anything having to be told.
  *
  * Off by default: measured over 3,595 clips it accuses one correct
- * recitation in sixteen. See `STRICT_WEAK_WORDS_TOLERATED`.
+ * recitation in sixteen. See `STRICT_WEAK_WORDS_TOLERATED`. And off
+ * altogether unless the build offers it; see `STRICT_MODE_AVAILABLE`.
  */
 export function readPracticeStrictPreference(): boolean {
-  return safeStorage.getItem(PRACTICE_STRICT_STORAGE_KEY) === "true";
+  return (
+    STRICT_MODE_AVAILABLE &&
+    safeStorage.getItem(PRACTICE_STRICT_STORAGE_KEY) === "true"
+  );
 }
 
 const store = createStoredPreference(readPracticeStrictPreference, (strict) =>

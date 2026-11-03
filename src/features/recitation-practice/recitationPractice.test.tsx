@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, render } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const practiceMocks = vi.hoisted(() => ({
   buildExpectedWords: vi.fn(),
@@ -33,7 +33,10 @@ import {
 import type { PracticeRunOptions, RecitationPracticeValue } from "./contract";
 import type { MushafWord } from "@/domain/quran";
 import type { ZipformerCallbacks } from "./services/zipformerEngine";
-import { VERDICT_TIMEOUT_MS } from "./model/practiceConfig";
+import {
+  PRACTICE_STOP_ON_MISTAKE_STORAGE_KEY,
+  VERDICT_TIMEOUT_MS,
+} from "./model/practiceConfig";
 
 function renderPractice() {
   const view = { current: null as unknown as RecitationPracticeValue };
@@ -426,6 +429,21 @@ describe("a streaming recitation", () => {
     /* Six confident phonemes belonging nowhere on the page: enough for the
        cursor to stop waiting and conclude something else was said. */
     const JUNK = ["ق", "ط", "ب", "ز", "خ", "ص"];
+
+    /* Off unless chosen, so these readers chose it. */
+    beforeEach(() => {
+      window.localStorage.setItem(PRACTICE_STOP_ON_MISTAKE_STORAGE_KEY, "true");
+    });
+
+    it("is off for a reader who never chose it", async () => {
+      window.localStorage.clear();
+      const { practice, callbacks } = await startRun(FOUR_WORDS);
+
+      act(() => callbacks().onUnits(say(JUNK)));
+
+      expect(practice.current.stopOnMistake).toBe(false);
+      expect(practice.current.heldAtLocation).toBeNull();
+    });
 
     it("will not move on while the reciter reads past it", async () => {
       const { practice, callbacks } = await startRun(FOUR_WORDS);

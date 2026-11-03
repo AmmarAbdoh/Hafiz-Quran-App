@@ -12,6 +12,7 @@ import {
   isStreamingPracticeModel,
   PRACTICE_MODEL_OPTIONS,
   PRACTICE_MODEL_URL,
+  STRICT_MODE_AVAILABLE,
 } from "@/features/recitation-practice/model/practiceConfig";
 import { clearWhisperModelCache } from "@/features/recitation-practice/services/clearWhisperModelCache";
 import { requestModelReload } from "@/features/recitation-practice/services/modelReload";
@@ -122,20 +123,22 @@ export function PracticeSettings() {
           {t("practice.disclaimer")}
         </p>
 
-        <div className="flex items-start justify-between gap-4 border-t border-border/80 pt-5">
-          <div>
-            <Label htmlFor={strictId}>{t("practice.strictLabel")}</Label>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              {t("practice.strictHint")}
-            </p>
+        {STRICT_MODE_AVAILABLE && (
+          <div className="flex items-start justify-between gap-4 border-t border-border/80 pt-5">
+            <div>
+              <Label htmlFor={strictId}>{t("practice.strictLabel")}</Label>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                {t("practice.strictHint")}
+              </p>
+            </div>
+            <Switch
+              id={strictId}
+              pressed={strictMode}
+              onPressedChange={setStrictMode}
+              aria-label={t("practice.strictLabel")}
+            />
           </div>
-          <Switch
-            id={strictId}
-            pressed={strictMode}
-            onPressedChange={setStrictMode}
-            aria-label={t("practice.strictLabel")}
-          />
-        </div>
+        )}
         <Button
           size="lg"
           type="button"

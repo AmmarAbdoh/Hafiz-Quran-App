@@ -42,4 +42,29 @@ describe("SettingsPage preferences", () => {
     expect(safeStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
     expect(safeStorage.getItem(STORAGE_KEYS.tafseer)).toBe("4");
   });
+
+  /* Not ready to offer; see `STRICT_MODE_AVAILABLE`. */
+  it("keeps strict reciter mode out of the practice settings", async () => {
+    render(
+      <MemoryRouter>
+        <LocaleProvider>
+          <ThemeProvider>
+            <ReciterProvider>
+              <SettingsPage />
+            </ReciterProvider>
+          </ThemeProvider>
+        </LocaleProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "English" }));
+    await waitFor(() =>
+      expect(screen.getByText("Settings")).toBeInTheDocument(),
+    );
+
+    expect(
+      screen.queryByRole("switch", { name: "Correct me strictly" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Correct me strictly")).not.toBeInTheDocument();
+  });
 });
